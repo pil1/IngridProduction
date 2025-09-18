@@ -1,0 +1,11 @@
+services:
+  frontend:
+    build:
+      context: . # Build context is the current directory (where Dockerfile is)
+      dockerfile: Dockerfile
+      args: # Pass these environment variables as build arguments to the Dockerfile
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL} # Explicitly reference from .env
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY} # Explicitly reference from .env
+    ports:
+      - "4211:80" # Maps host port 4211 to container port 80
+    restart: unless-stopped # Always restart the container unless it's explicitly stopped
