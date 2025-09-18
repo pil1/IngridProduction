@@ -1,5 +1,5 @@
-import { PrismaClient, User, Company } from './generated/prisma';
+import { PrismaClient, User, Company, Expense } from './generated/prisma';
 
 export const prisma = new PrismaClient();
 
-export type { User, Company };
+export type { User, Company, Expense };
