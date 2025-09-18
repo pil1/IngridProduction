@@ -1,0 +1,9 @@
+{
+  "name": "auth",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "next-auth": "^4.24.11",
+    "react": "19.1.0"
+  }
+}
