@@ -2,6 +2,7 @@ import { router, publicProcedure } from './trpc';
 import { createExpenseSchema, updateExpenseSchema } from 'shared/src/schema/expense';
 import { prisma } from 'database';
 import { Decimal } from '@prisma/client/runtime/library';
+import { processDocument, analyzeText } from 'ai';
  
 export const expenseRouter = router({
   list: publicProcedure.query(() => {
@@ -27,5 +28,22 @@ export const expenseRouter = router({
         ...data,
       },
     });
+  }),
+  processReceipt: publicProcedure.input(z.object({ filePath: z.string() })).mutation(async ({ input }) => {
+    const { filePath } = input;
+    // For now, use dummy values for projectId, location, processorId
+    const projectId = "your-gcp-project-id";
+    const location = "us"; // e.g., "us" or "eu"
+    const processorId = "your-processor-id"; // Create a processor in Cloud Console
+
+    const extractedText = await processDocument(projectId, location, processorId, filePath);
+
+    if (!extractedText) {
+      return { success: false, message: "Could not extract text from document." };
+    }
+
+    const analysisResult = await analyzeText(extractedText);
+
+    return { success: true, extractedText, analysisResult };
   }),
 });

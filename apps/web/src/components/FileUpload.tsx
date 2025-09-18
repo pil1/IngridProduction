@@ -2,11 +2,14 @@
 
 import React, { useState } from "react";
 import { Button, Input } from "ui";
+import { trpc } from "@/trpc/client";
 
 export function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+
+  const processReceipt = trpc.expenses.processReceipt.useMutation();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -36,6 +39,8 @@ export function FileUpload() {
 
       if (data.success) {
         setMessage(`File uploaded successfully: ${data.filePath}`);
+        const result = await processReceipt.mutateAsync({ filePath: data.filePath });
+        setMessage(result.message || `Extracted text: ${result.extractedText}`);
       } else {
         setMessage(`File upload failed: ${data.message}`);
       }
