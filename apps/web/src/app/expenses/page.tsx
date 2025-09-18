@@ -4,6 +4,7 @@ import { trpc } from "@/trpc/client";
 import { ExpenseForm } from "./ExpenseForm";
 import { z } from "zod";
 import { createExpenseSchema, updateExpenseSchema } from "shared/src/schema/expense";
+import { FileUpload } from "@/components/FileUpload";
 
 export default function ExpensesPage() {
   const { data: expenses, isLoading, refetch } = trpc.expenses.list.useQuery();
@@ -37,6 +38,9 @@ export default function ExpensesPage() {
       <h1 className="text-2xl font-bold">Expenses</h1>
       <div className="mt-4">
         <ExpenseForm onSubmit={handleCreateExpense} />
+      </div>
+      <div className="mt-4">
+        <FileUpload />
       </div>
       <div className="mt-4">
         {expenses?.map((expense) => (
