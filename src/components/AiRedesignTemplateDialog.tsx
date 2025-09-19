@@ -63,10 +63,11 @@ const AiRedesignTemplateDialog = ({
       onOpenChange(false);
       setUserInstructions(""); // Clear instructions
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred during AI redesign.";
       toast({
         title: "Error Redesigning Template",
-        description: error.message ?? "An unexpected error occurred during AI redesign.",
+        description: errorMessage,
         variant: "destructive",
       });
     },

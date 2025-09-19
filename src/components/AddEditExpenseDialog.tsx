@@ -141,9 +141,10 @@ const AddEditExpenseDialog = ({
           .single();
         if (error && error.code !== 'PGRST116') throw error;
         return data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle missing module_configurations table gracefully
-        if (error.code === 'PGRST205' || error.status === 406) {
+        const dbError = error as { code?: string; status?: number };
+        if (dbError.code === 'PGRST205' || dbError.status === 406) {
           console.warn('Module configurations table not found - using default field settings');
           return null;
         }
@@ -269,7 +270,7 @@ const AddEditExpenseDialog = ({
       if (error) throw error;
       return data;
     },
-    enabled: !!currentCompanyId && ['admin', 'controller', 'super-admin'].includes(userRole || ''),
+    enabled: !!currentCompanyId && ['admin', 'controller', 'super-admin'].includes(userRole ?? ''),
   });
 
   // Reset form when dialog opens/closes or editing expense changes
@@ -352,7 +353,7 @@ const AddEditExpenseDialog = ({
       let receiptFileName: string | null = null;
       let receiptMimeType: string | null = null;
       let aiExtractedText: string | null = null;
-      let aiRawJson: any = null;
+      let aiRawJson: Record<string, unknown> | null = null;
       let textHash: string | null = null;
       let documentTypeClassification: string | null = null;
       let documentTypeConfidence: number | null = null;
@@ -495,10 +496,11 @@ const AddEditExpenseDialog = ({
       onOpenChange(false);
       onSuccess?.();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
       toast({
         title: `Error ${currentSubmissionType === 'draft' ? 'saving draft' : 'submitting expense'}`,
-        description: error.message ?? "An unexpected error occurred.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -513,7 +515,7 @@ const AddEditExpenseDialog = ({
       let receiptFileName: string | null = editingExpense.receipts?.[0]?.file_name ?? null;
       let receiptMimeType: string | null = editingExpense.receipts?.[0]?.mime_type ?? null;
       let aiExtractedText: string | null = editingExpense.receipts?.[0]?.ai_extracted_text ?? null;
-      let aiRawJson: any = editingExpense.receipts?.[0]?.ai_raw_json ?? null;
+      let aiRawJson: Record<string, unknown> | null = editingExpense.receipts?.[0]?.ai_raw_json ?? null;
       let textHash: string | null = editingExpense.receipts?.[0]?.text_hash ?? null;
       let documentTypeClassification: string | null = editingExpense.receipts?.[0]?.document_type_classification ?? null;
       let documentTypeConfidence: number | null = editingExpense.receipts?.[0]?.document_type_confidence ?? null;
@@ -671,16 +673,17 @@ const AddEditExpenseDialog = ({
       onOpenChange(false);
       onSuccess?.();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
       toast({
         title: `Error ${currentSubmissionType === 'draft' ? 'saving draft' : 'submitting expense'}`,
-        description: error.message ?? "An unexpected error occurred.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
-  const handleAiAnalysisComplete = (result: any, file: File, previewUrl: string) => {
+  const handleAiAnalysisComplete = (result: Record<string, unknown>, file: File, previewUrl: string) => {
     setAiAnalysisResult(result);
     setUploadedFile(file);
     setReceiptPreviewUrl(previewUrl);
