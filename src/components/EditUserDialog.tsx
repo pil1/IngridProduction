@@ -181,7 +181,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
         .update({
           first_name: values.first_name,
           last_name: values.last_name,
-          full_name: (values.first_name || '') + ' ' + (values.last_name || ''),
+          full_name: (values.first_name ?? '') + ' ' + (values.last_name ?? ''),
           role: values.role,
           company_id: targetCompanyId,
           status: newStatus, // Update status
@@ -193,18 +193,18 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
 
       // Send notification if status changed
       if (oldStatus !== newStatus && editingUser.company_id) {
-        const companyName = companies?.find(c => c.id === editingUser.company_id)?.name || 'Your Company';
+        const companyName = companies?.find(c => c.id === editingUser.company_id)?.name ?? 'Your Company';
         await supabase.functions.invoke('send-email', {
           body: {
             template_name: 'user_status_updated',
             recipient_email: currentUserProfile.email, // Send to the admin who performed the action
             template_variables: {
-              admin_name: currentUserProfile.first_name || currentUserProfile.full_name || currentUserProfile.email,
+              admin_name: currentUserProfile.first_name ?? currentUserProfile.full_name ?? currentUserProfile.email,
               company_name: companyName,
-              target_user_name: editingUser.full_name || `${editingUser.first_name} ${editingUser.last_name}`,
+              target_user_name: editingUser.full_name ?? `${editingUser.first_name} ${editingUser.last_name}`,
               target_user_email: editingUser.email,
               new_status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
-              performed_by_name: currentUserProfile.full_name || currentUserProfile.email,
+              performed_by_name: currentUserProfile.full_name ?? currentUserProfile.email,
               performed_by_email: currentUserProfile.email,
               users_link: `${window.location.origin}/users`,
               year: new Date().getFullYear(),
@@ -220,7 +220,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
       queryClient.invalidateQueries({ queryKey: ["userModules", editingUser.user_id] }); // Invalidate user modules
       toast({
         title: "User Updated",
-        description: `Profile for ${editingUser.full_name || editingUser.email} has been updated.`,
+        description: `Profile for ${editingUser.full_name ?? editingUser.email} has been updated.`,
       });
       onOpenChange(false);
     },

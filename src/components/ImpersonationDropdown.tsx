@@ -157,7 +157,7 @@ const ImpersonationDropdown = ({ isSidebarCollapsed }: ImpersonationDropdownProp
                 <SelectContent>
                   {filteredProfiles?.map(profile => (
                     <SelectItem key={profile.user_id} value={profile.user_id}>
-                      {profile.full_name || profile.email} ({profile.role})
+                      {profile.full_name ?? profile.email} ({profile.role})
                     </SelectItem>
                   ))}
                 </SelectContent>

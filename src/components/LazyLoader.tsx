@@ -40,7 +40,7 @@ export const LazyLoader: React.FC<LazyLoaderProps> = ({
   }, [minDelay]);
 
   const fallbackComponent = showFallback ? (
-    fallback || <DefaultLoader componentName={componentName} />
+    fallback ?? <DefaultLoader componentName={componentName} />
   ) : (
     <div className="min-h-[200px]" /> // Invisible placeholder to prevent layout shift
   );
@@ -63,7 +63,7 @@ export function withLazyLoader<P extends object>(
     componentName?: string;
   }
 ) {
-  return React.forwardRef<any, P>((props, ref) => (
+  return React.forwardRef<unknown, P>((props, ref) => (
     <LazyLoader {...options}>
       <Component {...props} ref={ref} />
     </LazyLoader>
@@ -74,7 +74,7 @@ export function withLazyLoader<P extends object>(
  * Preload a lazy component to improve perceived performance
  */
 export async function preloadComponent(
-  componentLoader: () => Promise<any>
+  componentLoader: () => Promise<unknown>
 ): Promise<void> {
   try {
     await componentLoader();
@@ -87,8 +87,8 @@ export async function preloadComponent(
  * Hook to preload components on user interaction hints
  */
 export function usePreloadOnHover(
-  componentLoader: () => Promise<any>,
-  enabled: boolean = true
+  componentLoader: () => Promise<unknown>,
+  enabled = true
 ) {
   const [hasPreloaded, setHasPreloaded] = useState(false);
 

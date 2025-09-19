@@ -96,7 +96,7 @@ const ExpenseSummaryCard: React.FC<ExpenseSummaryCardProps> = ({ expense, fieldC
             )}
           </div>
         )}
-        {(isFieldVisible("project_code") || isFieldVisible("cost_center")) && (expense.description || expense.receipt_summary) && <Separator />}
+        {(isFieldVisible("project_code") || isFieldVisible("cost_center")) && (expense.description ?? expense.receipt_summary) && <Separator />}
 
         {isFieldVisible("description") && expense.description && (
           <>

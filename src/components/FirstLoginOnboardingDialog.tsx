@@ -157,8 +157,9 @@ const FirstLoginOnboardingDialog = () => {
       toast({ title: "Profile Saved", description: "Your profile details have been updated." });
       setProfileAvatarFile(null);
     },
-    onError: (error: any) => {
-      toast({ title: "Error Saving Profile", description: error.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save profile";
+      toast({ title: "Error Saving Profile", description: errorMessage, variant: "destructive" });
     },
   });
 
@@ -275,8 +276,9 @@ const FirstLoginOnboardingDialog = () => {
       toast({ title: "Company Saved", description: "Your company details have been updated." });
       setCompanyLogoFile(null);
     },
-    onError: (error: any) => {
-      toast({ title: "Error Saving Company", description: error.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save company";
+      toast({ title: "Error Saving Company", description: errorMessage, variant: "destructive" });
     },
   });
 
