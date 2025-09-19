@@ -174,9 +174,9 @@ deploy_application() {
     local attempt=1
 
     while [[ $attempt -le $max_attempts ]]; do
-        if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+        if curl -f http://localhost:4211/health > /dev/null 2>&1; then
             log "✅ Application is running successfully!"
-            log "Container is available at: http://localhost:8080"
+            log "Container is available at: http://localhost:4211"
             return 0
         fi
 
@@ -219,7 +219,7 @@ main() {
     echo "1. Edit environment file: nano $APP_DIR/.env.production"
     echo "2. Redeploy if needed: cd $APP_DIR && docker-compose -f docker-compose.prod.yml up -d --build"
     echo "3. View logs: docker-compose -f $APP_DIR/docker-compose.prod.yml logs"
-    echo "4. Container runs on: http://localhost:8080"
+    echo "4. Container runs on: http://localhost:4211"
     echo
     echo -e "${BLUE}Useful commands:${NC}"
     echo "- Stop: docker-compose -f $APP_DIR/docker-compose.prod.yml down"

@@ -64,7 +64,7 @@ system_health() {
 
     # Application health
     echo -e "\nApplication Health:"
-    if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+    if curl -f http://localhost:4211/health > /dev/null 2>&1; then
         log "✅ Application responding"
     else
         error "❌ Application not responding"
@@ -248,7 +248,7 @@ restart() {
     sleep 15
 
     # Health check
-    if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+    if curl -f http://localhost:4211/health > /dev/null 2>&1; then
         log "✅ Application restarted successfully"
     else
         error "❌ Application failed to start after restart"

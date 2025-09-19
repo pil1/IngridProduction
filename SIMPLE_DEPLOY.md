@@ -61,7 +61,7 @@ sudo docker-compose -f docker-compose.prod.yml up -d --build
 ## 📱 Container Details
 
 - **Location:** `/opt/infotrac`
-- **Port:** `8080` (http://localhost:8080)
+- **Port:** `4211` (http://localhost:4211)
 - **Container Name:** `infotrac-frontend`
 - **Compose File:** `docker-compose.prod.yml`
 
@@ -93,7 +93,7 @@ sudo GITHUB_TOKEN="your_pat" /opt/infotrac/scripts/simple-deploy.sh
 
 ```bash
 # Test application
-curl http://localhost:8080/health
+curl http://localhost:4211/health
 
 # Container stats
 docker stats infotrac-frontend
@@ -117,15 +117,15 @@ sudo docker-compose -f docker-compose.prod.yml up -d --build
 
 Since you manage your own infrastructure, you'll need to:
 
-1. **Reverse Proxy:** Point your Nginx to `http://localhost:8080`
+1. **Reverse Proxy:** Point your Nginx to `http://localhost:4211`
 2. **SSL:** Handle SSL termination in your Nginx
-3. **Firewall:** Ensure port 8080 is accessible from your reverse proxy
+3. **Firewall:** Ensure port 4211 is accessible from your reverse proxy
 4. **Domain:** Configure your DNS and Nginx virtual host
 
 Example Nginx configuration snippet:
 ```nginx
 location / {
-    proxy_pass http://localhost:8080;
+    proxy_pass http://localhost:4211;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -245,7 +245,7 @@ server {
 
     # Proxy to Docker container
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:4211;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -266,7 +266,7 @@ server {
 
     # Health check
     location /health {
-        proxy_pass http://localhost:8080/health;
+        proxy_pass http://localhost:4211/health;
         access_log off;
     }
 }
@@ -426,7 +426,7 @@ deploy_application() {
     sleep 30
 
     # Health check
-    if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+    if curl -f http://localhost:4211/health > /dev/null 2>&1; then
         log "Application is running successfully!"
     else
         warn "Application may not be responding. Check logs:"
