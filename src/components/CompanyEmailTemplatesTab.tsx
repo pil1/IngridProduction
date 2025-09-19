@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,7 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import RichTextEditor from "@/components/RichTextEditor";
+// Lazy load RichTextEditor to reduce bundle size
+const RichTextEditor = lazy(() => import("@/components/RichTextEditor"));
 import mustache from "mustache";
 import TemplateSuggestionsDialog, { TemplateSuggestion } from "./TemplateSuggestionsDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select
@@ -164,7 +165,7 @@ const CompanyEmailTemplatesTab = ({ companyId }: CompanyEmailTemplatesTabProps) 
         name: editingTemplate.name,
         subject: editingTemplate.subject,
         body: editingTemplate.body,
-        description: editingTemplate.description || "",
+        description: editingTemplate.description ?? "",
       } : { name: "", subject: "", body: `
         <p>Hello,</p>
         <p>This is a notification from your company, <% company_name %>.</p>
@@ -452,12 +453,14 @@ const CompanyEmailTemplatesTab = ({ companyId }: CompanyEmailTemplatesTabProps) 
                       <Label htmlFor="body" className="flex items-center gap-1">
                         Body <span className="text-xs text-muted-foreground">(HTML)</span>
                       </Label>
-                      <RichTextEditor
-                        value={form.watch("body")}
-                        onChange={(value) => form.setValue("body", value)}
-                        placeholder="Enter email body HTML here. Use placeholders like <% user_name %>."
-                        disabled={isActionPending}
-                      />
+                      <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+                        <RichTextEditor
+                          value={form.watch("body")}
+                          onChange={(value) => form.setValue("body", value)}
+                          placeholder="Enter email body HTML here. Use placeholders like <% user_name %>."
+                          disabled={isActionPending}
+                        />
+                      </Suspense>
                       <p className="text-xs text-muted-foreground mt-1">
                         Use placeholders like `&lt;% admin_name %&gt;`, `&lt;% company_name %&gt;` for dynamic content.
                       </p>
@@ -563,7 +566,7 @@ const CompanyEmailTemplatesTab = ({ companyId }: CompanyEmailTemplatesTabProps) 
                   <TableRow key={template.id}>
                     <TableCell className="font-medium">{template.name}</TableCell>
                     <TableCell>{template.subject}</TableCell>
-                    <TableCell>{template.description || "N/A"}</TableCell>
+                    <TableCell>{template.description ?? "N/A"}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(template)}><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(template)}><Trash2 className="h-4 w-4" /></Button>

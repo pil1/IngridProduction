@@ -77,7 +77,7 @@ const SystemModulesPage = () => {
   });
 
   // Find the actual editing module object based on editingModuleId
-  const editingModule = modules?.find(m => m.id === editingModuleId) || null;
+  const editingModule = modules?.find(m => m.id === editingModuleId) ?? null;
 
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleSchema),
@@ -96,7 +96,7 @@ const SystemModulesPage = () => {
       console.log("Dialog opened/reset. Editing module:", editingModule); // ADDED LOG
       form.reset(editingModule ? {
         name: editingModule.name,
-        description: editingModule.description || "",
+        description: editingModule.description ?? "",
         is_active: editingModule.is_active,
         default_monthly_price: editingModule.default_monthly_price,
         default_per_user_price: editingModule.default_per_user_price,
@@ -143,7 +143,7 @@ const SystemModulesPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error saving module",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -347,7 +347,7 @@ const SystemModulesPage = () => {
                 modules?.map((module) => (
                   <TableRow key={module.id}>
                     <TableCell className="font-medium">{module.name}</TableCell>
-                    <TableCell>{module.description || "N/A"}</TableCell>
+                    <TableCell>{module.description ?? "N/A"}</TableCell>
                     <TableCell>{module.module_type.charAt(0).toUpperCase() + module.module_type.slice(1)} Module</TableCell>
                     <TableCell className="text-center">{module.is_active ? "Yes" : "No"}</TableCell>
                     <TableCell className="text-right space-x-2">

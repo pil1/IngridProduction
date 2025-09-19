@@ -28,11 +28,11 @@ const AvatarUpload = ({
 
   useEffect(() => {
     // When currentAvatarUrl changes (e.g., after saving), update the preview
-    setPreview(currentAvatarUrl || null);
+    setPreview(currentAvatarUrl ?? null);
   }, [currentAvatarUrl]);
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], fileRejections: any[]) => {
+    (acceptedFiles: File[], fileRejections: unknown[]) => {
       setError(null);
       if (fileRejections.length > 0) {
         setError("Invalid file type or size. Please upload an image (max 2MB).");
@@ -74,7 +74,7 @@ const AvatarUpload = ({
   const handleClearFile = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     onFileSelected(null);
-    setPreview(currentAvatarUrl || null); // Revert to current URL or null
+    setPreview(currentAvatarUrl ?? null); // Revert to current URL or null
     setError(null);
   };
 
@@ -94,7 +94,7 @@ const AvatarUpload = ({
         >
           <input {...getInputProps()} />
           <Avatar className="h-20 w-20">
-            <AvatarImage src={preview || undefined} alt="Avatar Preview" />
+            <AvatarImage src={preview ?? undefined} alt="Avatar Preview" />
             <AvatarFallback className="bg-muted-foreground/20">
               {isLoading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

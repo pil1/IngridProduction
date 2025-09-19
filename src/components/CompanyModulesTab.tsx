@@ -125,7 +125,7 @@ const CompanyModulesTab = ({ companyId }: CompanyModulesTabProps) => {
         const companyMod = companyModuleSettings.find(cm => cm.module_id === sysMod.id);
         return {
           module_id: sysMod.id,
-          is_enabled: companyMod?.is_enabled || false,
+          is_enabled: companyMod?.is_enabled ?? false,
           monthly_price: companyMod?.monthly_price ?? sysMod.default_monthly_price ?? 0,
           per_user_price: companyMod?.per_user_price ?? sysMod.default_per_user_price ?? 0,
           is_locked_by_system: companyMod?.is_locked_by_system ?? (sysMod.module_type === 'core'), // Use module_type for locked status
@@ -203,7 +203,7 @@ const CompanyModulesTab = ({ companyId }: CompanyModulesTabProps) => {
       return {
         ...moduleSetting,
         systemModuleName: systemModule?.name || '',
-        description: systemModule?.description || null,
+        description: systemModule?.description ?? null,
         module_type: systemModule?.module_type || 'add-on', // Ensure module_type is present
       };
     });
@@ -294,7 +294,7 @@ const CompanyModulesTab = ({ companyId }: CompanyModulesTabProps) => {
               return (
                 <TableRow key={moduleSetting.module_id}>
                   <TableCell className="font-medium">{systemModule.name}</TableCell>
-                  <TableCell>{systemModule.description || "N/A"}</TableCell>
+                  <TableCell>{systemModule.description ?? "N/A"}</TableCell>
                   {!hideEnabledColumn && ( // Conditionally render
                     <TableCell>
                       <Checkbox

@@ -26,7 +26,7 @@ import { // All AlertDialog imports are now used
 import FormattedCurrencyDisplay from "@/components/FormattedCurrencyDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"; // For receipt viewer
 import { Expense, ExpenseComment, ExpenseAuditLog, Receipt, ExpenseLineItem } from "@/types/expenses"; // Imported Receipt, ExpenseLineItem
-import PdfViewer from "@/components/PdfViewer"; // Import the new PdfViewer component
+import { LazyPdfViewer } from "@/components/LazyPdfViewer";
 
 // Define the structure for field settings
 interface FieldSetting {
@@ -84,24 +84,34 @@ const ExpenseDetailPage = () => {
         .eq("name", "Expense Management")
         .single();
       if (error && error.code !== 'PGRST116') throw error;
-      return data?.id || null;
+      return data?.id ?? null;
     },
   });
 
   // 2. Fetch Expense Management Configuration for the current company (controller fields)
   const { data: expenseModuleConfig, isLoading: isLoadingConfig } = useQuery<{ settings: { controller_fields: Record<string, FieldSetting> } } | null>({
     queryKey: ["expenseModuleControllerConfig", currentCompanyId, expenseModuleId],
+    retry: false, // Don't retry to avoid 406 errors causing Suspense issues
     queryFn: async () => {
       if (!currentCompanyId || !expenseModuleId) return null;
-      const { data, error } = await supabase
-        .from("module_configurations")
-        .select("settings")
-        .eq("company_id", currentCompanyId)
-        .eq("module_id", expenseModuleId)
-        .eq("config_key", "expense_management_fields")
-        .single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("module_configurations")
+          .select("settings")
+          .eq("company_id", currentCompanyId)
+          .eq("module_id", expenseModuleId)
+          .eq("config_key", "expense_management_fields")
+          .single();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error: any) {
+        // Handle missing module_configurations table gracefully
+        if (error.code === 'PGRST205' || error.status === 406) {
+          console.warn('Module configurations table not found - using default field settings');
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: !!currentCompanyId && !!expenseModuleId && !isLoadingSession,
   });
@@ -126,9 +136,9 @@ const ExpenseDetailPage = () => {
       // Manually flatten nested objects into the main Expense object
       return {
         ...data,
-        category_name: data.expense_categories?.name || null,
-        gl_account_code: data.gl_accounts?.account_code || null,
-        gl_account_name: data.gl_accounts?.account_name || null,
+        category_name: data.expense_categories?.name ?? null,
+        gl_account_code: data.gl_accounts?.account_code ?? null,
+        gl_account_name: data.gl_accounts?.account_name ?? null,
       } as Expense;
     },
     enabled: !!id,
@@ -197,7 +207,7 @@ const ExpenseDetailPage = () => {
     },
     enabled: !!expenseData?.company_id,
   });
-  const companyBaseCurrencyCode = companyDefaultCurrencyData?.default_currency || "USD";
+  const companyBaseCurrencyCode = companyDefaultCurrencyData?.default_currency ?? "USD";
 
 
   // Combine expense data with fetched profiles for rendering
@@ -258,7 +268,7 @@ const ExpenseDetailPage = () => {
         body: { expense_id: id },
       });
       if (error) throw error;
-      return data.duplicates || [];
+      return data.duplicates ?? [];
     },
     enabled: !!id && !!canViewCompanyDuplicates, // Explicitly boolean
   });
@@ -353,7 +363,7 @@ const ExpenseDetailPage = () => {
 
   // Helper to get field visibility and required status for controllers
   const getControllerFieldConfig = (fieldKey: string): FieldSetting => {
-    return expenseModuleConfig?.settings?.controller_fields?.[fieldKey] || { visible: true, required: false }; // Default to visible, not required
+    return expenseModuleConfig?.settings?.controller_fields?.[fieldKey] ?? { visible: true, required: false }; // Default to visible, not required
   };
 
   const isLoadingPage = isLoadingSession || isLoadingExpenseModuleId || isLoadingConfig || isLoadingExpense || isLoadingSubmitterProfile || isLoadingReviewerProfile || isLoadingControllerProfile || isLoadingCompanyDefaultCurrency || isLoadingComments || isLoadingAuditLog || isLoadingCompanyDuplicates;
@@ -399,7 +409,7 @@ const ExpenseDetailPage = () => {
               </span>
             </CardTitle>
             <CardDescription>
-              Submitted by {expense.submitter_profile?.full_name || expense.submitter_profile?.email} on {format(new Date(expense.created_at), "PPP")}
+              Submitted by {expense.submitter_profile?.full_name ?? expense.submitter_profile?.email} on {format(new Date(expense.created_at), "PPP")}
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -468,7 +478,7 @@ const ExpenseDetailPage = () => {
               {getControllerFieldConfig("vendor_name").visible && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Vendor Name</p>
-                  <p>{expense.vendor_name || "N/A"}</p>
+                  <p>{expense.vendor_name ?? "N/A"}</p>
                 </div>
               )}
             </div>
@@ -477,12 +487,12 @@ const ExpenseDetailPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Merchant Address</p>
-                <p>{expense.merchant_address || "N/A"}</p>
+                <p>{expense.merchant_address ?? "N/A"}</p>
               </div>
               {getControllerFieldConfig("receipt_summary").visible && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Receipt Summary</p>
-                  <p>{expense.receipt_summary || "N/A"}</p>
+                  <p>{expense.receipt_summary ?? "N/A"}</p>
                 </div>
               )}
             </div>
@@ -491,7 +501,7 @@ const ExpenseDetailPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Category</p>
-                <p>{expense.category_name || "N/A"}</p> {/* Fixed: Use flattened category_name */}
+                <p>{expense.category_name ?? "N/A"}</p> {/* Fixed: Use flattened category_name */}
               </div>
               {getControllerFieldConfig("gl_account_id").visible && (
                 <div>
@@ -505,12 +515,12 @@ const ExpenseDetailPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Project Code</p>
-                <p>{expense.project_code || "N/A"}</p>
+                <p>{expense.project_code ?? "N/A"}</p>
               </div>
               {getControllerFieldConfig("cost_center").visible && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Cost Center</p>
-                  <p>{expense.cost_center || "N/A"}</p>
+                  <p>{expense.cost_center ?? "N/A"}</p>
                 </div>
               )}
             </div>
@@ -593,7 +603,7 @@ const ExpenseDetailPage = () => {
                     {expense.expense_line_items.map((item: ExpenseLineItem) => (
                       <tr key={item.id} className="border-t">
                         <td className="p-2">{item.description}</td>
-                        <td className="text-right p-2">{item.quantity || "N/A"}</td>
+                        <td className="text-right p-2">{item.quantity ?? "N/A"}</td>
                         <td className="text-right p-2">
                           <FormattedCurrencyDisplay amount={item.unit_price} currencyCode={item.currency_code} />
                         </td>
@@ -614,10 +624,10 @@ const ExpenseDetailPage = () => {
               <Separator />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Review Details</p>
-                {expense.reviewer_profile && <p>Reviewed by: {expense.reviewer_profile.full_name || expense.reviewer_profile.email}</p>}
+                {expense.reviewer_profile && <p>Reviewed by: {expense.reviewer_profile.full_name ?? expense.reviewer_profile.email}</p>}
                 {expense.reviewed_at && <p>Reviewed at: {format(new Date(expense.reviewed_at), "PPP p")}</p>}
                 {expense.review_notes && <p>Review Notes: {expense.review_notes}</p>}
-                {expense.controller_profile && <p>Controller: {expense.controller_profile.full_name || expense.controller_profile.email}</p>}
+                {expense.controller_profile && <p>Controller: {expense.controller_profile.full_name ?? expense.controller_profile.email}</p>}
                 {expense.controller_notes && <p>Controller Notes: {expense.controller_notes}</p>}
                 {expense.approved_at && <p>Approved at: {format(new Date(expense.approved_at), "PPP p")}</p>}
               </div>
@@ -625,7 +635,7 @@ const ExpenseDetailPage = () => {
           )}
 
           {/* Company-Wide Duplicates Section (for controllers) */}
-          {canViewCompanyDuplicates && (companyDuplicates || []).length > 0 && (
+          {canViewCompanyDuplicates && (companyDuplicates ?? []).length > 0 && (
             <>
               <Separator />
               <Card className="border-orange-300 bg-orange-50/50 dark:bg-orange-950/20">
@@ -637,7 +647,7 @@ const ExpenseDetailPage = () => {
                   Other receipts in your company with the same content hash. Review these carefully.
                 </CardDescription>
                 <CardContent className="pt-4 grid gap-3">
-                  {(companyDuplicates || []).map((dup: CompanyDuplicateReceipt) => (
+                  {(companyDuplicates ?? []).map((dup: CompanyDuplicateReceipt) => (
                     <div key={dup.receipt_id} className="flex items-center justify-between p-3 border rounded-md bg-background">
                       <div className="flex flex-col">
                         <Link to={`/expenses/${dup.expense_id}`} className="font-medium text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
@@ -674,7 +684,7 @@ const ExpenseDetailPage = () => {
               comments?.map((comment: ExpenseComment) => (
                 <div key={comment.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                   <p className="text-sm font-medium">
-                    {comment.profiles?.full_name || comment.profiles?.email}
+                    {comment.profiles?.full_name ?? comment.profiles?.email}
                     {comment.is_internal && <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">Internal</span>}
                   </p>
                   <p className="text-sm text-muted-foreground">{comment.comment}</p>
@@ -717,7 +727,7 @@ const ExpenseDetailPage = () => {
               auditLog?.map((log: ExpenseAuditLog) => (
                 <div key={log.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                   <p className="text-sm font-medium">
-                    {log.action.charAt(0).toUpperCase() + log.action.slice(1)} by {log.profiles?.full_name || log.profiles?.email}
+                    {log.action.charAt(0).toUpperCase() + log.action.slice(1)} by {log.profiles?.full_name ?? log.profiles?.email}
                   </p>
                   {log.old_status && log.new_status && (
                     <p className="text-sm text-muted-foreground">
@@ -802,7 +812,7 @@ const ExpenseDetailPage = () => {
       <Dialog open={isReceiptViewerOpen} onOpenChange={setIsReceiptViewerOpen}>
         <DialogContent className="sm:max-w-[90vw] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Receipt: {expense?.receipts?.[0]?.file_name || "View Receipt"}</DialogTitle>
+            <DialogTitle>Receipt: {expense?.receipts?.[0]?.file_name ?? "View Receipt"}</DialogTitle>
             <DialogDescription>
               {currentReceiptMimeType?.startsWith('image/') ? "Image preview" : "PDF document"}
             </DialogDescription>
@@ -812,7 +822,7 @@ const ExpenseDetailPage = () => {
               <img src={currentReceiptUrl} alt="Receipt" className="max-w-full max-h-full object-contain" />
             )}
             {signedPdfUrl && currentReceiptMimeType === 'application/pdf' && (
-              <PdfViewer pdfUrl={signedPdfUrl} />
+              <LazyPdfViewer pdfUrl={signedPdfUrl} />
             )}
             {!currentReceiptUrl && !signedPdfUrl && <p className="text-muted-foreground">No receipt to display.</p>}
           </div>

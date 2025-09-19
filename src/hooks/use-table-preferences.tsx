@@ -24,25 +24,45 @@ export function useTablePreferences(tableId: string) {
   // State for local column widths, initialized from query data
   const [localColumnWidths, setLocalColumnWidths] = useState<ColumnWidths>({});
 
-  // Fetch existing preferences
+  // Fetch existing preferences with graceful error handling
   const { data: preferences, isLoading: isLoadingPreferences } = useQuery<UserTablePreferences | null>({
     queryKey: ["userTablePreferences", userId, tableId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase
-        .from("user_table_preferences")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("table_id", tableId)
-        .single();
-      if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found"
-        console.error(`Error fetching table preferences for ${tableId}:`, error);
+      try {
+        const { data, error } = await supabase
+          .from("user_table_preferences")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("table_id", tableId)
+          .single();
+
+        if (error) {
+          // Handle "no rows found" gracefully
+          if (error.code === 'PGRST116') {
+            return null; // No preferences found, return null
+          }
+          // Handle table doesn't exist error
+          if (error.message?.includes('relation "public.user_table_preferences" does not exist') ||
+              error.code === '42P01') {
+            console.warn('User table preferences table not found, using defaults');
+            return null;
+          }
+          throw error;
+        }
+        return data;
+      } catch (error: any) {
+        // Handle network or other errors gracefully
+        if (error.message?.includes('404') || error.message?.includes('relation') || error.code === '42P01') {
+          console.warn('User table preferences not available, using defaults:', error);
+          return null;
+        }
         throw error;
       }
-      return data;
     },
     enabled: !!userId && !isLoadingSession,
     staleTime: Infinity, // Preferences don't change often
+    retry: false, // Don't retry if table doesn't exist
   });
 
   // Initialize local state when preferences are loaded
@@ -54,7 +74,7 @@ export function useTablePreferences(tableId: string) {
     }
   }, [preferences]);
 
-  // Mutation to save preferences
+  // Mutation to save preferences with error handling
   const savePreferencesMutation = useMutation({
     mutationFn: async (newWidths: ColumnWidths) => {
       if (!userId) throw new Error("User not authenticated.");
@@ -65,20 +85,42 @@ export function useTablePreferences(tableId: string) {
         column_widths: newWidths,
       };
 
-      const { data, error } = await supabase
-        .from("user_table_preferences")
-        .upsert(payload, { onConflict: "user_id, table_id" })
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("user_table_preferences")
+          .upsert(payload, { onConflict: "user_id, table_id" })
+          .select()
+          .single();
 
-      if (error) {
-        console.error(`Error saving table preferences for ${tableId}:`, error);
+        if (error) {
+          // Handle table doesn't exist error silently
+          if (error.message?.includes('relation "public.user_table_preferences" does not exist') ||
+              error.code === '42P01') {
+            console.warn('Cannot save table preferences - table not available');
+            return null;
+          }
+          throw error;
+        }
+        return data;
+      } catch (error: any) {
+        // Handle network or other errors gracefully
+        if (error.message?.includes('404') || error.message?.includes('relation') || error.code === '42P01') {
+          console.warn('Cannot save table preferences - table not available:', error);
+          return null;
+        }
         throw error;
       }
-      return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["userTablePreferences", userId, tableId], data);
+      if (data) {
+        queryClient.setQueryData(["userTablePreferences", userId, tableId], data);
+      }
+    },
+    onError: (error: any) => {
+      // Silently handle table not found errors
+      if (!error.message?.includes('404') && !error.message?.includes('relation')) {
+        console.error(`Error saving table preferences for ${tableId}:`, error);
+      }
     },
   });
 

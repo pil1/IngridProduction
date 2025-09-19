@@ -80,7 +80,7 @@ const ImpersonationDropdown = ({ isSidebarCollapsed }: ImpersonationDropdownProp
   // Set initial dropdown values if already impersonating
   useEffect(() => {
     if (impersonatedProfile) {
-      setSelectedCompanyId(impersonatedProfile.company_id || undefined);
+      setSelectedCompanyId(impersonatedProfile.company_id ?? undefined);
       setSelectedUserId(impersonatedProfile.user_id);
     } else {
       setSelectedCompanyId(undefined);
@@ -128,7 +128,7 @@ const ImpersonationDropdown = ({ isSidebarCollapsed }: ImpersonationDropdownProp
             <div className="grid gap-1">
               <Label htmlFor="impersonate-company" className="text-xs text-muted-foreground">Company</Label>
               <Select
-                value={selectedCompanyId || ""}
+                value={selectedCompanyId ?? ""}
                 onValueChange={setSelectedCompanyId}
                 disabled={isLoadingData}
               >
@@ -147,7 +147,7 @@ const ImpersonationDropdown = ({ isSidebarCollapsed }: ImpersonationDropdownProp
             <div className="grid gap-1">
               <Label htmlFor="impersonate-user" className="text-xs text-muted-foreground">User</Label>
               <Select
-                value={selectedUserId || ""}
+                value={selectedUserId ?? ""}
                 onValueChange={setSelectedUserId}
                 disabled={isLoadingData || !selectedCompanyId}
               >

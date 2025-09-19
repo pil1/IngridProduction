@@ -9,7 +9,7 @@ export const useExpensesWithSubmitter = (companyId?: string) => {
     queryKey: ["expenses-with-submitter", companyId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_expenses_with_submitter", {
-        company_id_param: companyId || null,
+        company_id_param: companyId ?? null,
       });
 
       if (error) {

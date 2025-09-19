@@ -6,7 +6,7 @@ export interface Receipt {
   file_name: string;
   mime_type: string;
   ai_extracted_text: string | null;
-  ai_raw_json: any | null;
+  ai_raw_json: Record<string, unknown> | null;
   text_hash: string | null; // Added for duplicate detection
   document_type_classification: string | null; // Added for AI document type classification
   document_type_confidence: number | null; // Added for AI document type confidence

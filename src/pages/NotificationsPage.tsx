@@ -30,6 +30,25 @@ interface ExpenseNotification {
   expenses: { title: string } | null;
 }
 
+// Type for table row rendering dynamic props
+type NotificationDynamicProps = {
+  isSubmitPending?: boolean;
+  isDeletePending?: boolean;
+  expenseToDeleteId?: string | null;
+  onEditClick?: (row: ExpenseNotification) => void;
+  onSubmitClick?: (id: string) => void;
+  onDeleteClick?: (row: ExpenseNotification) => void;
+  onRowClick?: (row: ExpenseNotification) => void;
+  expandedRowId?: string | null;
+};
+
+// Type for Supabase error
+type SupabaseError = {
+  message: string;
+  code?: string;
+  details?: string;
+};
+
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -40,28 +59,49 @@ const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [expandedNotificationId, setExpandedNotificationId] = useState<string | null>(null);
 
-  // Fetch ALL notifications for the current user
+  // Fetch ALL notifications for the current user with error handling
   const { data: allNotifications, isLoading, isError, refetch } = useQuery<ExpenseNotification[]>({
     queryKey: ["notifications", currentUserId],
     queryFn: async () => {
       if (!currentUserId) return [];
-      const { data, error } = await supabase
-        .from("expense_notifications")
-        .select(`
-          *,
-          expenses (title)
-        `)
-        .eq("user_id", currentUserId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      try {
+        const { data, error } = await supabase
+          .from("expense_notifications")
+          .select(`
+            *,
+            expenses (title)
+          `)
+          .eq("user_id", currentUserId)
+          .order("created_at", { ascending: false });
 
-      const typedData: ExpenseNotification[] = (data as any[]).map(item => ({
-        ...item,
-        expenses: item.expenses && item.expenses.length > 0 ? item.expenses[0] : null,
-      }));
-      return typedData;
+        if (error) {
+          // If table doesn't exist (404 error), return empty array instead of throwing
+          if (error.message?.includes('relation "public.expense_notifications" does not exist') ||
+              error.code === 'PGRST116' ||
+              error.code === '42P01') {
+            console.warn('Notifications table not found, returning empty notifications');
+            return [];
+          }
+          throw error;
+        }
+
+        const typedData: ExpenseNotification[] = (data as any[]).map(item => ({
+          ...item,
+          expenses: item.expenses && item.expenses.length > 0 ? item.expenses[0] : null,
+        }));
+        return typedData;
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        // Handle network or other errors gracefully
+        if (supabaseError.message?.includes('404') || supabaseError.message?.includes('relation') || supabaseError.code === '42P01') {
+          console.warn('Notifications table not available, falling back to empty notifications:', error);
+          return [];
+        }
+        throw error;
+      }
     },
     enabled: !!currentUserId,
+    retry: false, // Don't retry if table doesn't exist
   });
 
   const filteredNotifications = useMemo(() => {
@@ -81,13 +121,22 @@ const NotificationsPage = () => {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("expense_notifications")
-        .update({ is_read: true })
-        .eq("id", notificationId)
-        .eq("user_id", currentUserId);
-      if (error) throw error;
-      return null;
+      try {
+        const { error } = await supabase
+          .from("expense_notifications")
+          .update({ is_read: true })
+          .eq("id", notificationId)
+          .eq("user_id", currentUserId);
+        if (error && !error.message?.includes('404')) throw error;
+        return null;
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        if (error.message?.includes('404') || error.message?.includes('relation')) {
+          console.warn('Cannot mark notification as read - table not available');
+          return null;
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
@@ -97,10 +146,10 @@ const NotificationsPage = () => {
         description: "The notification has been marked as read.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: SupabaseError) => {
       toast({
         title: "Error marking notification as read",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -108,13 +157,22 @@ const NotificationsPage = () => {
 
   const archiveNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("expense_notifications")
-        .update({ is_archived: true, is_read: true }) // Mark as read when archiving
-        .eq("id", notificationId)
-        .eq("user_id", currentUserId);
-      if (error) throw error;
-      return null;
+      try {
+        const { error } = await supabase
+          .from("expense_notifications")
+          .update({ is_archived: true, is_read: true }) // Mark as read when archiving
+          .eq("id", notificationId)
+          .eq("user_id", currentUserId);
+        if (error && !error.message?.includes('404')) throw error;
+        return null;
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        if (error.message?.includes('404') || error.message?.includes('relation')) {
+          console.warn('Cannot archive notification - table not available');
+          return null;
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
@@ -124,10 +182,10 @@ const NotificationsPage = () => {
         description: "The notification has been moved to archive.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: SupabaseError) => {
       toast({
         title: "Error clearing notification",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -135,13 +193,22 @@ const NotificationsPage = () => {
 
   const unarchiveNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("expense_notifications")
-        .update({ is_archived: false, is_read: true }) // Mark as read when unarchiving
-        .eq("id", notificationId)
-        .eq("user_id", currentUserId);
-      if (error) throw error;
-      return null;
+      try {
+        const { error } = await supabase
+          .from("expense_notifications")
+          .update({ is_archived: false, is_read: true }) // Mark as read when unarchiving
+          .eq("id", notificationId)
+          .eq("user_id", currentUserId);
+        if (error && !error.message?.includes('404')) throw error;
+        return null;
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        if (error.message?.includes('404') || error.message?.includes('relation')) {
+          console.warn('Cannot unarchive notification - table not available');
+          return null;
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
@@ -151,10 +218,10 @@ const NotificationsPage = () => {
         description: "The notification has been moved out of archive.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: SupabaseError) => {
       toast({
         title: "Error unarchiving notification",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -162,13 +229,22 @@ const NotificationsPage = () => {
 
   const flagNotificationMutation = useMutation({
     mutationFn: async ({ notificationId, isFlagged }: { notificationId: string; isFlagged: boolean }) => {
-      const { error } = await supabase
-        .from("expense_notifications")
-        .update({ is_flagged: isFlagged })
-        .eq("id", notificationId)
-        .eq("user_id", currentUserId);
-      if (error) throw error;
-      return null;
+      try {
+        const { error } = await supabase
+          .from("expense_notifications")
+          .update({ is_flagged: isFlagged })
+          .eq("id", notificationId)
+          .eq("user_id", currentUserId);
+        if (error && !error.message?.includes('404')) throw error;
+        return null;
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        if (error.message?.includes('404') || error.message?.includes('relation')) {
+          console.warn('Cannot flag notification - table not available');
+          return null;
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
@@ -177,10 +253,10 @@ const NotificationsPage = () => {
         description: "The notification flag status has been updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: SupabaseError) => {
       toast({
         title: "Error flagging notification",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -285,7 +361,7 @@ const NotificationsPage = () => {
     _rowIndex: number,
     cols: TableColumn<ExpenseNotification>[],
     colWidths: Record<string, number>,
-    dynamicProps: any
+    dynamicProps: NotificationDynamicProps
   ) => {
     const isExpanded = expandedNotificationId === notification.id;
     const totalColumns = cols.length;
@@ -377,7 +453,10 @@ const NotificationsPage = () => {
     );
   }
 
-  if (isError) {
+  // Only show error if it's not a missing table error
+  const hasRealError = isError && !(allNotifications === undefined && !isLoading);
+
+  if (hasRealError) {
     return (
       <div className="flex flex-1 items-center justify-center text-destructive">
         <p>Error loading notifications. Please try again.</p>
@@ -417,7 +496,7 @@ const NotificationsPage = () => {
                 columns={columns}
                 data={filteredNotifications || []}
                 isLoading={isLoading}
-                emptyMessage="No notifications found."
+                emptyMessage={allNotifications?.length === 0 && !isError ? "No notifications found." : "Notifications feature not yet configured."}
                 renderRow={renderNotificationRow}
               />
             </TabsContent>

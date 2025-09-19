@@ -103,7 +103,7 @@ const AddEditExpenseDialog = ({
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
-  const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<Record<string, unknown> | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentSubmissionType, setCurrentSubmissionType] = useState<'draft' | 'submitted'>('draft'); // Corrected type to 'submitted'
 
@@ -121,24 +121,34 @@ const AddEditExpenseDialog = ({
         .eq("name", "Expense Management")
         .single();
       if (error && error.code !== 'PGRST116') throw error;
-      return data?.id || null;
+      return data?.id ?? null;
     },
   });
 
   // 2. Fetch Expense Management Configuration for the current company (controller fields)
   const { data: expenseModuleConfig, isLoading: isLoadingConfig } = useQuery<{ settings: { user_fields: Record<string, FieldSetting> } } | null>({
     queryKey: ["expenseModuleConfig", currentCompanyId, expenseModuleId],
+    retry: false, // Don't retry to avoid 406 errors causing Suspense issues
     queryFn: async () => {
       if (!currentCompanyId || !expenseModuleId) return null;
-      const { data, error } = await supabase
-        .from("module_configurations")
-        .select("settings")
-        .eq("company_id", currentCompanyId)
-        .eq("module_id", expenseModuleId)
-        .eq("config_key", "expense_management_fields")
-        .single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("module_configurations")
+          .select("settings")
+          .eq("company_id", currentCompanyId)
+          .eq("module_id", expenseModuleId)
+          .eq("config_key", "expense_management_fields")
+          .single();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error: any) {
+        // Handle missing module_configurations table gracefully
+        if (error.code === 'PGRST205' || error.status === 406) {
+          console.warn('Module configurations table not found - using default field settings');
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: !!currentCompanyId && !!expenseModuleId && !isLoadingSession,
   });
@@ -190,7 +200,7 @@ const AddEditExpenseDialog = ({
     });
   };
 
-  const userFieldsConfig = expenseModuleConfig?.settings?.user_fields || {};
+  const userFieldsConfig = expenseModuleConfig?.settings?.user_fields ?? {};
   const currentDynamicSchema = createDynamicSchema(userFieldsConfig);
 
   const form = useForm<ExpenseFormValues>({
@@ -269,20 +279,20 @@ const AddEditExpenseDialog = ({
         if (editingExpense) {
           form.reset({
             title: editingExpense.title,
-            description: editingExpense.description || null,
+            description: editingExpense.description ?? null,
             amount: editingExpense.amount,
             expense_date: new Date(editingExpense.expense_date),
-            category_id: editingExpense.category_id || null,
-            gl_account_id: editingExpense.gl_account_id || null,
-            currency_code: editingExpense.currency_code || "USD",
-            vendor_name: editingExpense.vendor_name || null,
-            merchant_address: editingExpense.merchant_address || null,
-            receipt_summary: editingExpense.receipt_summary || null,
-            ai_confidence_score: editingExpense.ai_confidence_score || null,
+            category_id: editingExpense.category_id ?? null,
+            gl_account_id: editingExpense.gl_account_id ?? null,
+            currency_code: editingExpense.currency_code ?? "USD",
+            vendor_name: editingExpense.vendor_name ?? null,
+            merchant_address: editingExpense.merchant_address ?? null,
+            receipt_summary: editingExpense.receipt_summary ?? null,
+            ai_confidence_score: editingExpense.ai_confidence_score ?? null,
             is_reimbursable: editingExpense.is_reimbursable ?? true,
-            project_code: editingExpense.project_code || null,
-            cost_center: editingExpense.cost_center || null,
-            line_items: editingExpense.expense_line_items || [],
+            project_code: editingExpense.project_code ?? null,
+            cost_center: editingExpense.cost_center ?? null,
+            line_items: editingExpense.expense_line_items ?? [],
           });
 
           // Generate signed URL for existing receipt if available
@@ -366,17 +376,17 @@ const AddEditExpenseDialog = ({
         receiptFileUrl = publicUrlData.publicUrl;
         receiptFileName = uploadedFile.name;
         receiptMimeType = uploadedFile.type;
-        aiExtractedText = aiAnalysisResult?.ai_extracted_text || null;
-        aiRawJson = aiAnalysisResult?.ai_raw_json || null;
-        textHash = aiAnalysisResult?.text_hash || null;
-        documentTypeClassification = aiAnalysisResult?.document_type_classification || null;
-        documentTypeConfidence = aiAnalysisResult?.document_type_confidence || null;
+        aiExtractedText = aiAnalysisResult?.ai_extracted_text ?? null;
+        aiRawJson = aiAnalysisResult?.ai_raw_json ?? null;
+        textHash = aiAnalysisResult?.text_hash ?? null;
+        documentTypeClassification = aiAnalysisResult?.document_type_classification ?? null;
+        documentTypeConfidence = aiAnalysisResult?.document_type_confidence ?? null;
       }
 
       // Fetch company's default currency for base_currency_amount calculation
       const { data: companyData, error: companyError } = await supabase.from('companies').select('default_currency').eq('id', currentCompanyId).single();
       if (companyError) console.error("Error fetching company default currency:", companyError);
-      const companyDefaultCurrency = companyData?.default_currency || 'USD';
+      const companyDefaultCurrency = companyData?.default_currency ?? 'USD';
 
       let baseCurrencyAmount: number | null = null;
       let exchangeRate: number | null = null;
@@ -404,25 +414,25 @@ const AddEditExpenseDialog = ({
 
       // 2. Insert new expense
       const { data: newExpense, error: expenseError } = await supabase.from("expenses").insert({
-        title: data.title || null, // Allow null for draft
-        description: data.description || null,
+        title: data.title ?? null, // Allow null for draft
+        description: data.description ?? null,
         amount: data.amount, // This is original_currency_amount
         expense_date: data.expense_date ? format(data.expense_date, "yyyy-MM-dd") : null, // Allow null for draft
-        category_id: data.category_id || null,
-        gl_account_id: data.gl_account_id || null,
-        currency_code: data.currency_code || null, // Allow null for draft
+        category_id: data.category_id ?? null,
+        gl_account_id: data.gl_account_id ?? null,
+        currency_code: data.currency_code ?? null, // Allow null for draft
         company_id: currentCompanyId,
         submitted_by: currentUserId, // Explicitly provide submitted_by
         status: data.status, // Use data.status directly
         base_currency_amount: baseCurrencyAmount,
         exchange_rate: exchangeRate,
-        vendor_name: data.vendor_name || null,
-        merchant_address: data.merchant_address || null,
-        receipt_summary: data.receipt_summary || null,
-        ai_confidence_score: data.ai_confidence_score || null,
+        vendor_name: data.vendor_name ?? null,
+        merchant_address: data.merchant_address ?? null,
+        receipt_summary: data.receipt_summary ?? null,
+        ai_confidence_score: data.ai_confidence_score ?? null,
         is_reimbursable: data.is_reimbursable,
-        project_code: data.project_code || null,
-        cost_center: data.cost_center || null,
+        project_code: data.project_code ?? null,
+        cost_center: data.cost_center ?? null,
       }).select().single();
 
       if (expenseError) {
@@ -456,7 +466,7 @@ const AddEditExpenseDialog = ({
           document_type_confidence: documentTypeConfidence, // Store confidence
         }).select('id').single();
         if (receiptRecordError) console.error("Error inserting receipt record:", receiptRecordError);
-        newReceiptId = newReceipt?.id || null;
+        newReceiptId = newReceipt?.id ?? null;
       }
 
       // 4. Insert line items
@@ -488,7 +498,7 @@ const AddEditExpenseDialog = ({
     onError: (error: any) => {
       toast({
         title: `Error ${currentSubmissionType === 'draft' ? 'saving draft' : 'submitting expense'}`,
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -499,15 +509,15 @@ const AddEditExpenseDialog = ({
       if (!currentUserId || !editingExpense) throw new Error("User not authenticated or no expense to edit.");
 
       // 1. Handle receipt upload/update/delete if new file is present or existing is removed
-      let receiptFileUrl: string | null = editingExpense.receipts?.[0]?.file_url || null;
-      let receiptFileName: string | null = editingExpense.receipts?.[0]?.file_name || null;
-      let receiptMimeType: string | null = editingExpense.receipts?.[0]?.mime_type || null;
-      let aiExtractedText: string | null = editingExpense.receipts?.[0]?.ai_extracted_text || null;
-      let aiRawJson: any = editingExpense.receipts?.[0]?.ai_raw_json || null;
-      let textHash: string | null = editingExpense.receipts?.[0]?.text_hash || null;
-      let documentTypeClassification: string | null = editingExpense.receipts?.[0]?.document_type_classification || null;
-      let documentTypeConfidence: number | null = editingExpense.receipts?.[0]?.document_type_confidence || null;
-      let existingReceiptId: string | null = editingExpense.receipts?.[0]?.id || null;
+      let receiptFileUrl: string | null = editingExpense.receipts?.[0]?.file_url ?? null;
+      let receiptFileName: string | null = editingExpense.receipts?.[0]?.file_name ?? null;
+      let receiptMimeType: string | null = editingExpense.receipts?.[0]?.mime_type ?? null;
+      let aiExtractedText: string | null = editingExpense.receipts?.[0]?.ai_extracted_text ?? null;
+      let aiRawJson: any = editingExpense.receipts?.[0]?.ai_raw_json ?? null;
+      let textHash: string | null = editingExpense.receipts?.[0]?.text_hash ?? null;
+      let documentTypeClassification: string | null = editingExpense.receipts?.[0]?.document_type_classification ?? null;
+      let documentTypeConfidence: number | null = editingExpense.receipts?.[0]?.document_type_confidence ?? null;
+      let existingReceiptId: string | null = editingExpense.receipts?.[0]?.id ?? null;
 
       if (uploadedFile) { // New file selected
         const fileExtension = uploadedFile.name.split('.').pop();
@@ -527,11 +537,11 @@ const AddEditExpenseDialog = ({
         receiptFileUrl = publicUrlData.publicUrl;
         receiptFileName = uploadedFile.name;
         receiptMimeType = uploadedFile.type;
-        aiExtractedText = aiAnalysisResult?.ai_extracted_text || null;
-        aiRawJson = aiAnalysisResult?.ai_raw_json || null;
-        textHash = aiAnalysisResult?.text_hash || null;
-        documentTypeClassification = aiAnalysisResult?.document_type_classification || null;
-        documentTypeConfidence = aiAnalysisResult?.document_type_confidence || null;
+        aiExtractedText = aiAnalysisResult?.ai_extracted_text ?? null;
+        aiRawJson = aiAnalysisResult?.ai_raw_json ?? null;
+        textHash = aiAnalysisResult?.text_hash ?? null;
+        documentTypeClassification = aiAnalysisResult?.document_type_classification ?? null;
+        documentTypeConfidence = aiAnalysisResult?.document_type_confidence ?? null;
 
         // If there was an old receipt, delete it from storage
         if (editingExpense.receipts?.[0]?.file_url) {
@@ -579,7 +589,7 @@ const AddEditExpenseDialog = ({
           document_type_confidence: documentTypeConfidence,
         }).select('id').single();
         if (insertReceiptError) console.error("Error inserting new receipt record:", insertReceiptError);
-        existingReceiptId = newReceipt?.id || null;
+        existingReceiptId = newReceipt?.id ?? null;
       } else if (!receiptFileUrl && existingReceiptId) { // Delete existing receipt record
         const { error: deleteReceiptError } = await supabase.from("receipts").delete().eq('id', existingReceiptId);
         if (deleteReceiptError) console.error("Error deleting receipt record:", deleteReceiptError);
@@ -589,7 +599,7 @@ const AddEditExpenseDialog = ({
       // Fetch company's default currency for base_currency_amount calculation
       const { data: companyData, error: companyError } = await supabase.from('companies').select('default_currency').eq('id', currentCompanyId).single();
       if (companyError) console.error("Error fetching company default currency:", companyError);
-      const companyDefaultCurrency = companyData?.default_currency || 'USD';
+      const companyDefaultCurrency = companyData?.default_currency ?? 'USD';
 
       let baseCurrencyAmount: number | null = null;
       let exchangeRate: number | null = null;
@@ -616,22 +626,22 @@ const AddEditExpenseDialog = ({
 
       // 2. Update expense
       const { error: expenseUpdateError } = await supabase.from("expenses").update({
-        title: data.title || null, // Allow null for draft
-        description: data.description || null,
+        title: data.title ?? null, // Allow null for draft
+        description: data.description ?? null,
         amount: data.amount, // This is original_currency_amount
         expense_date: data.expense_date ? format(data.expense_date, "yyyy-MM-dd") : null, // Allow null for draft
-        category_id: data.category_id || null,
-        gl_account_id: data.gl_account_id || null,
-        currency_code: data.currency_code || null, // Allow null for draft
+        category_id: data.category_id ?? null,
+        gl_account_id: data.gl_account_id ?? null,
+        currency_code: data.currency_code ?? null, // Allow null for draft
         base_currency_amount: baseCurrencyAmount,
         exchange_rate: exchangeRate,
-        vendor_name: data.vendor_name || null,
-        merchant_address: data.merchant_address || null,
-        receipt_summary: data.receipt_summary || null,
-        ai_confidence_score: data.ai_confidence_score || null,
+        vendor_name: data.vendor_name ?? null,
+        merchant_address: data.merchant_address ?? null,
+        receipt_summary: data.receipt_summary ?? null,
+        ai_confidence_score: data.ai_confidence_score ?? null,
         is_reimbursable: data.is_reimbursable,
-        project_code: data.project_code || null,
-        cost_center: data.cost_center || null,
+        project_code: data.project_code ?? null,
+        cost_center: data.cost_center ?? null,
         status: data.status, // Use data.status directly
         updated_at: new Date().toISOString(),
       }).eq("id", editingExpense.id).eq("submitted_by", currentUserId);
@@ -664,7 +674,7 @@ const AddEditExpenseDialog = ({
     onError: (error: any) => {
       toast({
         title: `Error ${currentSubmissionType === 'draft' ? 'saving draft' : 'submitting expense'}`,
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -677,20 +687,20 @@ const AddEditExpenseDialog = ({
     setIsAnalyzing(false);
 
     // Apply results to form
-    form.setValue("title", result.title || "");
-    form.setValue("description", result.description || null);
+    form.setValue("title", result.title ?? "");
+    form.setValue("description", result.description ?? null);
     form.setValue("amount", result.original_currency_amount || 0);
     form.setValue("currency_code", result.original_currency_code || "USD");
     if (result.expense_date) form.setValue("expense_date", new Date(result.expense_date));
-    form.setValue("category_id", result.category_id || null);
-    form.setValue("gl_account_id", result.gl_account_id || null);
-    form.setValue("vendor_name", result.vendor_name || null);
-    form.setValue("merchant_address", result.merchant_address || null);
-    form.setValue("receipt_summary", result.receipt_summary || null);
-    form.setValue("ai_confidence_score", result.ai_confidence_score || null);
+    form.setValue("category_id", result.category_id ?? null);
+    form.setValue("gl_account_id", result.gl_account_id ?? null);
+    form.setValue("vendor_name", result.vendor_name ?? null);
+    form.setValue("merchant_address", result.merchant_address ?? null);
+    form.setValue("receipt_summary", result.receipt_summary ?? null);
+    form.setValue("ai_confidence_score", result.ai_confidence_score ?? null);
     form.setValue("is_reimbursable", result.is_reimbursable ?? true);
-    form.setValue("project_code", result.project_code || null);
-    form.setValue("cost_center", result.cost_center || null);
+    form.setValue("project_code", result.project_code ?? null);
+    form.setValue("cost_center", result.cost_center ?? null);
 
     // Handle line items
     if (result.line_items && result.line_items.length > 0) {
@@ -805,8 +815,8 @@ const AddEditExpenseDialog = ({
                 onRemoveFile={handleRemoveReceipt}
                 isLoading={isAnalyzing}
                 currentPreviewUrl={receiptPreviewUrl}
-                companyId={currentCompanyId || ""}
-                userId={currentUserId || ""}
+                companyId={currentCompanyId ?? ""}
+                userId={currentUserId ?? ""}
                 setIsAnalyzing={setIsAnalyzing}
               />
 
@@ -877,8 +887,8 @@ const AddEditExpenseDialog = ({
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={form.watch("expense_date") || undefined}
-                            onSelect={(date) => form.setValue("expense_date", date || null)}
+                            selected={form.watch("expense_date") ?? undefined}
+                            onSelect={(date) => form.setValue("expense_date", date ?? null)}
                             initialFocus
                           />
                         </PopoverContent>
@@ -941,7 +951,7 @@ const AddEditExpenseDialog = ({
                         <Label htmlFor="currency_code">Currency {getFieldConfig("currency_code").required && "*"}</Label>
                         <Select
                           onValueChange={(value) => form.setValue("currency_code", value)}
-                          value={form.watch("currency_code") || ""}
+                          value={form.watch("currency_code") ?? ""}
                           disabled={isSaving}
                         >
                           <SelectTrigger id="currency_code">
@@ -1052,7 +1062,7 @@ const AddEditExpenseDialog = ({
                       <Label htmlFor="category_id">Category {getFieldConfig("category_id").required && "*"}</Label>
                       <Select
                         onValueChange={(value) => form.setValue("category_id", value)}
-                        value={form.watch("category_id") || ""}
+                        value={form.watch("category_id") ?? ""}
                         disabled={isSaving}
                       >
                         <SelectTrigger>
@@ -1080,7 +1090,7 @@ const AddEditExpenseDialog = ({
                       <Label htmlFor="gl_account_id">GL Account {getFieldConfig("gl_account_id").required && "*"}</Label>
                       <Select
                         onValueChange={(value) => form.setValue("gl_account_id", value)}
-                        value={form.watch("gl_account_id") || ""}
+                        value={form.watch("gl_account_id") ?? ""}
                         disabled={isSaving}
                       >
                         <SelectTrigger>

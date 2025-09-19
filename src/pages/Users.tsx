@@ -194,7 +194,7 @@ const UsersPage = () => {
         console.error("Error fetching system modules:", error);
         throw error;
       }
-      return data || [];
+      return data ?? [];
     },
     enabled: !!profile && !!newlyCreatedUserRole, // Only fetch when a role is set
   });
@@ -206,7 +206,7 @@ const UsersPage = () => {
       if (!currentCompanyId) return [];
       const { data, error } = await supabase.from("company_modules").select("id, company_id, module_id, is_enabled, is_locked_by_system").eq("company_id", currentCompanyId).eq("is_enabled", true);
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
     enabled: !!currentCompanyId && !!profile,
   });
@@ -219,7 +219,7 @@ const UsersPage = () => {
       first_name: "",
       last_name: "",
       role: "user",
-      company_id: isSuperAdmin ? undefined : currentCompanyId || undefined,
+      company_id: isSuperAdmin ? undefined : currentCompanyId ?? undefined,
       modules: [], // Initialize empty
     },
   });
@@ -264,7 +264,7 @@ const UsersPage = () => {
         first_name: "",
         last_name: "",
         role: "user",
-        company_id: isSuperAdmin ? undefined : currentCompanyId || undefined,
+        company_id: isSuperAdmin ? undefined : currentCompanyId ?? undefined,
         modules: [], // Will be re-populated by the effect above
       });
     }
@@ -303,7 +303,7 @@ const UsersPage = () => {
       } else {
         toast({
           title: "Error creating user",
-          description: error.message || "An unexpected error occurred.",
+          description: error.message ?? "An unexpected error occurred.",
           variant: "destructive",
         });
       }
@@ -342,7 +342,7 @@ const UsersPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Saving Module Access",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -369,7 +369,7 @@ const UsersPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Resending Invitation",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
       setResendingInvitationId(null);
@@ -396,7 +396,7 @@ const UsersPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Deleting Invitation",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -424,7 +424,7 @@ const UsersPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Deleting User",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -503,7 +503,7 @@ const UsersPage = () => {
             </TableCell>
           </TableRow>
         ) : (
-          modulesToRender.map((moduleSetting, _index) => {
+          modulesToRender.map((moduleSetting) => {
             const isLocked = moduleSetting.is_locked_by_system;
             const isInputDisabled = isSavingModules || isLocked;
 
@@ -514,7 +514,7 @@ const UsersPage = () => {
             return (
               <TableRow key={moduleSetting.module_id}>
                 <TableCell className="font-medium">{moduleSetting.name}</TableCell>
-                <TableCell>{moduleSetting.description || "N/A"}</TableCell>
+                <TableCell>{moduleSetting.description ?? "N/A"}</TableCell>
                 <TableCell>
                   <Checkbox
                     checked={addUserForm.watch(`modules.${formModuleIndex}.is_enabled`)}
@@ -678,7 +678,7 @@ const UsersPage = () => {
                               render={({ field }) => (
                                 <Select
                                   onValueChange={field.onChange}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                   disabled={isCreatingUser || isLoadingCompanies}
                                 >
                                   <SelectTrigger>
@@ -793,11 +793,11 @@ const UsersPage = () => {
             <TableBody>
               {users?.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.full_name || "N/A"}</TableCell>
+                  <TableCell className="font-medium">{user.full_name ?? "N/A"}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{capitalizeFirstLetter(user.role)}</TableCell>
                   <TableCell>{capitalizeFirstLetter(user.status)}</TableCell>
-                  {isSuperAdmin && <TableCell>{companies?.find(c => c.id === user.company_id)?.name || "N/A"}</TableCell>}
+                  {isSuperAdmin && <TableCell>{companies?.find(c => c.id === user.company_id)?.name ?? "N/A"}</TableCell>}
                   <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="sm" onClick={() => handleEditUserClick(user)}>
                       <Edit className="h-4 w-4 mr-1" /> Edit

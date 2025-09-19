@@ -34,7 +34,7 @@ const SuperAdminDashboard = () => {
         .select("*", { count: "exact", head: true });
       
       if (error) throw error;
-      return count || 0;
+      return count ?? 0;
     },
   });
 
@@ -47,7 +47,7 @@ const SuperAdminDashboard = () => {
         .select("*", { count: "exact", head: true });
       
       if (error) throw error;
-      return count || 0;
+      return count ?? 0;
     },
   });
 
@@ -60,7 +60,7 @@ const SuperAdminDashboard = () => {
         .select("*", { count: "exact", head: true });
       
       if (error) throw error;
-      return count || 0;
+      return count ?? 0;
     },
   });
 

@@ -27,11 +27,11 @@ const CompanyLogoUpload = ({
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false); // Re-added
 
   useEffect(() => {
-    setPreview(currentLogoUrl || null);
+    setPreview(currentLogoUrl ?? null);
   }, [currentLogoUrl]);
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], fileRejections: any[]) => {
+    (acceptedFiles: File[], fileRejections: unknown[]) => {
       setError(null);
       if (fileRejections.length > 0) {
         setError("Invalid file type or size. Please upload an image (max 2MB).");
@@ -74,7 +74,7 @@ const CompanyLogoUpload = ({
   const handleClearFile = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     onFileSelected(null);
-    setPreview(currentLogoUrl || null); // Revert to current URL or null
+    setPreview(currentLogoUrl ?? null); // Revert to current URL or null
     setError(null);
   };
 
@@ -94,7 +94,7 @@ const CompanyLogoUpload = ({
         >
           <input {...getInputProps()} />
           <Avatar className="h-20 w-20">
-            <AvatarImage src={preview || undefined} alt="Company Logo Preview" className="object-contain" />
+            <AvatarImage src={preview ?? undefined} alt="Company Logo Preview" className="object-contain" />
             <AvatarFallback className="bg-muted-foreground/20">
               {isLoading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

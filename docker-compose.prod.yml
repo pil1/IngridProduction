@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  infotrac-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    container_name: infotrac-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - infotrac-network
+    volumes:
+      # Mount nginx logs for monitoring
+      - ./logs/nginx:/var/log/nginx
+    labels:
+      # Traefik labels for reverse proxy (if using Traefik)
+      - "traefik.enable=true"
+      - "traefik.http.routers.infotrac.rule=Host(`info.onbb.ca`)"
+      - "traefik.http.routers.infotrac.tls=true"
+      - "traefik.http.routers.infotrac.tls.certresolver=letsencrypt"
+      - "traefik.http.services.infotrac.loadbalancer.server.port=80"
+      # Docker labels for identification
+      - "app=infotrac"
+      - "environment=production"
+      - "domain=info.onbb.ca"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Add monitoring services
+  watchtower:
+    image: containrrr/watchtower
+    container_name: infotrac-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 2 * * * # Daily at 2 AM
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=${NOTIFICATION_EMAIL_FROM}
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=${NOTIFICATION_EMAIL_TO}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD}
+    command: --label-enable --cleanup --schedule "0 2 * * *"
+    networks:
+      - infotrac-network
+
+networks:
+  infotrac-network:
+    driver: bridge
+    name: infotrac-production
+
+volumes:
+  nginx-logs:
+    driver: local

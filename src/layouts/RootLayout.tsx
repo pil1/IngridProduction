@@ -13,7 +13,7 @@ import ImpersonationDropdown from "@/components/ImpersonationDropdown";
 import { useUserMenuPreferences, MenuItem } from "@/hooks/use-user-menu-preferences";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import NotificationsDropdown from "@/components/NotificationsDropdown";
+import NotificationBell from "@/components/NotificationBell";
 import UserProfileMenuButton from "@/components/UserProfileMenuButton";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +90,7 @@ const SortableItem = ({ item, isActive, isSidebarCollapsed, isEditingMenu, userR
             <CollapsibleTrigger asChild>
               <div className={cn(
                 "flex flex-1 items-center rounded-lg h-10 cursor-pointer transition-all",
-                isActive(item.path || "")
+                isActive(item.path ?? "")
                   ? "bg-brand-accent text-brand-accent-foreground hover:bg-brand-accent"
                   : "text-sidebar-foreground hover:bg-muted",
                 isSidebarCollapsed ? "justify-center" : "justify-start px-3" // Centered when collapsed, px-3 when expanded
@@ -286,7 +286,7 @@ const RootLayout = () => {
     const flattenForSave = (items: MenuItem[]): { id: string, isHidden: boolean }[] => {
       let result: { id: string, isHidden: boolean }[] = [];
       for (const item of items) {
-        result.push({ id: item.id, isHidden: item.isHidden || false });
+        result.push({ id: item.id, isHidden: item.isHidden ?? false });
         if (item.children) {
           result = result.concat(flattenForSave(item.children));
         }
@@ -300,7 +300,7 @@ const RootLayout = () => {
         setIsEditingMenu(false);
       },
       onError: (error: any) => {
-        toast({ title: "Error Saving Preferences", description: error.message || "Failed to save menu preferences.", variant: "destructive" });
+        toast({ title: "Error Saving Preferences", description: error.message ?? "Failed to save menu preferences.", variant: "destructive" });
       },
     });
   };
@@ -444,7 +444,7 @@ const RootLayout = () => {
         "flex items-center mt-2",
         isSidebarCollapsed ? "flex-col gap-2" : "justify-between"
       )}>
-        <NotificationsDropdown />
+        <NotificationBell />
         <UserProfileMenuButton isSidebarCollapsed={isSidebarCollapsed} />
         <Button variant="ghost" size="icon" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />

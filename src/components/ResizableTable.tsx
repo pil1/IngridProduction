@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -11,12 +11,19 @@ import {
 } from "@/components/ui/table";
 import { cn, truncateText } from "@/lib/utils";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
+import { VirtualizedTable } from "./VirtualizedTable";
 import { Loader2 } from "lucide-react";
 
-// Define a generic type for table data
+/**
+ * Generic type for table data items
+ * @template T - The type of data displayed in the table
+ */
 type TableDataItem = Record<string, any>;
 
-// Define the structure for column definitions
+/**
+ * Configuration for table column definitions
+ * @template T - The type of data displayed in the column
+ */
 export interface TableColumn<T extends TableDataItem> {
   key: string; // Unique key for the column, used for preferences
   header: React.ReactNode;
@@ -50,6 +57,11 @@ interface ResizableTableProps<T extends TableDataItem> {
   emptyMessage?: string;
   containerClassName?: string; // Class for the outer div
   tableClassName?: string; // Class for the <table> element
+  // Performance optimization options
+  enableVirtualization?: boolean; // Enable virtual scrolling for large datasets
+  virtualizationThreshold?: number; // Threshold for enabling virtualization (default: 100)
+  rowHeight?: number; // Height of each row for virtualization (default: 50)
+  maxHeight?: number; // Maximum height of virtualized table (default: 400)
   // New prop: renderRow allows custom rendering of each row, including expandable content
   renderRow?: (
     row: T,
@@ -80,6 +92,56 @@ interface ResizableTableProps<T extends TableDataItem> {
 
 const RESIZE_HANDLE_WIDTH = 8; // Width of the resize handle in pixels
 
+/**
+ * A highly configurable resizable table component with advanced features
+ *
+ * This component provides:
+ * - Column resizing with persistent preferences
+ * - Virtualization for large datasets
+ * - Custom row rendering
+ * - Dynamic callback support for actions
+ * - Loading states and empty states
+ * - Responsive design with overflow handling
+ *
+ * @template T - The type of data items displayed in the table rows
+ *
+ * @param props - Configuration options for the table
+ * @param props.tableId - Unique identifier for persistence of table preferences
+ * @param props.columns - Array of column definitions with headers, renderers, and sizing
+ * @param props.data - Array of data items to display in the table
+ * @param props.isLoading - Whether the table is in loading state (shows spinner)
+ * @param props.emptyMessage - Message to display when data array is empty
+ * @param props.containerClassName - CSS classes for the table container div
+ * @param props.tableClassName - CSS classes for the HTML table element
+ * @param props.enableVirtualization - Enable virtual scrolling for performance
+ * @param props.virtualizationThreshold - Number of rows to trigger virtualization
+ * @param props.rowHeight - Height in pixels of each row for virtualization
+ * @param props.maxHeight - Maximum height in pixels for virtualized table
+ * @param props.renderRow - Custom row renderer function for complex layouts
+ * @param props.isSubmitPending - Whether a submit operation is pending
+ * @param props.isDeletePending - Whether a delete operation is pending
+ * @param props.expenseToDeleteId - ID of expense being deleted (for UI feedback)
+ * @param props.onEditClick - Callback fired when edit action is triggered
+ * @param props.onSubmitClick - Callback fired when submit action is triggered
+ * @param props.onDeleteClick - Callback fired when delete action is triggered
+ * @param props.onRowClick - Callback fired when a row is clicked
+ * @param props.expandedRowId - ID of currently expanded row for accordion behavior
+ *
+ * @returns JSX element representing the complete table with all features
+ *
+ * @example
+ * ```tsx
+ * <ResizableTable
+ *   tableId="expenses-table"
+ *   columns={expenseColumns}
+ *   data={expenses}
+ *   isLoading={isLoadingExpenses}
+ *   emptyMessage="No expenses found"
+ *   enableVirtualization={true}
+ *   onRowClick={(expense) => setSelectedExpense(expense)}
+ * />
+ * ```
+ */
 export function ResizableTable<T extends TableDataItem>({
   tableId,
   columns,
@@ -88,6 +150,11 @@ export function ResizableTable<T extends TableDataItem>({
   emptyMessage = "No data available.",
   containerClassName,
   tableClassName,
+  // Performance props
+  enableVirtualization = false,
+  virtualizationThreshold = 100,
+  rowHeight = 50,
+  maxHeight = 400,
   renderRow, // Destructure new renderRow prop
   isSubmitPending, // Destructure new props
   isDeletePending, // Destructure new props
@@ -138,16 +205,38 @@ export function ResizableTable<T extends TableDataItem>({
     document.body.style.userSelect = "none"; // Disable text selection during resize
   }, [currentColumnWidths, updateColumnWidth, columns]);
 
-  if (isLoading || isLoadingPreferences) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2 text-muted-foreground">Loading table data...</p>
-      </div>
-    );
-  }
+  // Determine if we should use virtualization - MUST be called before any early returns
+  const shouldUseVirtualization = useMemo(() => {
+    return enableVirtualization && data.length >= virtualizationThreshold;
+  }, [enableVirtualization, data.length, virtualizationThreshold]);
 
-  const dynamicProps = {
+  // Convert ResizableTable columns to VirtualizedTable columns - MUST be called before any early returns
+  const virtualizedColumns = useMemo(() => {
+    if (!shouldUseVirtualization) return null;
+
+    return columns.map(column => ({
+      key: column.key,
+      header: column.header as string,
+      width: currentColumnWidths[column.key] || column.initialWidth || 150,
+      render: (item: T, index: number) => {
+        const dynamicProps = {
+          isSubmitPending,
+          isDeletePending,
+          expenseToDeleteId,
+          onEditClick,
+          onSubmitClick,
+          onDeleteClick,
+          onRowClick,
+          expandedRowId,
+        };
+        return column.render(item, dynamicProps);
+      },
+      className: column.className,
+    }));
+  }, [shouldUseVirtualization, columns, currentColumnWidths, isSubmitPending, isDeletePending, expenseToDeleteId, onEditClick, onSubmitClick, onDeleteClick, onRowClick, expandedRowId]);
+
+  // Dynamic props object - MUST be called before any early returns
+  const dynamicProps = useMemo(() => ({
     isSubmitPending,
     isDeletePending,
     expenseToDeleteId,
@@ -156,19 +245,43 @@ export function ResizableTable<T extends TableDataItem>({
     onDeleteClick,
     onRowClick,
     expandedRowId,
-  };
+  }), [isSubmitPending, isDeletePending, expenseToDeleteId, onEditClick, onSubmitClick, onDeleteClick, onRowClick, expandedRowId]);
+
+  // Early returns MUST come after all hooks
+  if (isLoading || isLoadingPreferences) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" data-testid="loading-spinner" />
+        <p className="ml-2 text-muted-foreground">Loading table data...</p>
+      </div>
+    );
+  }
+
+  // If using virtualization, render VirtualizedTable
+  if (shouldUseVirtualization && virtualizedColumns) {
+    return (
+      <VirtualizedTable
+        data={data}
+        columns={virtualizedColumns}
+        height={maxHeight}
+        rowHeight={rowHeight}
+        onRowClick={onRowClick}
+        className={containerClassName}
+      />
+    );
+  }
 
   return (
     <div className={cn("w-full overflow-x-auto rounded-md border", containerClassName)}>
       <Table ref={tableRef} className={cn("min-w-full text-sm", tableClassName)}>
         <TableHeader className="[&_tr]:border-b-0">
-          <TableRow className="h-8 hover:bg-transparent"> {/* Condensed header row */}
+          <TableRow className="h-8 hover:bg-transparent">
             {columns.map((column) => (
               <TableHead
                 key={column.key}
                 className={cn(
                   "relative h-8 px-2 py-1 text-left align-middle font-semibold text-muted-foreground [&:has([role=checkbox])]:pr-0",
-                  "whitespace-nowrap overflow-hidden text-ellipsis", // Ensure header text truncates
+                  "whitespace-nowrap overflow-hidden text-ellipsis",
                   column.headerClassName,
                   column.className
                 )}
@@ -201,7 +314,7 @@ export function ResizableTable<T extends TableDataItem>({
                 renderRow(row, rowIndex, columns, currentColumnWidths, dynamicProps)
               ) : (
                 // Default row rendering (existing logic)
-                <TableRow key={rowIndex} className="h-8 border-b-0 hover:bg-muted/50"> {/* Condensed data row */}
+                <TableRow key={rowIndex} className="h-8 border-b-0 hover:bg-muted/50">
                   {columns.map((column) => (
                     <TableCell
                       key={column.key}

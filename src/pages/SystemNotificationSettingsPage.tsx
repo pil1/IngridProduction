@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Corrected import statement
@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import RichTextEditor from "@/components/RichTextEditor";
+// Lazy load RichTextEditor to reduce bundle size
+const RichTextEditor = lazy(() => import("@/components/RichTextEditor"));
 import mustache from "mustache";
 import SystemTemplateSuggestionsDialog, { TemplateSuggestion } from "@/components/SystemTemplateSuggestionsDialog";
 import AiRedesignTemplateDialog from "@/components/AiRedesignTemplateDialog";
@@ -280,9 +281,9 @@ const SystemNotificationSettingsPage = () => {
     if (smtpSettings) {
       smtpForm.reset({
         sender_email: smtpSettings.sender_email,
-        smtp_host: smtpSettings.smtp_host || "",
-        smtp_port: smtpSettings.smtp_port || undefined,
-        smtp_username: smtpSettings.smtp_username || "",
+        smtp_host: smtpSettings.smtp_host ?? "",
+        smtp_port: smtpSettings.smtp_port ?? undefined,
+        smtp_username: smtpSettings.smtp_username ?? "",
         smtp_password: "",
         email_api_key: "",
       });
@@ -294,9 +295,9 @@ const SystemNotificationSettingsPage = () => {
       if (!isSuperAdmin) throw new Error("Access Denied: Only Super Admins can configure SMTP settings.");
       const payload = {
         sender_email: values.sender_email,
-        smtp_host: values.smtp_host || null,
-        smtp_port: values.smtp_port || null,
-        smtp_username: values.smtp_username || null,
+        smtp_host: values.smtp_host ?? null,
+        smtp_port: values.smtp_port ?? null,
+        smtp_username: values.smtp_username ?? null,
         ...(values.smtp_password && { smtp_password: values.smtp_password }),
         ...(values.email_api_key && { email_api_key: values.email_api_key }),
       };
@@ -342,7 +343,7 @@ const SystemNotificationSettingsPage = () => {
         name: editingTemplate.name,
         subject: editingTemplate.subject,
         body: editingTemplate.body,
-        description: editingTemplate.description || "",
+        description: editingTemplate.description ?? "",
       });
     } else if (!isAddTemplateDialogOpen) {
       templateForm.reset({
@@ -453,12 +454,12 @@ const SystemNotificationSettingsPage = () => {
   useEffect(() => {
     if (systemLayout) {
       layoutForm.reset({
-        header_html: systemLayout.header_html || "",
-        footer_html: systemLayout.footer_html || "",
-        default_logo_url: systemLayout.default_logo_url || "",
-        default_company_name: systemLayout.default_company_name || "",
-        default_logo_width: systemLayout.default_logo_width || undefined,
-        default_logo_height: systemLayout.default_logo_height || undefined,
+        header_html: systemLayout.header_html ?? "",
+        footer_html: systemLayout.footer_html ?? "",
+        default_logo_url: systemLayout.default_logo_url ?? "",
+        default_company_name: systemLayout.default_company_name ?? "",
+        default_logo_width: systemLayout.default_logo_width ?? undefined,
+        default_logo_height: systemLayout.default_logo_height ?? undefined,
       });
     }
   }, [systemLayout, layoutForm]);
@@ -467,12 +468,12 @@ const SystemNotificationSettingsPage = () => {
     mutationFn: async (values: SystemEmailLayoutFormValues) => {
       if (!isSuperAdmin) throw new Error("Access Denied: Only Super Admins can manage system email layout.");
       const payload = {
-        header_html: values.header_html || null,
-        footer_html: values.footer_html || null,
-        default_logo_url: values.default_logo_url || null,
-        default_company_name: values.default_company_name || null,
-        default_logo_width: values.default_logo_width || null,
-        default_logo_height: values.default_logo_height || null,
+        header_html: values.header_html ?? null,
+        footer_html: values.footer_html ?? null,
+        default_logo_url: values.default_logo_url ?? null,
+        default_company_name: values.default_company_name ?? null,
+        default_logo_width: values.default_logo_width ?? null,
+        default_logo_height: values.default_logo_height ?? null,
       };
       const { data, error } = await supabase.functions.invoke('upsert-system-email-layout', { method: 'POST', body: payload });
       if (error) throw error;
@@ -567,7 +568,7 @@ const SystemNotificationSettingsPage = () => {
   let activeService = "Simulated (No API Key)";
   let serviceStatusIcon = <XCircle className="h-5 w-5 text-destructive" />;
   let serviceStatusColor = "text-destructive";
-  let senderEmail = smtpSettings?.sender_email || "noreply@example.com";
+  const senderEmail = smtpSettings?.sender_email || "noreply@example.com";
 
   if (resendApiKeyStatus?.isResendApiKeySet) {
     activeService = "Resend API (System-wide)";
@@ -635,7 +636,7 @@ const SystemNotificationSettingsPage = () => {
   // --- HTML Generation Functions for iframe content ---
   const generateFullEmailHTML = (bodyContent: string, subject: string) => {
     const previewBody = bodyContent ? mustache.render(bodyContent, dummyTemplateVariables, {}, ['<%', '%>']) : "";
-    let headerHtmlContent = systemLayout?.header_html ? mustache.render(systemLayout.header_html, dummyTemplateVariables, {}, ['<%', '%>']) : mustache.render(`
+    const headerHtmlContent = systemLayout?.header_html ? mustache.render(systemLayout.header_html, dummyTemplateVariables, {}, ['<%', '%>']) : mustache.render(`
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8f8f8; padding: 20px 0; border-bottom: 1px solid #eeeeee;">
         <tr>
           <td align="center" valign="top">
@@ -663,7 +664,7 @@ const SystemNotificationSettingsPage = () => {
       </table>
     `, dummyTemplateVariables, {}, ['<%', '%>']);
 
-    let footerHtmlContent = systemLayout?.footer_html ? mustache.render(systemLayout.footer_html, dummyTemplateVariables, {}, ['<%', '%>']) : mustache.render(`
+    const footerHtmlContent = systemLayout?.footer_html ? mustache.render(systemLayout.footer_html, dummyTemplateVariables, {}, ['<%', '%>']) : mustache.render(`
       <div style="text-align: center; padding: 20px; font-size: 0.8em; color: #777; border-top: 1px solid #eee; margin-top: 20px;">
         &copy; <% year %> <% company_name %>. All rights reserved. <br>
         <a href="<% public_web_url %>" style="color: #2F424F;">Visit our website</a>
@@ -727,13 +728,13 @@ const SystemNotificationSettingsPage = () => {
       body_content: "<p>This is a **dummy email body** to preview your header and footer layout. It will be replaced by actual template content when an email is sent.</p><p>Example variable: User Name: <% user_name %></p>",
     };
 
-    let headerHtml = currentLayoutHeaderHtml ? mustache.render(currentLayoutHeaderHtml, layoutPreviewVariables, {}, ['<%', '%>']) : mustache.render(`
+    const headerHtml = currentLayoutHeaderHtml ? mustache.render(currentLayoutHeaderHtml, layoutPreviewVariables, {}, ['<%', '%>']) : mustache.render(`
       <div style="text-align: center; padding: 20px; background-color: #f8f8f8; border-bottom: 1px solid #eee;">
         <img src="<% logo_url %>" alt="<% company_name %> Logo" style="max-width: <% logo_width %>px; height: <% logo_height %>; display: block; margin: 0 auto;">
       </div>
     `, layoutPreviewVariables, {}, ['<%', '%>']);
 
-    let footerHtml = currentLayoutFooterHtml ? mustache.render(currentLayoutFooterHtml, layoutPreviewVariables, {}, ['<%', '%>']) : mustache.render(`
+    const footerHtml = currentLayoutFooterHtml ? mustache.render(currentLayoutFooterHtml, layoutPreviewVariables, {}, ['<%', '%>']) : mustache.render(`
       <div style="text-align: center; padding: 20px; font-size: 0.8em; color: #777; border-top: 1px solid #eee; margin-top: 20px;">
         &copy; <% year %> <% company_name %>. All rights reserved. <br>
         <a href="<% public_web_url %>" style="color: #2F424F;">Visit our website</a>
@@ -1002,12 +1003,14 @@ const SystemNotificationSettingsPage = () => {
                             <Label htmlFor="template-body" className="flex items-center gap-1">
                               Body <span className="text-xs text-muted-foreground">(HTML)</span>
                             </Label>
-                            <RichTextEditor
-                              value={templateForm.watch("body")}
-                              onChange={(value) => templateForm.setValue("body", value)}
-                              placeholder="Enter email body HTML here. Use placeholders like <% user_name %>."
-                              disabled={isTemplateSaving}
-                            />
+                            <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+                              <RichTextEditor
+                                value={templateForm.watch("body")}
+                                onChange={(value) => templateForm.setValue("body", value)}
+                                placeholder="Enter email body HTML here. Use placeholders like <% user_name %>."
+                                disabled={isTemplateSaving}
+                              />
+                            </Suspense>
                             <p className="text-xs text-muted-foreground mt-1">
                               Use placeholders like `&lt;% admin_name %&gt;`, `&lt;% company_name %&gt;` for dynamic content.
                             </p>
@@ -1112,7 +1115,7 @@ const SystemNotificationSettingsPage = () => {
                         <TableRow key={template.id}>
                           <TableCell className="font-medium">{template.name}</TableCell>
                           <TableCell>{template.subject}</TableCell>
-                          <TableCell>{template.description || "N/A"}</TableCell>
+                          <TableCell>{template.description ?? "N/A"}</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="outline" size="sm" onClick={() => handleEditTemplateClick(template)}><Edit className="h-4 w-4" /></Button>
                             <Button variant="destructive" size="sm" onClick={() => handleDeleteTemplateClick(template)}><Trash2 className="h-4 w-4" /></Button>
@@ -1243,12 +1246,14 @@ const SystemNotificationSettingsPage = () => {
                           <RotateCcw className="mr-2 h-4 w-4" /> Reset to Default
                         </Button>
                       </div>
-                      <RichTextEditor
-                        value={layoutForm.watch("header_html") || ""}
-                        onChange={(value) => layoutForm.setValue("header_html", value)}
-                        placeholder="Enter global email header HTML here. Leave blank to use system default."
-                        disabled={isLayoutSaving}
-                      />
+                      <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+                        <RichTextEditor
+                          value={layoutForm.watch("header_html") ?? ""}
+                          onChange={(value) => layoutForm.setValue("header_html", value)}
+                          placeholder="Enter global email header HTML here. Leave blank to use system default."
+                          disabled={isLayoutSaving}
+                        />
+                      </Suspense>
                       <p className="text-xs text-muted-foreground mt-1">
                         Use placeholders like `&lt;% logo_url %&gt;`, `&lt;% company_name %&gt;`, `&lt;% logo_width %&gt;`, `&lt;% logo_height %&gt;` for dynamic content.
                       </p>
@@ -1273,12 +1278,14 @@ const SystemNotificationSettingsPage = () => {
                           <RotateCcw className="mr-2 h-4 w-4" /> Reset to Default
                         </Button>
                       </div>
-                      <RichTextEditor
-                        value={layoutForm.watch("footer_html") || ""}
-                        onChange={(value) => layoutForm.setValue("footer_html", value)}
-                        placeholder="Enter global email footer HTML here. Leave blank to use system default."
-                        disabled={isLayoutSaving}
-                      />
+                      <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+                        <RichTextEditor
+                          value={layoutForm.watch("footer_html") ?? ""}
+                          onChange={(value) => layoutForm.setValue("footer_html", value)}
+                          placeholder="Enter global email footer HTML here. Leave blank to use system default."
+                          disabled={isLayoutSaving}
+                        />
+                      </Suspense>
                       <p className="text-xs text-muted-foreground mt-1">
                         Use placeholders like `&lt;% year %&gt;`, `&lt;% company_name %&gt;`, `&lt;% public_web_url %&gt;` for dynamic content.
                       </p>
@@ -1367,7 +1374,7 @@ const SystemNotificationSettingsPage = () => {
                         <Label htmlFor="test-template_name">Select Template</Label>
                         <Select
                           onValueChange={(value) => testEmailForm.setValue("template_name", value)}
-                          value={testEmailForm.watch("template_name") || ""}
+                          value={testEmailForm.watch("template_name") ?? ""}
                           disabled={isTestEmailSending || isLoadingTemplates}
                         >
                           <SelectTrigger id="test-template_name">
@@ -1408,12 +1415,14 @@ const SystemNotificationSettingsPage = () => {
 
                   <div className="grid gap-2 mb-8">
                     <Label htmlFor="test-body">Body</Label>
-                    <RichTextEditor
-                      value={testEmailForm.watch("body") || ""}
-                      onChange={(value) => testEmailForm.setValue("body", value)}
-                      placeholder="Enter email body here..."
-                      disabled={isTestEmailSending || useTemplateForTestEmail}
-                    />
+                    <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+                      <RichTextEditor
+                        value={testEmailForm.watch("body") ?? ""}
+                        onChange={(value) => testEmailForm.setValue("body", value)}
+                        placeholder="Enter email body here..."
+                        disabled={isTestEmailSending || useTemplateForTestEmail}
+                      />
+                    </Suspense>
                     {testEmailForm.formState.errors.body && (
                       <p className="text-sm text-destructive">{testEmailForm.formState.errors.body.message}</p>
                     )}

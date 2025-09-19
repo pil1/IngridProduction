@@ -65,10 +65,10 @@ const NotificationsDropdown = () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] }); // Invalidate full notifications page
       // No toast here, as it would be too many popups for each click
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error marking notification as read",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -82,7 +82,7 @@ const NotificationsDropdown = () => {
     // The Link component handles navigation, so no explicit navigate() call needed here.
   };
 
-  const unreadCount = notifications?.length || 0;
+  const unreadCount = notifications?.length ?? 0;
 
   const isLoading = isLoadingSession || isLoadingNotifications;
 

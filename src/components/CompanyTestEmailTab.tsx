@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 import { useSession } from "@/components/SessionContextProvider";
-import RichTextEditor from "@/components/RichTextEditor";
+// Lazy load RichTextEditor to reduce bundle size
+const RichTextEditor = lazy(() => import("@/components/RichTextEditor"));
 import { Checkbox } from "@/components/ui/checkbox";
 
 const testEmailSchema = z.object({
@@ -187,7 +188,7 @@ const CompanyTestEmailTab = ({ companyId }: CompanyTestEmailTabProps) => {
                 <Label htmlFor="template_name">Select Template</Label>
                 <Select
                   onValueChange={(value) => form.setValue("template_name", value)}
-                  value={form.watch("template_name") || ""}
+                  value={form.watch("template_name") ?? ""}
                   disabled={isSending || isLoadingTemplates}
                 >
                   <SelectTrigger id="template_name">
@@ -222,12 +223,14 @@ const CompanyTestEmailTab = ({ companyId }: CompanyTestEmailTabProps) => {
 
           <div className="grid gap-2 mb-6"> {/* Added mb-6 here */}
             <Label htmlFor="body">Body</Label>
-            <RichTextEditor
-              value={form.watch("body") || ""}
-              onChange={(value) => form.setValue("body", value)}
-              placeholder="Enter email body here..."
-              disabled={isSending || useTemplate}
-            />
+            <Suspense fallback={<div className="h-32 bg-muted animate-pulse rounded" />}>
+              <RichTextEditor
+                value={form.watch("body") ?? ""}
+                onChange={(value) => form.setValue("body", value)}
+                placeholder="Enter email body here..."
+                disabled={isSending || useTemplate}
+              />
+            </Suspense>
             {form.formState.errors.body && <p className="text-sm text-destructive">{form.formState.errors.body.message}</p>}
           </div>
 

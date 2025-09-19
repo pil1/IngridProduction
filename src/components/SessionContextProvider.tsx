@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { userService } from "@/services/api";
 
 interface Profile {
   id: string;
@@ -50,23 +51,37 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
       if (!user?.id) {
         return null;
       }
-      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
-      if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found"
-        console.error("Error fetching profile with react-query:", error);
-        throw error; // Let react-query handle the error state
+
+      const response = await userService.getCurrentProfile();
+      if (!response.success) {
+        // Handle specific "no profile found" case gracefully
+        if (response.error?.message.includes('no rows found') || response.error?.code === 'PGRST116') {
+          console.warn("No profile found for current user:", response.error?.message);
+          return null;
+        }
+        console.error("Error fetching profile with UserService:", response.error);
+        throw response.error; // Let react-query handle the error state
       }
-      return data;
+
+      return response.data;
     },
     enabled: !!user?.id, // Only run query if user ID is available
     staleTime: 1000 * 60 * 5, // Profile data is relatively stable, re-fetch every 5 minutes
     refetchOnWindowFocus: true, // Re-fetch when window regains focus
+    retry: (failureCount, error) => {
+      // Don't retry if it's a "no profile found" error
+      if (error?.message?.includes('no rows found') || error?.code === 'PGRST116') {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
 
   useEffect(() => {
     const handleAuthStateChange = async (event: string, currentSession: Session | null) => { // Added event parameter
       setIsAuthLoading(true);
       setSession(currentSession);
-      setUser(currentSession?.user || null);
+      setUser(currentSession?.user ?? null);
       
       // Clear any existing refresh timeout to prevent multiple refreshes
       if (refreshTimeoutRef.current) {
@@ -85,12 +100,12 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           // Debounce the refresh call to prevent rate limiting
           refreshTimeoutRef.current = setTimeout(async () => {
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError) {
-              console.error("Error refreshing session:", refreshError);
-            } else if (refreshData.session) {
+            const response = await userService.refreshSession();
+            if (!response.success) {
+              console.error("Error refreshing session:", response.error);
+            } else if (response.data?.session) {
               // Session refreshed, new JWT should be available.
-              setSession(refreshData.session);
+              setSession(response.data.session);
             }
             refreshTimeoutRef.current = null; // Clear timeout ref after execution
           }, 500); // 500ms debounce
@@ -109,9 +124,16 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
     });
 
     // Fetch initial session and process it
-    supabase.auth.getSession()
-      .then(({ data: { session: initialSession } }) => {
-        handleAuthStateChange('INITIAL_SESSION', initialSession); // Custom event for initial load
+    userService.getSession()
+      .then((response) => {
+        if (response.success) {
+          handleAuthStateChange('INITIAL_SESSION', response.data?.session ?? null);
+        } else {
+          console.error("Error fetching initial session:", response.error);
+          setSession(null);
+          setUser(null);
+          setIsAuthLoading(false);
+        }
       })
       .catch(error => {
         console.error("Error fetching initial session:", error);
@@ -130,7 +152,7 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
 
   // Memoize computed values
   const isLoading = useMemo(() => isAuthLoading || isProfileLoading, [isAuthLoading, isProfileLoading]);
-  const activeProfile = useMemo(() => impersonatedProfile || fetchedProfile || null, [impersonatedProfile, fetchedProfile]);
+  const activeProfile = useMemo(() => impersonatedProfile ?? fetchedProfile ?? null, [impersonatedProfile, fetchedProfile]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

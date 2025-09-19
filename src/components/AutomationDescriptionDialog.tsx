@@ -65,7 +65,7 @@ const AutomationDescriptionDialog = ({ isOpen, onOpenChange, onAutomationGenerat
     onError: (error: any) => {
       toast({
         title: "Error generating automation",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },

@@ -34,8 +34,8 @@ const SettingsPage = () => {
   const form = useForm<ProfileSettingsFormValues>({
     resolver: zodResolver(profileSettingsSchema),
     defaultValues: {
-      first_name: profile?.first_name || "",
-      last_name: profile?.last_name || "",
+      first_name: profile?.first_name ?? "",
+      last_name: profile?.last_name ?? "",
       avatar_file: null,
     },
   });
@@ -43,8 +43,8 @@ const SettingsPage = () => {
   useEffect(() => {
     if (profile) {
       form.reset({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
+        first_name: profile.first_name ?? "",
+        last_name: profile.last_name ?? "",
         avatar_file: null,
       });
     }
@@ -89,7 +89,7 @@ const SettingsPage = () => {
       setAvatarFile(null); // Clear the temporary file from state
     },
     onError: (error: any) => {
-      toast({ title: "Error updating profile", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Error updating profile", description: error.message ?? "An unexpected error occurred.", variant: "destructive" });
     },
   });
 
@@ -144,15 +144,15 @@ const SettingsPage = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={profile?.email || ""} readOnly />
+                  <Input id="email" type="email" value={profile?.email ?? ""} readOnly />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="role">Role</Label>
-                  <Input id="role" value={profile?.role || ""} readOnly />
+                  <Input id="role" value={profile?.role ?? ""} readOnly />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="company">Company ID</Label>
-                  <Input id="company" value={profile?.company_id || "N/A"} readOnly />
+                  <Input id="company" value={profile?.company_id ?? "N/A"} readOnly />
                 </div>
                 <Button type="submit" disabled={updateProfileMutation.isPending}>
                   {updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

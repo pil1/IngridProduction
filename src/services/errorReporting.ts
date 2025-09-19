@@ -55,7 +55,7 @@ class ErrorReportingService {
         },
         body: JSON.stringify(errorReport),
       });
-    } catch (error) {
+    } catch {
       // Fallback: Store in localStorage for later retry
       this.storeErrorLocally(errorReport);
     }

@@ -54,7 +54,7 @@ export interface Vendor {
   shipping_state_province: string | null;
   shipping_postal_code: string | null;
   shipping_country: string | null;
-  shipping_addresses_data: any | null;
+  shipping_addresses_data: Record<string, unknown> | null;
 }
 
 const VendorsPage = () => {
@@ -100,8 +100,8 @@ const VendorsPage = () => {
       setIsDeleteDialogOpen(false);
       setVendorToDelete(null);
     },
-    onError: (error: any) => {
-      toast({ title: "Error deleting vendor", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error deleting vendor", description: error.message ?? "An unexpected error occurred.", variant: "destructive" });
     },
   });
 
@@ -247,7 +247,7 @@ const VendorsPage = () => {
           isOpen={isAddEditDialogOpen}
           onOpenChange={setIsAddEditDialogOpen}
           editingVendor={editingVendor}
-          companyId={currentCompanyId || ""}
+          companyId={currentCompanyId ?? ""}
           initialMode={editingVendor ? "view" : "add"}
           prefillData={smartAddPrefillData} // Pass pre-fill data
         />

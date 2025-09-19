@@ -74,7 +74,7 @@ const CompanyLocationsTable = ({ companyId }: CompanyLocationsTableProps) => {
       setLocationToDelete(null);
     },
     onError: (error: any) => {
-      toast({ title: "Error deleting location", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Error deleting location", description: error.message ?? "An unexpected error occurred.", variant: "destructive" });
     },
   });
 
@@ -172,10 +172,10 @@ const CompanyLocationsTable = ({ companyId }: CompanyLocationsTableProps) => {
                       {location.is_main_location && <MapPin className="h-4 w-4 text-primary" />}
                       {location.name}
                     </TableCell>
-                    <TableCell>{location.address || "N/A"}</TableCell>
-                    <TableCell>{location.city || "N/A"}</TableCell>
-                    <TableCell>{location.state || "N/A"}</TableCell>
-                    <TableCell>{location.country || "N/A"}</TableCell>
+                    <TableCell>{location.address ?? "N/A"}</TableCell>
+                    <TableCell>{location.city ?? "N/A"}</TableCell>
+                    <TableCell>{location.state ?? "N/A"}</TableCell>
+                    <TableCell>{location.country ?? "N/A"}</TableCell>
                     <TableCell>{location.is_main_location ? "Yes" : "No"}</TableCell>
                     {canManageLocations && (
                       <TableCell className="text-right space-x-2">

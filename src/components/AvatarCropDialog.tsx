@@ -29,7 +29,7 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-async function getCroppedImgFile(imageSrc: string, pixelCrop: any, fileName: string): Promise<File> {
+async function getCroppedImgFile(imageSrc: string, pixelCrop: Record<string, unknown>, fileName: string): Promise<File> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -103,7 +103,7 @@ const AvatarCropDialog = ({ isOpen, onOpenChange, imageSrc, onSave }: AvatarCrop
     }
   }, [isOpen, imageSrc]);
 
-  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => { // Renamed to _croppedArea
+  const onCropComplete = useCallback((_croppedArea: Record<string, unknown>, croppedAreaPixels: Record<string, unknown>) => { // Renamed to _croppedArea
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 

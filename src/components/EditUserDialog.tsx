@@ -227,7 +227,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
     onError: (error: any) => {
       toast({
         title: "Error updating user",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -410,7 +410,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
                 </Label>
                 <Select
                   onValueChange={(value) => form.setValue("company_id", value)}
-                  value={form.watch("company_id") || ""}
+                  value={form.watch("company_id") ?? ""}
                   disabled={isLoading}
                 >
                   <SelectTrigger className="col-span-3">

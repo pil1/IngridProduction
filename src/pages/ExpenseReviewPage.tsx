@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,24 +72,34 @@ const ExpenseReviewPage = () => {
         .eq("name", "Expense Management")
         .single();
       if (error && error.code !== 'PGRST116') throw error;
-      return data?.id || null;
+      return data?.id ?? null;
     },
   });
 
   // 2. Fetch Expense Management Configuration for the current company (controller fields)
   const { data: expenseModuleConfig, isLoading: isLoadingConfig } = useQuery<{ settings: { controller_fields: Record<string, FieldSetting> } } | null>({
     queryKey: ["expenseModuleControllerConfig", currentCompanyId, expenseModuleId],
+    retry: false, // Don't retry to avoid 406 errors causing Suspense issues
     queryFn: async () => {
       if (!currentCompanyId || !expenseModuleId) return null;
-      const { data, error } = await supabase
-        .from("module_configurations")
-        .select("settings")
-        .eq("company_id", currentCompanyId)
-        .eq("module_id", expenseModuleId)
-        .eq("config_key", "expense_management_fields")
-        .single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("module_configurations")
+          .select("settings")
+          .eq("company_id", currentCompanyId)
+          .eq("module_id", expenseModuleId)
+          .eq("config_key", "expense_management_fields")
+          .single();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error: any) {
+        // Handle missing module_configurations table gracefully
+        if (error.code === 'PGRST205' || error.status === 406) {
+          console.warn('Module configurations table not found - using default field settings');
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: !!currentCompanyId && !!expenseModuleId && !isLoadingSession,
   });
@@ -134,9 +144,9 @@ const ExpenseReviewPage = () => {
       // Manually flatten nested objects into the main Expense object
       return (data as any[]).map(item => ({
         ...item,
-        category_name: item.expense_categories?.name || null,
-        gl_account_code: item.gl_accounts?.account_code || null,
-        gl_account_name: item.gl_accounts?.account_name || null,
+        category_name: item.expense_categories?.name ?? null,
+        gl_account_code: item.gl_accounts?.account_code ?? null,
+        gl_account_name: item.gl_accounts?.account_name ?? null,
       })) as Expense[];
     },
     enabled: !!currentCompanyId && !!userRole && ['admin', 'controller', 'super-admin'].includes(userRole) && !isLoadingConfig,
@@ -168,9 +178,9 @@ const ExpenseReviewPage = () => {
     if (!expensesData || !profilesMap) return [];
     return expensesData.map((expense: Expense) => ({ // Explicitly type 'expense'
       ...expense,
-      submitter_profile: profilesMap.get(expense.submitted_by) || null,
-      submitter_full_name: profilesMap.get(expense.submitted_by)?.full_name || null, // Add for direct access
-      submitter_email: profilesMap.get(expense.submitted_by)?.email || null, // Add for direct access
+      submitter_profile: profilesMap.get(expense.submitted_by) ?? null,
+      submitter_full_name: profilesMap.get(expense.submitted_by)?.full_name ?? null, // Add for direct access
+      submitter_email: profilesMap.get(expense.submitted_by)?.email ?? null, // Add for direct access
     }));
   }, [expensesData, profilesMap]);
 
@@ -203,25 +213,31 @@ const ExpenseReviewPage = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expensesForReview"] });
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
-      toast({ title: "Expense Status Updated", description: "Expense status has been updated." });
-      setIsReviewDialogOpen(false);
-      setExpenseToReview(null);
-      setReviewAction(null);
-      setReviewNotes("");
+      startTransition(() => {
+        queryClient.invalidateQueries({ queryKey: ["expensesForReview"] });
+        queryClient.invalidateQueries({ queryKey: ["expenses"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications", currentUserId] });
+        toast({ title: "Expense Status Updated", description: "Expense status has been updated." });
+        setIsReviewDialogOpen(false);
+        setExpenseToReview(null);
+        setReviewAction(null);
+        setReviewNotes("");
+      });
     },
     onError: (error: any) => {
-      console.error("Error updating expense status:", error);
-      toast({ title: "Error updating status", description: error.message, variant: "destructive" });
+      startTransition(() => {
+        console.error("Error updating expense status:", error);
+        toast({ title: "Error updating status", description: error.message, variant: "destructive" });
+      });
     },
   });
 
   const handleReviewAction = useCallback((expense: Expense, action: "approve" | "reject" | "request_info") => {
-    setExpenseToReview(expense);
-    setReviewAction(action);
-    setIsReviewDialogOpen(true);
+    startTransition(() => {
+      setExpenseToReview(expense);
+      setReviewAction(action);
+      setIsReviewDialogOpen(true);
+    });
   }, []);
 
   const columns: TableColumn<Expense>[] = useMemo(() => [
@@ -241,7 +257,7 @@ const ExpenseReviewPage = () => {
     {
       key: "vendor_name",
       header: "Vendor",
-      render: (row) => row.vendor_name || "N/A",
+      render: (row) => row.vendor_name ?? "N/A",
       initialWidth: 150,
     },
     {
@@ -261,13 +277,13 @@ const ExpenseReviewPage = () => {
     {
       key: "category",
       header: "Category",
-      render: (row) => row.category_name || "N/A", // Fixed: Use flattened category_name
+      render: (row) => row.category_name ?? "N/A", // Fixed: Use flattened category_name
       initialWidth: 150,
     },
     {
       key: "submitted_by",
       header: "Submitted By",
-      render: (row) => row.submitter_full_name || row.submitter_email || "N/A",
+      render: (row) => row.submitter_full_name ?? row.submitter_email ?? "N/A",
       initialWidth: 180,
     },
     {
@@ -379,7 +395,9 @@ const ExpenseReviewPage = () => {
   }, [columns, activeTab]);
 
   const handleRowClick = useCallback((expense: Expense) => {
-    setExpandedExpenseId(prevId => (prevId === expense.id ? null : expense.id));
+    startTransition(() => {
+      setExpandedExpenseId(prevId => (prevId === expense.id ? null : expense.id));
+    });
   }, []);
 
   const renderCustomRow = useCallback((
@@ -475,7 +493,7 @@ const ExpenseReviewPage = () => {
           <CardDescription className="mb-4">
             A list of expenses submitted by users in your company awaiting your review.
           </CardDescription>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={(value) => startTransition(() => setActiveTab(value))} className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="submitted">Submitted</TabsTrigger>

@@ -142,17 +142,17 @@ const CompanySettingsPage = () => {
         // subscription_tier removed
         default_currency: company.default_currency,
         logo_file: null,
-        legal_name: company.legal_name || "",
-        tax_id: company.tax_id || "",
-        phone_number: company.phone_number || "",
-        website: company.website || "",
-        industry: company.industry || "",
-        address_line_1: company.address_line_1 || "",
-        address_line_2: company.address_line_2 || "",
-        city: company.city || "",
-        state_province: company.state_province || "",
-        postal_code: company.postal_code || "",
-        country: company.country || "",
+        legal_name: company.legal_name ?? "",
+        tax_id: company.tax_id ?? "",
+        phone_number: company.phone_number ?? "",
+        website: company.website ?? "",
+        industry: company.industry ?? "",
+        address_line_1: company.address_line_1 ?? "",
+        address_line_2: company.address_line_2 ?? "",
+        city: company.city ?? "",
+        state_province: company.state_province ?? "",
+        postal_code: company.postal_code ?? "",
+        country: company.country ?? "",
         fiscal_year_end_date: company.fiscal_year_end_date ? new Date(company.fiscal_year_end_date) : undefined,
       });
       setLogoFile(null);
@@ -206,17 +206,17 @@ const CompanySettingsPage = () => {
           // subscription_tier removed
           default_currency: values.default_currency,
           logo_url: logoUrl,
-          legal_name: values.legal_name || null,
-          tax_id: values.tax_id || null,
-          phone_number: values.phone_number || null,
-          website: values.website || null,
-          industry: values.industry || null,
-          address_line_1: values.address_line_1 || null,
-          address_line_2: values.address_line_2 || null,
-          city: values.city || null,
-          state_province: values.state_province || null,
-          postal_code: values.postal_code || null,
-          country: values.country || null,
+          legal_name: values.legal_name ?? null,
+          tax_id: values.tax_id ?? null,
+          phone_number: values.phone_number ?? null,
+          website: values.website ?? null,
+          industry: values.industry ?? null,
+          address_line_1: values.address_line_1 ?? null,
+          address_line_2: values.address_line_2 ?? null,
+          city: values.city ?? null,
+          state_province: values.state_province ?? null,
+          postal_code: values.postal_code ?? null,
+          country: values.country ?? null,
           fiscal_year_end_date: values.fiscal_year_end_date ? values.fiscal_year_end_date.toISOString().split('T')[0] : null,
           updated_at: new Date().toISOString(),
         })
@@ -238,7 +238,7 @@ const CompanySettingsPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Saving Settings",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -426,8 +426,8 @@ const CompanySettingsPage = () => {
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={form.watch("fiscal_year_end_date") || undefined}
-                        onSelect={(date) => form.setValue("fiscal_year_end_date", date || null)}
+                        selected={form.watch("fiscal_year_end_date") ?? undefined}
+                        onSelect={(date) => form.setValue("fiscal_year_end_date", date ?? null)}
                         initialFocus
                       />
                     </PopoverContent>

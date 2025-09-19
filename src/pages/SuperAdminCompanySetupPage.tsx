@@ -113,7 +113,7 @@ const SuperAdminCompanySetupPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("modules").select("id, name, description, is_active, default_monthly_price, default_per_user_price, module_type"); // Select module_type
       if (error) throw error;
-      return data || []; // Ensure it returns an array
+      return data ?? []; // Ensure it returns an array
     },
     enabled: profile?.role === 'super-admin',
   });
@@ -247,7 +247,7 @@ const SuperAdminCompanySetupPage = () => {
       console.error("SuperAdminCompanySetupPage: Error during company setup mutation:", error);
       toast({
         title: "Error during company setup",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -301,7 +301,7 @@ const SuperAdminCompanySetupPage = () => {
             return (
               <TableRow key={moduleSetting.module_id}>
                 <TableCell className="font-medium">{moduleSetting.name}</TableCell>
-                <TableCell>{moduleSetting.description || "N/A"}</TableCell>
+                <TableCell>{moduleSetting.description ?? "N/A"}</TableCell>
                 <TableCell>
                   <Checkbox
                     checked={form.watch(`modules.${formModuleIndex}.is_enabled`)}

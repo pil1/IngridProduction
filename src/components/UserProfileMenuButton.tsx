@@ -45,7 +45,7 @@ const UserProfileMenuButton = ({ isSidebarCollapsed }: UserProfileMenuButtonProp
       aria-label="View Profile Settings"
     >
       <Avatar className="h-8 w-8">
-        <AvatarImage src={avatarUrl || undefined} alt="User Avatar" />
+        <AvatarImage src={avatarUrl ?? undefined} alt="User Avatar" />
         <AvatarFallback className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium">
           {fallbackText}
         </AvatarFallback>

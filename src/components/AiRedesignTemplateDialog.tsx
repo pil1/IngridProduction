@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react"; // Removed unused useEffect
+import { useState, lazy, Suspense } from "react"; // Added lazy and Suspense
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,8 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Lightbulb } from "lucide-react";
-import RichTextEditor from "./RichTextEditor"; // Import RichTextEditor
+// Lazy load RichTextEditor to reduce bundle size
+const RichTextEditor = lazy(() => import("./RichTextEditor"));
 import { Input } from "@/components/ui/input"; // Added missing Input import
 
 interface AiRedesignTemplateDialogProps {
@@ -65,7 +66,7 @@ const AiRedesignTemplateDialog = ({
     onError: (error: any) => {
       toast({
         title: "Error Redesigning Template",
-        description: error.message || "An unexpected error occurred during AI redesign.",
+        description: error.message ?? "An unexpected error occurred during AI redesign.",
         variant: "destructive",
       });
     },
@@ -95,12 +96,14 @@ const AiRedesignTemplateDialog = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="current-body">Current Body (Preview)</Label>
-            <RichTextEditor
-              value={currentTemplate.body}
-              onChange={() => {}} // Read-only
-              readOnly
-              disabled
-            />
+            <Suspense fallback={<div className="h-32 flex items-center justify-center border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+              <RichTextEditor
+                value={currentTemplate.body}
+                onChange={() => {}} // Read-only
+                readOnly
+                disabled
+              />
+            </Suspense>
           </div>
           <div className="space-y-2">
             <Label htmlFor="redesign-instructions" className="flex items-center gap-1">

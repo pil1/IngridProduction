@@ -14,12 +14,32 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
+        'src/components/ui/', // Exclude shadcn/ui components from coverage
         'src/test/',
         '**/*.d.ts',
         '**/*.config.*',
         'dist/',
+        'android/',
+        'ios/',
+        'supabase/'
       ],
+      thresholds: {
+        global: {
+          branches: 50,
+          functions: 50,
+          lines: 60,
+          statements: 60
+        }
+      }
     },
+    // Increase timeout for integration tests
+    testTimeout: 10000,
+    // Mock configuration
+    server: {
+      deps: {
+        inline: ['@testing-library/user-event']
+      }
+    }
   },
   resolve: {
     alias: {

@@ -116,14 +116,14 @@ const ExpenseTableComponent = ({
                 {showSubmitterColumn && ( // Conditionally render submitter for mobile
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={expense.submitter_avatar_url || ""} />
+                      <AvatarImage src={expense.submitter_avatar_url ?? ""} />
                       <AvatarFallback>
                         {expense.submitter_first_name?.[0]}
                         {expense.submitter_last_name?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-muted-foreground">
-                      {expense.submitter_full_name || expense.submitter_email}
+                      {expense.submitter_full_name ?? expense.submitter_email}
                     </span>
                   </div>
                 )}
@@ -183,7 +183,7 @@ const ExpenseTableComponent = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[40px]"></TableHead> {/* For expand/collapse icon */}
+            <TableHead className="w-[40px]"></TableHead>
             <TableHead>Title</TableHead>
             {showSubmitterColumn && <TableHead>Submitter</TableHead>}
             <TableHead>Amount</TableHead>
@@ -217,7 +217,7 @@ const ExpenseTableComponent = ({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={expense.submitter_avatar_url || ""} />
+                          <AvatarImage src={expense.submitter_avatar_url ?? ""} />
                           <AvatarFallback>
                             {expense.submitter_first_name?.[0]}
                             {expense.submitter_last_name?.[0]}
@@ -225,7 +225,7 @@ const ExpenseTableComponent = ({
                         </Avatar>
                         <div>
                           <div className="font-medium">
-                            {expense.submitter_full_name || expense.submitter_email}
+                            {expense.submitter_full_name ?? expense.submitter_email}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {expense.submitter_email}
@@ -240,7 +240,7 @@ const ExpenseTableComponent = ({
                   <TableCell>
                     {new Date(expense.expense_date).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{expense.category_name || "—"}</TableCell>
+                  <TableCell>{expense.category_name ?? "—"}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(expense.status)}>
                       {expense.status}

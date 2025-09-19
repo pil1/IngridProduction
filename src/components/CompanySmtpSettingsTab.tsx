@@ -59,9 +59,9 @@ const CompanySmtpSettingsTab = ({ companyId }: CompanySmtpSettingsTabProps) => {
     if (settings) {
       form.reset({
         sender_email: settings.sender_email,
-        smtp_host: settings.smtp_host || "",
-        smtp_port: settings.smtp_port || undefined,
-        smtp_username: settings.smtp_username || "",
+        smtp_host: settings.smtp_host ?? "",
+        smtp_port: settings.smtp_port ?? undefined,
+        smtp_username: settings.smtp_username ?? "",
         smtp_password: "",
         email_api_key: "",
       });
@@ -88,7 +88,7 @@ const CompanySmtpSettingsTab = ({ companyId }: CompanySmtpSettingsTabProps) => {
       form.setValue("smtp_password", "");
       form.setValue("email_api_key", "");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error Saving Settings", description: error.message, variant: "destructive" });
     },
   });

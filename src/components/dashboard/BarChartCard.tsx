@@ -33,7 +33,7 @@ const BarChartCard = ({ title, description, data, dataKey, categoryKey, currency
   }, [data, dataKey, currencyCode]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       const value = payload[0].payload[`${dataKey}Formatted`];
       return (
         <div className="rounded-lg border bg-background p-2 text-sm shadow-sm">

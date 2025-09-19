@@ -87,7 +87,7 @@ const ExpenseCategoriesPage = () => {
     if (isAddEditDialogOpen && editingCategory) {
       form.reset({
         name: editingCategory.name,
-        description: editingCategory.description || "",
+        description: editingCategory.description ?? "",
         is_active: editingCategory.is_active,
       });
     } else if (!isAddEditDialogOpen) {
@@ -308,7 +308,7 @@ const ExpenseCategoriesPage = () => {
                 categories?.map((category) => (
                   <TableRow key={category.id}>
                     <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{category.description || "N/A"}</TableCell>
+                    <TableCell>{category.description ?? "N/A"}</TableCell>
                     <TableCell>{category.is_active ? "Yes" : "No"}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(category)}>

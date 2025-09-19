@@ -105,10 +105,10 @@ const CompanySetupDialog = ({ isOpen, onOpenChange }: CompanySetupDialogProps) =
       form.reset();
       console.log(`Admin Invitation Link for ${data.invitation.email}: ${window.location.origin}/accept-invite?token=${data.invitation.token}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error during company setup",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },

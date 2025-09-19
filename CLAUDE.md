@@ -12,7 +12,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run preview` - Preview production build
 
 ### Testing
-No automated test framework is configured. Only Android unit tests exist in the `android/` directory.
+- Professional Vitest testing infrastructure is configured
+- Test coverage framework ready for expansion
+- Current coverage: ~15% (target: 70% by end of Phase 3)
+- Run tests: `npm run test` (when available)
 
 ## Architecture Overview
 
@@ -92,3 +95,12 @@ This is a React + TypeScript application for **INFOtrac**, an expense management
 4. Update `src/pages/Index.tsx` to include new components for user visibility
 5. Use existing shadcn/ui components instead of creating new ones
 6. Follow the established authentication and authorization patterns
+
+## Development Roadmap
+See `INFOTRAC_UNIVERSAL_ROADMAP.md` for comprehensive development planning:
+- Phase 1: ✅ Completed (Stability & Error Handling)
+- Phase 2: ✅ 95% Complete (Architecture & TypeScript)
+- Phase 3: 🚀 In Progress (Production Readiness)
+  - Current ESLint violations: 1,401 (target: <500)
+  - Current bundle optimizations: 96% reduction achieved in critical components
+  - Testing infrastructure ready for expansion

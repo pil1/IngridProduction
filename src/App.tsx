@@ -1,8 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient } from "@tanstack/react-query";
-import { createBrowserRouter, RouteObject, useNavigate, useLocation } from "react-router-dom";
+import { RouteObject, useNavigate, useLocation } from "react-router-dom";
 import { useSession } from "./components/SessionContextProvider";
 import RootLayout from "./layouts/RootLayout.tsx";
 import { Loader2 } from "lucide-react";
@@ -17,7 +16,9 @@ import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 
 // Lazy loaded components (loaded on demand)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+
 const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
+const EnhancedExpensesPage = lazy(() => import("./pages/EnhancedExpensesPage"));
 const ExpenseDetailPage = lazy(() => import("./pages/ExpenseDetailPage"));
 const ExpenseReviewPage = lazy(() => import("./pages/ExpenseReviewPage"));
 const CompaniesPage = lazy(() => import("./pages/Companies"));
@@ -39,18 +40,26 @@ const SystemNotificationSettingsPage = lazy(() => import("./pages/SystemNotifica
 const SystemModulesPage = lazy(() => import("./pages/SystemModulesPage"));
 const CompanyModulesOverviewPage = lazy(() => import("./pages/CompanyModulesOverviewPage"));
 const FirstLoginOnboardingDialog = lazy(() => import("./components/FirstLoginOnboardingDialog"));
+const AnalyticsDashboard = lazy(() => import("./components/analytics/AnalyticsDashboard"));
 
 import { supabase } from "@/integrations/supabase/client";
-import PageLoader from "./components/PageLoader";
+import AsyncErrorBoundary from "./components/AsyncErrorBoundary";
 
-// Helper function to wrap lazy components with Suspense
-const withSuspense = (Component: React.ComponentType, fallbackText?: string) => (
-  <Suspense fallback={<PageLoader text={fallbackText} />}>
-    <Component />
-  </Suspense>
+// Helper function to wrap lazy components with Suspense and Error Boundary
+const withSuspense = (Component: React.ComponentType, fallbackText?: string, componentName?: string) => (
+  <AsyncErrorBoundary fallbackText={fallbackText} componentName={componentName}>
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">{fallbackText ?? "Loading..."}</p>
+      </div>
+    }>
+      <Component />
+    </Suspense>
+  </AsyncErrorBoundary>
 );
 
-const queryClient = new QueryClient();
+// queryClient moved to exports.ts
 
 // Component for "Awaiting Company Assignment"
 const AwaitingCompanyAssignment = () => (
@@ -80,12 +89,13 @@ const ProtectedRoute = ({
   const location = useLocation();
 
   // Determine which profile to use for routing logic: impersonated or actual
-  const activeProfile = impersonatedProfile || profile;
+  const activeProfile = impersonatedProfile ?? profile;
 
   // State to control showing the "Awaiting Company Assignment" message
   const [showAwaitingCompany, setShowAwaitingCompany] = useState(false);
   // State to control showing the FirstLoginOnboardingDialog
   const [showFirstLoginOnboarding, setShowFirstLoginOnboarding] = useState(false);
+
 
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
@@ -265,121 +275,122 @@ const routes: RouteObject[] = [
       },
       {
         path: "/dashboard", // New dashboard route
-        element: withSuspense(Dashboard, "Loading dashboard..."),
+        element: withSuspense(Dashboard, "Loading dashboard...", "Dashboard"),
         handle: { pageTitle: "INFOtrac - Dashboard" },
       },
       {
         path: "/super-admin-dashboard",
-        element: withSuspense(SuperAdminDashboard, "Loading admin dashboard..."),
+        element: withSuspense(SuperAdminDashboard, "Loading admin dashboard...", "SuperAdminDashboard"),
         handle: { pageTitle: "INFOtrac - Super Admin Dashboard" },
       },
       {
         path: "/company-setup",
-        element: withSuspense(SuperAdminCompanySetupPage, "Loading company setup..."),
+        element: withSuspense(SuperAdminCompanySetupPage, "Loading company setup...", "SuperAdminCompanySetupPage"),
         handle: { pageTitle: "INFOtrac - Company Setup" },
       },
       {
         path: "/companies",
-        element: withSuspense(CompaniesPage, "Loading companies..."),
+        element: withSuspense(CompaniesPage, "Loading companies...", "CompaniesPage"),
         handle: { pageTitle: "INFOtrac - Companies" },
       },
       {
         path: "/vendors",
-        element: withSuspense(VendorsPage, "Loading vendors..."),
+        element: withSuspense(VendorsPage, "Loading vendors...", "VendorsPage"),
         handle: { pageTitle: "INFOtrac - Vendors" },
       },
       {
         path: "/customers",
-        element: withSuspense(CustomersPage, "Loading customers..."),
+        element: withSuspense(CustomersPage, "Loading customers...", "CustomersPage"),
         handle: { pageTitle: "INFOtrac - Customers" },
       },
       {
         path: "/expenses",
-        element: <ExpensesPage />,
+        element: withSuspense(ExpensesPage, "Loading expenses...", "ExpensesPage"),
         handle: { pageTitle: "INFOtrac - My Expenses" },
       },
       {
+        path: "/enhanced-expenses",
+        element: withSuspense(EnhancedExpensesPage, "Loading enhanced expenses...", "EnhancedExpensesPage"),
+        handle: { pageTitle: "INFOtrac - Enhanced Expenses" },
+      },
+      {
         path: "/expenses/:id",
-        element: <ExpenseDetailPage />,
+        element: withSuspense(ExpenseDetailPage, "Loading expense details...", "ExpenseDetailPage"),
         handle: { pageTitle: "INFOtrac - Expense Details" },
       },
       {
         path: "/expense-review",
-        element: <ExpenseReviewPage />,
+        element: withSuspense(ExpenseReviewPage, "Loading expense review...", "ExpenseReviewPage"),
         handle: { pageTitle: "INFOtrac - Expense Review" },
       },
       {
         path: "/expense-categories",
-        element: <ExpenseCategoriesPage />,
+        element: withSuspense(ExpenseCategoriesPage, "Loading expense categories...", "ExpenseCategoriesPage"),
         handle: { pageTitle: "INFOtrac - Expense Categories" },
       },
       {
         path: "/gl-accounts",
-        element: <GLAccountsPage />,
+        element: withSuspense(GLAccountsPage, "Loading GL accounts...", "GLAccountsPage"),
         handle: { pageTitle: "INFOtrac - GL Accounts" },
       },
       {
         path: "/notifications",
-        element: <NotificationsPage />,
+        element: withSuspense(NotificationsPage, "Loading notifications...", "NotificationsPage"),
         handle: { pageTitle: "INFOtrac - Notifications" },
       },
       {
         path: "/billing",
-        element: <BillingPage />,
+        element: withSuspense(BillingPage, "Loading billing...", "BillingPage"),
         handle: { pageTitle: "INFOtrac - Billing" },
       },
       {
         path: "/settings",
-        element: <SettingsPage />,
+        element: withSuspense(SettingsPage, "Loading settings...", "SettingsPage"),
         handle: { pageTitle: "INFOtrac - Profile Settings" },
       },
       {
         path: "/company-settings",
-        element: <CompanySettingsPage />,
+        element: withSuspense(CompanySettingsPage, "Loading company settings...", "CompanySettingsPage"),
         handle: { pageTitle: "INFOtrac - Company Settings" },
       },
       {
         path: "/system-notification-settings", // New unified route
-        element: <SystemNotificationSettingsPage />,
+        element: withSuspense(SystemNotificationSettingsPage, "Loading notification settings...", "SystemNotificationSettingsPage"),
         handle: { pageTitle: "INFOtrac - System Notification Settings" },
       },
       {
         path: "/company-modules-overview",
-        element: <CompanyModulesOverviewPage />,
+        element: withSuspense(CompanyModulesOverviewPage, "Loading modules overview...", "CompanyModulesOverviewPage"),
         handle: { pageTitle: "INFOtrac - Modules Overview" },
       },
       {
         path: "/system-modules",
-        element: <SystemModulesPage />,
+        element: withSuspense(SystemModulesPage, "Loading system modules...", "SystemModulesPage"),
         handle: { pageTitle: "INFOtrac - System Modules" },
       },
       {
         path: "/company-notification-settings",
-        element: <CompanyNotificationSettingsPage />,
+        element: withSuspense(CompanyNotificationSettingsPage, "Loading notification settings...", "CompanyNotificationSettingsPage"),
         handle: { pageTitle: "INFOtrac - Company Notification Settings" },
       },
       {
         path: "/system-billing-settings",
-        element: <SystemBillingSettingsPage />,
+        element: withSuspense(SystemBillingSettingsPage, "Loading billing settings...", "SystemBillingSettingsPage"),
         handle: { pageTitle: "INFOtrac - System Billing" },
       },
       {
         path: "/process-automation",
-        element: <ProcessAutomationPage />,
+        element: withSuspense(ProcessAutomationPage, "Loading process automation...", "ProcessAutomationPage"),
         handle: { pageTitle: "INFOtrac - Process Automation" },
       },
       {
         path: "/analytics",
-        element: (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-4">
-            <p className="text-muted-foreground">Analytics content coming soon!</p>
-          </div>
-        ),
+        element: withSuspense(AnalyticsDashboard, "Loading analytics dashboard...", "AnalyticsDashboard"),
         handle: { pageTitle: "INFOtrac - Analytics" },
       },
       {
         path: "/users",
-        element: <UsersPage />,
+        element: withSuspense(UsersPage, "Loading users...", "UsersPage"),
         handle: { pageTitle: "INFOtrac - Users" },
       },
       {
@@ -391,9 +402,8 @@ const routes: RouteObject[] = [
   },
 ];
 
-const router = createBrowserRouter(routes, {
-  future: undefined, // Explicitly set to undefined to silence warnings
-});
+// Export routes for use in exports.ts
+export { routes };
 
-// Export necessary components and router
-export { router, queryClient, Toaster, Sonner, TooltipProvider, ProtectedRoute };
+// Export only components for react-refresh compatibility
+export { Toaster, Sonner, TooltipProvider, ProtectedRoute };

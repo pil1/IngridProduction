@@ -34,8 +34,8 @@ const CompleteProfilePage = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      first_name: profile?.first_name || "",
-      last_name: profile?.last_name || "",
+      first_name: profile?.first_name ?? "",
+      last_name: profile?.last_name ?? "",
       avatar_file: null,
     },
   });
@@ -44,8 +44,8 @@ const CompleteProfilePage = () => {
   useEffect(() => {
     if (profile) {
       form.reset({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
+        first_name: profile.first_name ?? "",
+        last_name: profile.last_name ?? "",
         avatar_file: null,
       });
     }
@@ -134,7 +134,7 @@ const CompleteProfilePage = () => {
     onError: (error: any) => {
       toast({
         title: "Error completing profile",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },

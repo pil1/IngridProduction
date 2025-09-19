@@ -109,7 +109,7 @@ const BillingPage = () => {
               ) : (
                 billingRecords?.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.companies?.name || "N/A"}</TableCell>
+                    <TableCell className="font-medium">{record.companies?.name ?? "N/A"}</TableCell>
                     <TableCell>{format(new Date(record.billing_period_start), "PPP")}</TableCell>
                     <TableCell>{format(new Date(record.billing_period_end), "PPP")}</TableCell>
                     <TableCell>

@@ -63,6 +63,7 @@ const ConfigureExpenseManagementPage = ({ companyId, moduleId }: ConfigureExpens
   // Fetch existing configuration
   const { data: currentConfig, isLoading: isLoadingConfig } = useQuery<ModuleConfiguration | null>({
     queryKey: ["expenseModuleConfig", companyId, moduleId],
+    retry: false, // Don't retry to avoid 406 errors causing Suspense issues
     queryFn: async () => {
       if (!companyId || !moduleId) return null;
       const { data, error } = await supabase

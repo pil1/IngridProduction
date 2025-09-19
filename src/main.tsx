@@ -1,11 +1,14 @@
 import { createRoot } from "react-dom/client";
-import { router, queryClient, Toaster, Sonner, TooltipProvider } from "./App.tsx";
+import { router, queryClient } from "./exports";
+import { Toaster, Sonner, TooltipProvider } from "./App.tsx";
 import "./globals.css";
-import React from "react";
+import React, { startTransition } from "react";
 import { RouterProvider } from "react-router-dom";
 import { SessionContextProvider } from "./components/SessionContextProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { NotificationErrorBoundary } from "./components/NotificationErrorBoundary";
 
 // Global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
@@ -33,7 +36,11 @@ createRoot(document.getElementById("root")!).render(
             <ErrorBoundary onError={(error, errorInfo) => {
               console.error('App ErrorBoundary caught error:', error, errorInfo);
             }}>
-              <RouterProvider router={router} />
+              <NotificationErrorBoundary>
+                <NotificationProvider>
+                  <RouterProvider router={router} />
+                </NotificationProvider>
+              </NotificationErrorBoundary>
             </ErrorBoundary>
           </SessionContextProvider>
         </TooltipProvider>

@@ -120,7 +120,7 @@ const CustomersPage = () => {
       setCustomerToDelete(null);
     },
     onError: (error: any) => {
-      toast({ title: "Error deleting customer", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Error deleting customer", description: error.message ?? "An unexpected error occurred.", variant: "destructive" });
     },
   });
 
@@ -272,7 +272,7 @@ const CustomersPage = () => {
           isOpen={isAddEditDialogOpen}
           onOpenChange={setIsAddEditDialogOpen}
           editingCustomer={editingCustomer}
-          companyId={currentCompanyId || ""}
+          companyId={currentCompanyId ?? ""}
           initialMode={editingCustomer ? "view" : "add"}
           prefillData={smartAddPrefillData} // Pass pre-fill data
         />

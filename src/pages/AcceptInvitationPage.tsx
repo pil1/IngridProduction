@@ -45,10 +45,10 @@ const AcceptInvitationPage = () => {
         if (error) {
           // Supabase RPC error (e.g., network, RLS, function execution error)
           setInvitationStatus("error");
-          setErrorMessage(error.message || "Failed to accept invitation due to a server error.");
+          setErrorMessage(error.message ?? "Failed to accept invitation due to a server error.");
           toast({
             title: "Error accepting invitation",
-            description: error.message || "An unexpected server error occurred.",
+            description: error.message ?? "An unexpected server error occurred.",
             variant: "destructive",
           });
         } else if (data && typeof data === 'object' && 'success' in data) {

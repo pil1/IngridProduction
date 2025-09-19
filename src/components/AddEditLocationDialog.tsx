@@ -128,10 +128,10 @@ const AddEditLocationDialog = ({ isOpen, onOpenChange, editingLocation, companyI
       });
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error Saving Location",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },

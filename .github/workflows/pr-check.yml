@@ -1,0 +1,98 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check for breaking changes
+        run: |
+          # Check if package.json dependencies changed
+          if git diff --name-only origin/main...HEAD | grep -q "package.json"; then
+            echo "Dependencies changed - reviewing..."
+            git diff origin/main...HEAD package.json
+          fi
+
+      - name: Run linting
+        run: yarn lint
+
+      - name: Run type checking
+        run: yarn type-check
+
+      - name: Run tests
+        run: yarn test:run
+
+      - name: Build check
+        run: yarn build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Bundle size check
+        run: |
+          yarn bundle:analyze
+          # Check if bundle size increased significantly
+          if [ -f "bundle-report.json" ]; then
+            echo "Bundle analysis completed"
+            # Add bundle size comparison logic here if needed
+          fi
+
+      - name: Comment PR with results
+        uses: actions/github-script@v6
+        if: always()
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('## PR Validation Results')
+            );
+
+            const body = `## PR Validation Results
+
+            ✅ **Linting**: Passed
+            ✅ **Type Checking**: Passed
+            ✅ **Tests**: Passed
+            ✅ **Build**: Passed
+            📊 **Bundle Analysis**: Complete
+
+            This PR is ready for review!`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }

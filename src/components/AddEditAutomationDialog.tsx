@@ -169,7 +169,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
       toast({ title: "Automation Saved", description: "Your automation has been successfully saved." });
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error Saving Automation", description: error.message, variant: "destructive" });
     },
   });
@@ -179,19 +179,19 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
       if (editingAutomation) {
         form.reset({
           name: editingAutomation.name,
-          description: editingAutomation.description || "",
-          trigger_type: editingAutomation.trigger_type || "",
+          description: editingAutomation.description ?? "",
+          trigger_type: editingAutomation.trigger_type ?? "",
           action_type: "send_email", // Default for now, will need to be dynamic
-          action_template_id: editingAutomation.action_config?.template_id || "",
-          action_recipient: editingAutomation.action_config?.recipient || "user",
-          specific_email_recipient: editingAutomation.action_config?.specific_email_recipient || "",
-          report_type: editingAutomation.action_config?.report_type || "",
-          report_format: editingAutomation.action_config?.report_format || "PDF",
-          channels: editingAutomation.action_config?.channels || ["in_app", "email"],
+          action_template_id: editingAutomation.action_config?.template_id ?? "",
+          action_recipient: editingAutomation.action_config?.recipient ?? "user",
+          specific_email_recipient: editingAutomation.action_config?.specific_email_recipient ?? "",
+          report_type: editingAutomation.action_config?.report_type ?? "",
+          report_format: editingAutomation.action_config?.report_format ?? "PDF",
+          channels: editingAutomation.action_config?.channels ?? ["in_app", "email"],
           is_active: editingAutomation.is_active ?? true,
-          schedule_time: editingAutomation.schedule_config?.time || "09:00",
-          schedule_day_of_week: editingAutomation.schedule_config?.day_of_week || "Monday",
-          schedule_day_of_month: editingAutomation.schedule_config?.day_of_month || 1,
+          schedule_time: editingAutomation.schedule_config?.time ?? "09:00",
+          schedule_day_of_week: editingAutomation.schedule_config?.day_of_week ?? "Monday",
+          schedule_day_of_month: editingAutomation.schedule_config?.day_of_month ?? 1,
         });
       } else if (suggestion) {
         form.reset({
@@ -212,20 +212,20 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
         });
       } else if (aiGeneratedAutomation) { // Handle AI-generated automation
         form.reset({
-          name: aiGeneratedAutomation.name || "",
-          description: aiGeneratedAutomation.description || "",
-          trigger_type: aiGeneratedAutomation.trigger_type || "",
-          action_type: aiGeneratedAutomation.action_type || "send_email",
-          action_template_id: aiGeneratedAutomation.action_template_id || "",
-          action_recipient: aiGeneratedAutomation.action_recipient || "user",
-          specific_email_recipient: aiGeneratedAutomation.specific_email_recipient || "",
-          report_type: aiGeneratedAutomation.report_type || "",
-          report_format: aiGeneratedAutomation.report_format || "PDF",
-          channels: aiGeneratedAutomation.channels || ["in_app", "email"],
+          name: aiGeneratedAutomation.name ?? "",
+          description: aiGeneratedAutomation.description ?? "",
+          trigger_type: aiGeneratedAutomation.trigger_type ?? "",
+          action_type: aiGeneratedAutomation.action_type ?? "send_email",
+          action_template_id: aiGeneratedAutomation.action_template_id ?? "",
+          action_recipient: aiGeneratedAutomation.action_recipient ?? "user",
+          specific_email_recipient: aiGeneratedAutomation.specific_email_recipient ?? "",
+          report_type: aiGeneratedAutomation.report_type ?? "",
+          report_format: aiGeneratedAutomation.report_format ?? "PDF",
+          channels: aiGeneratedAutomation.channels ?? ["in_app", "email"],
           is_active: aiGeneratedAutomation.is_active ?? true,
-          schedule_time: aiGeneratedAutomation.schedule_time || "09:00",
-          schedule_day_of_week: aiGeneratedAutomation.schedule_day_of_week || "Monday",
-          schedule_day_of_month: aiGeneratedAutomation.schedule_day_of_month || 1,
+          schedule_time: aiGeneratedAutomation.schedule_time ?? "09:00",
+          schedule_day_of_week: aiGeneratedAutomation.schedule_day_of_week ?? "Monday",
+          schedule_day_of_month: aiGeneratedAutomation.schedule_day_of_month ?? 1,
         });
         if (aiGeneratedAutomation.warning) {
           showWarning("AI Warning", aiGeneratedAutomation.warning); // Using new showWarning
@@ -323,7 +323,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
               {selectedTriggerType === 'schedule.weekly' && (
                 <div className="space-y-2">
                   <Label htmlFor="schedule_day_of_week">Day of Week</Label>
-                  <Select onValueChange={(value) => form.setValue("schedule_day_of_week", value)} value={form.watch("schedule_day_of_week") || ""}>
+                  <Select onValueChange={(value) => form.setValue("schedule_day_of_week", value)} value={form.watch("schedule_day_of_week") ?? ""}>
                     <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
                     <SelectContent>
                       {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (

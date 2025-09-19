@@ -28,7 +28,7 @@ export const useInvitationsWithDetails = (companyId?: string) => {
     queryKey: ["invitations-with-details", companyId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_invitations_with_details", {
-        company_id_param: companyId || null,
+        company_id_param: companyId ?? null,
       });
 
       if (error) {

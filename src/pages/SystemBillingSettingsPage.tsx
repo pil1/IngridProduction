@@ -96,7 +96,7 @@ const SystemBillingSettingsPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error Saving Settings",
-        description: error.message || "An unexpected error occurred while saving system billing settings.",
+        description: error.message ?? "An unexpected error occurred while saving system billing settings.",
         variant: "destructive",
       });
     },

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"; // Added useCallback
+import { useState, useMemo, useCallback, startTransition } from "react"; // Added useCallback and startTransition
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ const ExpensesPage = () => {
   
   const { data: profile, isLoading: isLoadingProfile } = useProfile(); // Added isLoadingProfile
   const { data: expenses = [], isLoading, error } = useExpensesWithSubmitter(
-    profile?.company_id || undefined
+    profile?.company_id ?? undefined
   );
 
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
@@ -46,24 +46,34 @@ const ExpensesPage = () => {
         .eq("name", "Expense Management")
         .single();
       if (error && error.code !== 'PGRST116') throw error;
-      return data?.id || null;
+      return data?.id ?? null;
     },
   });
 
   // 2. Fetch Expense Management Configuration for the current company (user fields)
   const { data: expenseModuleConfig, isLoading: isLoadingConfig } = useQuery<{ settings: { user_fields: Record<string, FieldSetting> } } | null>({
     queryKey: ["expenseModuleUserConfig", profile?.company_id, expenseModuleId], // Changed key to user_fields
+    retry: false, // Don't retry to avoid 406 errors causing Suspense issues
     queryFn: async () => {
       if (!profile?.company_id || !expenseModuleId) return null;
-      const { data, error } = await supabase
-        .from("module_configurations")
-        .select("settings")
-        .eq("company_id", profile.company_id)
-        .eq("module_id", expenseModuleId)
-        .eq("config_key", "expense_management_fields")
-        .single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("module_configurations")
+          .select("settings")
+          .eq("company_id", profile.company_id)
+          .eq("module_id", expenseModuleId)
+          .eq("config_key", "expense_management_fields")
+          .single();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error: any) {
+        // Handle missing module_configurations table gracefully
+        if (error.code === 'PGRST205' || error.status === 406) {
+          console.warn('Module configurations table not found - using default field settings');
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: !!profile?.company_id && !!expenseModuleId && !isLoadingProfile,
   });
@@ -134,13 +144,17 @@ const ExpensesPage = () => {
   };
 
   const handleAddClick = () => {
-    setEditingExpenseId(null);
-    setIsAddEditDialogOpen(true);
+    startTransition(() => {
+      setEditingExpenseId(null);
+      setIsAddEditDialogOpen(true);
+    });
   };
 
   const handleEdit = (expense: Expense) => { // Changed type to Expense
-    setEditingExpenseId(expense.id);
-    setIsAddEditDialogOpen(true);
+    startTransition(() => {
+      setEditingExpenseId(expense.id);
+      setIsAddEditDialogOpen(true);
+    });
   };
 
   const handleDelete = async (expense: Expense) => { // Changed type to Expense
@@ -166,7 +180,9 @@ const ExpensesPage = () => {
   };
 
   const handleRowClick = useCallback((expense: Expense) => { // Changed type to Expense
-    setExpandedExpenseId(prevId => (prevId === expense.id ? null : expense.id));
+    startTransition(() => {
+      setExpandedExpenseId(prevId => (prevId === expense.id ? null : expense.id));
+    });
   }, []);
 
   if (error) {
@@ -197,7 +213,7 @@ const ExpensesPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={(value) => startTransition(() => setActiveTab(value))} className="w-full">
             <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
                 All ({statusCounts.all})
@@ -247,18 +263,22 @@ const ExpensesPage = () => {
       </Card>
 
       <Dialog open={isAddEditDialogOpen} onOpenChange={(open) => {
-        setIsAddEditDialogOpen(open);
-        if (!open) {
-          setEditingExpenseId(null);
-        }
+        startTransition(() => {
+          setIsAddEditDialogOpen(open);
+          if (!open) {
+            setEditingExpenseId(null);
+          }
+        });
       }}>
         <AddEditExpenseDialog
           isOpen={isAddEditDialogOpen}
-          onOpenChange={setIsAddEditDialogOpen}
+          onOpenChange={(open) => startTransition(() => setIsAddEditDialogOpen(open))}
           editingExpense={fullEditingExpense}
           onSuccess={() => {
-            setIsAddEditDialogOpen(false);
-            setEditingExpenseId(null);
+            startTransition(() => {
+              setIsAddEditDialogOpen(false);
+              setEditingExpenseId(null);
+            });
           }}
         />
       </Dialog>

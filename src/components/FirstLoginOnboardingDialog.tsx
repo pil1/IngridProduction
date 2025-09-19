@@ -95,8 +95,8 @@ const FirstLoginOnboardingDialog = () => {
   const profileForm = useForm<ProfileSetupFormValues>({
     resolver: zodResolver(profileSetupSchema),
     defaultValues: {
-      first_name: profile?.first_name || "",
-      last_name: profile?.last_name || "",
+      first_name: profile?.first_name ?? "",
+      last_name: profile?.last_name ?? "",
       avatar_file: null,
     },
   });
@@ -104,8 +104,8 @@ const FirstLoginOnboardingDialog = () => {
   useEffect(() => {
     if (profile) {
       profileForm.reset({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
+        first_name: profile.first_name ?? "",
+        last_name: profile.last_name ?? "",
         avatar_file: null,
       });
     }
@@ -200,17 +200,17 @@ const FirstLoginOnboardingDialog = () => {
       companyForm.reset({
         name: companyDetails.name,
         logo_file: null,
-        legal_name: companyDetails.legal_name || "",
-        tax_id: companyDetails.tax_id || "",
-        phone_number: companyDetails.phone_number || "",
-        website: companyDetails.website || "",
-        industry: companyDetails.industry || "",
-        address_line_1: companyDetails.address_line_1 || "",
-        address_line_2: companyDetails.address_line_2 || "",
-        city: companyDetails.city || "",
-        state_province: companyDetails.state_province || "",
-        postal_code: companyDetails.postal_code || "",
-        country: companyDetails.country || "",
+        legal_name: companyDetails.legal_name ?? "",
+        tax_id: companyDetails.tax_id ?? "",
+        phone_number: companyDetails.phone_number ?? "",
+        website: companyDetails.website ?? "",
+        industry: companyDetails.industry ?? "",
+        address_line_1: companyDetails.address_line_1 ?? "",
+        address_line_2: companyDetails.address_line_2 ?? "",
+        city: companyDetails.city ?? "",
+        state_province: companyDetails.state_province ?? "",
+        postal_code: companyDetails.postal_code ?? "",
+        country: companyDetails.country ?? "",
         fiscal_year_end_date: companyDetails.fiscal_year_end_date ? new Date(companyDetails.fiscal_year_end_date) : undefined,
       });
       setCompanyLogoFile(null);
@@ -249,17 +249,17 @@ const FirstLoginOnboardingDialog = () => {
         .update({
           name: values.name,
           logo_url: logoUrl,
-          legal_name: values.legal_name || null,
-          tax_id: values.tax_id || null,
-          phone_number: values.phone_number || null,
-          website: values.website || null,
-          industry: values.industry || null,
-          address_line_1: values.address_line_1 || null,
-          address_line_2: values.address_line_2 || null,
-          city: values.city || null,
-          state_province: values.state_province || null,
-          postal_code: values.postal_code || null,
-          country: values.country || null,
+          legal_name: values.legal_name ?? null,
+          tax_id: values.tax_id ?? null,
+          phone_number: values.phone_number ?? null,
+          website: values.website ?? null,
+          industry: values.industry ?? null,
+          address_line_1: values.address_line_1 ?? null,
+          address_line_2: values.address_line_2 ?? null,
+          city: values.city ?? null,
+          state_province: values.state_province ?? null,
+          postal_code: values.postal_code ?? null,
+          country: values.country ?? null,
           fiscal_year_end_date: values.fiscal_year_end_date ? values.fiscal_year_end_date.toISOString().split('T')[0] : null,
           updated_at: new Date().toISOString(),
         })
@@ -297,7 +297,7 @@ const FirstLoginOnboardingDialog = () => {
         .eq("company_id", profile.company_id);
       if (error) throw error;
       // Ensure modules is a single object or null, not an array
-      return (data || []).map((item: any) => ({
+      return (data ?? []).map((item: any) => ({
         ...item,
         modules: Array.isArray(item.modules) && item.modules.length > 0 ? item.modules[0] : item.modules,
       }));
@@ -518,8 +518,8 @@ const FirstLoginOnboardingDialog = () => {
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={companyForm.watch("fiscal_year_end_date") || undefined}
-                            onSelect={(date) => companyForm.setValue("fiscal_year_end_date", date || null)}
+                            selected={companyForm.watch("fiscal_year_end_date") ?? undefined}
+                            onSelect={(date) => companyForm.setValue("fiscal_year_end_date", date ?? null)}
                             initialFocus
                           />
                         </PopoverContent>
@@ -571,7 +571,7 @@ const FirstLoginOnboardingDialog = () => {
                       {(companyModules || []).map((mod) => (
                         <TableRow key={mod.id}>
                           <TableCell className="font-medium">{mod.modules?.name || "Unknown"}</TableCell>
-                          <TableCell>{mod.modules?.description || "N/A"}</TableCell>
+                          <TableCell>{mod.modules?.description ?? "N/A"}</TableCell>
                           <TableCell>
                             <Checkbox
                               checked={mod.is_enabled}

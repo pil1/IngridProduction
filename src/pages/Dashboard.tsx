@@ -14,9 +14,10 @@ import {
   getSimulatedKeyMetrics,
 } from "@/lib/dashboard-data";
 import DashboardCard from "@/components/dashboard/DashboardCard.tsx";
-import LineChartCard from "@/components/dashboard/LineChartCard.tsx";
-import BarChartCard from "@/components/dashboard/BarChartCard.tsx";
+import { LazyLineChartCard, LazyBarChartCard } from "@/components/LazyCharts";
 import FormattedCurrencyDisplay from "@/components/FormattedCurrencyDisplay";
+import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react"; // Removed useEffect
 
 const Dashboard = () => {
@@ -25,7 +26,8 @@ const Dashboard = () => {
   // Removed companyId as it's no longer directly used for expense currency logic here
 
   // Hardcode default currency for simulated data display
-  const companyDefaultCurrency = "USD"; 
+  const companyDefaultCurrency = "USD";
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [keyMetrics] = useState(getSimulatedKeyMetrics());
   const [expenseCategories] = useState(getSimulatedExpenseCategories());
@@ -63,15 +65,24 @@ const Dashboard = () => {
 
   // Content for Admin/Controller/Super-Admin roles
   return (
-    <div className="grid gap-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <LayoutDashboard className="h-6 w-6" /> Dashboard Overview
+          <LayoutDashboard className="h-6 w-6" /> Dashboard
         </h2>
         <Button variant="outline">
           <Sparkles className="mr-2 h-4 w-4" /> Smart Add Chart
         </Button>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Classic Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Advanced Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6">
 
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -82,7 +93,7 @@ const Dashboard = () => {
                 {metric.unit === '$' ? (
                   <FormattedCurrencyDisplay amount={metric.value} currencyCode={companyDefaultCurrency} />
                 ) : (
-                  `${metric.value.toFixed(0)}${metric.unit || ''}`
+                  `${metric.value.toFixed(0)}${metric.unit ?? ''}`
                 )}
               </p>
               {metric.trend && (
@@ -98,7 +109,7 @@ const Dashboard = () => {
 
       {/* Financial Trends */}
       <div className="grid gap-4 md:grid-cols-2">
-        <LineChartCard
+        <LazyLineChartCard
           title="Monthly Expenses"
           description="Total expenses over the last 6 months"
           data={monthlyExpenses}
@@ -106,7 +117,7 @@ const Dashboard = () => {
           categoryKey="month"
           currencyCode={companyDefaultCurrency}
         />
-        <LineChartCard
+        <LazyLineChartCard
           title="Monthly Revenue"
           description="Total revenue over the last 6 months"
           data={monthlyRevenue}
@@ -117,7 +128,7 @@ const Dashboard = () => {
       </div>
 
       {/* Expense Breakdown */}
-      <BarChartCard
+      <LazyBarChartCard
         title="Expenses by Category"
         description="Breakdown of expenses across different categories"
         data={expenseCategories}
@@ -128,7 +139,7 @@ const Dashboard = () => {
 
       {/* Vendor & Customer Insights */}
       <div className="grid gap-4 md:grid-cols-2">
-        <BarChartCard
+        <LazyBarChartCard
           title="Top Vendor Spend"
           description="Highest spending with vendors"
           data={vendorSpend}
@@ -136,7 +147,7 @@ const Dashboard = () => {
           categoryKey="vendor"
           currencyCode={companyDefaultCurrency}
         />
-        <BarChartCard
+        <LazyBarChartCard
           title="Top Customer Sales"
           description="Highest sales from customers"
           data={customerSales}
@@ -148,7 +159,7 @@ const Dashboard = () => {
 
       {/* Aging Reports */}
       <div className="grid gap-4 md:grid-cols-2">
-        <BarChartCard
+        <LazyBarChartCard
           title="Accounts Receivable Aging"
           description="Outstanding customer invoices by age"
           data={arAging}
@@ -156,7 +167,7 @@ const Dashboard = () => {
           categoryKey="label"
           currencyCode={companyDefaultCurrency}
         />
-        <BarChartCard
+        <LazyBarChartCard
           title="Accounts Payable Aging"
           description="Outstanding vendor bills by age"
           data={apAging}
@@ -165,6 +176,13 @@ const Dashboard = () => {
           currencyCode={companyDefaultCurrency}
         />
       </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AnalyticsDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

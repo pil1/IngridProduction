@@ -62,7 +62,7 @@ const SmartAddDialog = ({ isOpen, onOpenChange, onAnalyzeSuccess, entityType }: 
     onError: (error: any) => {
       toast({
         title: "Analysis Error",
-        description: error.message || "An unexpected error occurred during AI analysis.",
+        description: error.message ?? "An unexpected error occurred during AI analysis.",
         variant: "destructive",
       });
     },
@@ -128,7 +128,7 @@ const SmartAddDialog = ({ isOpen, onOpenChange, onAnalyzeSuccess, entityType }: 
     onError: (error: any) => {
       toast({
         title: "File Analysis Error",
-        description: error.message || "An unexpected error occurred during file analysis.",
+        description: error.message ?? "An unexpected error occurred during file analysis.",
         variant: "destructive",
       });
     },

@@ -38,7 +38,7 @@ const ExpenseSummaryCard: React.FC<ExpenseSummaryCardProps> = ({ expense, fieldC
           </Badge>
         </CardTitle>
         <CardDescription>
-          Submitted by {expense.submitter_full_name || expense.submitter_email || "N/A"} on {format(new Date(expense.created_at), "PPP")}
+          Submitted by {expense.submitter_full_name ?? expense.submitter_email ?? "N/A"} on {format(new Date(expense.created_at), "PPP")}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 text-sm">
@@ -67,13 +67,13 @@ const ExpenseSummaryCard: React.FC<ExpenseSummaryCardProps> = ({ expense, fieldC
             {isFieldVisible("vendor_name") && (
               <div>
                 <p className="font-medium text-muted-foreground">Vendor Name</p>
-                <p>{expense.vendor_name || "N/A"}</p>
+                <p>{expense.vendor_name ?? "N/A"}</p>
               </div>
             )}
             {isFieldVisible("category_id") && (
               <div>
                 <p className="font-medium text-muted-foreground">Category</p>
-                <p>{expense.category_name || "N/A"}</p> {/* Now directly on expense */}
+                <p>{expense.category_name ?? "N/A"}</p> {/* Now directly on expense */}
               </div>
             )}
           </div>
@@ -85,13 +85,13 @@ const ExpenseSummaryCard: React.FC<ExpenseSummaryCardProps> = ({ expense, fieldC
             {isFieldVisible("project_code") && (
               <div>
                 <p className="font-medium text-muted-foreground">Project Code</p>
-                <p>{expense.project_code || "N/A"}</p>
+                <p>{expense.project_code ?? "N/A"}</p>
               </div>
             )}
             {isFieldVisible("cost_center") && (
               <div>
                 <p className="font-medium text-muted-foreground">Cost Center</p>
-                <p>{expense.cost_center || "N/A"}</p>
+                <p>{expense.cost_center ?? "N/A"}</p>
               </div>
             )}
           </div>
@@ -134,7 +134,7 @@ const ExpenseSummaryCard: React.FC<ExpenseSummaryCardProps> = ({ expense, fieldC
                     {expense.expense_line_items.map((item: ExpenseLineItem) => (
                       <tr key={item.id} className="border-t">
                         <td className="p-2">{item.description}</td>
-                        <td className="text-right p-2">{item.quantity || "N/A"}</td>
+                        <td className="text-right p-2">{item.quantity ?? "N/A"}</td>
                         <td className="text-right p-2">
                           <FormattedCurrencyDisplay amount={item.unit_price} currencyCode={item.currency_code} />
                         </td>

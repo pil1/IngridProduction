@@ -25,6 +25,7 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: "vendors", label: "Vendors", path: "/vendors", icon: Truck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
   { id: "customers", label: "Customers", path: "/customers", icon: UsersRound, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
   { id: "expenses", label: "My Expenses", path: "/expenses", icon: Receipt, companyRequired: true, isHidden: false },
+  { id: "enhanced-expenses", label: "Enhanced Expenses", path: "/enhanced-expenses", icon: Receipt, companyRequired: true, isHidden: false },
   { id: "expense-review", label: "Expense Review", path: "/expense-review", icon: ClipboardCheck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
   { id: "notifications-page", label: "Notifications", path: "/notifications", icon: Bell, companyRequired: true, isHidden: false },
   {
@@ -234,6 +235,7 @@ export function useUserMenuPreferences() {
       case "vendors": return moduleNameToIdMap.get("Vendors");
       case "customers": return moduleNameToIdMap.get("Customers");
       case "expenses": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
+      case "enhanced-expenses": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
       case "expense-review": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
       case "notifications-page": return moduleNameToIdMap.get("Notifications");
       case "expense-categories": return moduleNameToIdMap.get("Expense Categories");
@@ -380,7 +382,7 @@ export function useUserMenuPreferences() {
 
       // 3. Check if the module's `roles` array includes the current user's role
       //    If `systemModuleInfo.roles` is null or empty, it means it's available to all roles.
-      if (systemModuleInfo && systemModuleInfo.roles && systemModuleInfo.roles.length > 0) {
+      if (systemModuleInfo?.roles && systemModuleInfo.roles.length > 0) {
         if (!role || !systemModuleInfo.roles.includes(role)) {
           return null; // Hide if user's role is not in the module's allowed roles
         }

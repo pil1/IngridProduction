@@ -53,7 +53,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
     defaultValues: {
       email: "",
       role: "user",
-      company_id: isSuperAdmin ? undefined : currentCompanyId || undefined, // Default to current company for admins
+      company_id: isSuperAdmin ? undefined : currentCompanyId ?? undefined, // Default to current company for admins
       selectedTemplateName: "user_invitation", // Default to the standard user invitation template
     },
   });
@@ -64,7 +64,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
       form.reset({
         email: "",
         role: "user",
-        company_id: isSuperAdmin ? undefined : currentCompanyId || undefined,
+        company_id: isSuperAdmin ? undefined : currentCompanyId ?? undefined,
         selectedTemplateName: "user_invitation", // Reset to default template
       });
     }
@@ -104,7 +104,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
   });
 
   // Combine and deduplicate templates for the dropdown
-  const availableTemplates = (isSuperAdmin ? systemTemplates : companyTemplates) || [];
+  const availableTemplates = (isSuperAdmin ? systemTemplates : companyTemplates) ?? [];
   const uniqueTemplates = Array.from(new Map(availableTemplates.map(template => [template.name, template])).values());
 
 
@@ -133,10 +133,10 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
       console.log("Invitation Link:", data.invitationLink); // Log the invitation link for super-admin
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error Sending Invitation",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -206,7 +206,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
             </Label>
             <Select
               onValueChange={(value) => form.setValue("company_id", value)}
-              value={form.watch("company_id") || ""}
+              value={form.watch("company_id") ?? ""}
               disabled={isLoading || isLoadingCompanies}
             >
               <SelectTrigger className="col-span-3">
@@ -233,7 +233,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
           </Label>
           <Select
             onValueChange={(value) => form.setValue("selectedTemplateName", value)}
-            value={form.watch("selectedTemplateName") || ""}
+            value={form.watch("selectedTemplateName") ?? ""}
             disabled={isLoading}
           >
             <SelectTrigger className="col-span-3">
@@ -241,7 +241,7 @@ const InviteUserDialog = ({ isOpen, onOpenChange }: InviteUserDialogProps) => {
             </SelectTrigger>
             <SelectContent>
               {uniqueTemplates.length === 0 ? (
-                <SelectItem value="" disabled>No templates available</SelectItem>
+                <SelectItem value="__no_templates__" disabled>No templates available</SelectItem>
               ) : (
                 uniqueTemplates.map((template) => (
                   <SelectItem key={template.id} value={template.name}>

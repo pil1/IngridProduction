@@ -1,5 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from '@supabase/supabase-js';
+
+interface Profile {
+  id: string;
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  email: string;
+  role: string;
+  company_id: string | null;
+  last_login: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export type UserState = 
   | "LOADING"
@@ -11,8 +27,8 @@ export type UserState =
 
 export interface UserStateData {
   state: UserState;
-  user: any;
-  profile: any;
+  user: User | null;
+  profile: Profile | null;
   redirectTo?: string;
 }
 

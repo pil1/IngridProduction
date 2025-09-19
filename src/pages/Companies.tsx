@@ -28,6 +28,7 @@ import {
 import { useSession } from "@/components/SessionContextProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { companyService } from "@/services/api";
 import React from "react";
 
 interface Company {
@@ -58,16 +59,26 @@ const CompaniesPage = () => {
   } = useQuery<Company[]>({
     queryKey: ["companies", search],
     queryFn: async () => {
-      let query = supabase.from("companies").select("*").order("name");
-
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%`);
+      const response = await companyService.getAllCompanies();
+      if (!response.success) {
+        throw response.error;
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+
+      let filteredCompanies = response.data ?? [];
+
+      // Apply client-side search filtering since our API service doesn't have search yet
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredCompanies = filteredCompanies.filter(company =>
+          company.name.toLowerCase().includes(searchLower) ||
+          (company.domain?.toLowerCase().includes(searchLower))
+        );
+      }
+
+      return filteredCompanies;
     },
     enabled: isSuperAdmin,
+    staleTime: 5 * 60 * 1000, // 5 minutes - companies don't change frequently
   });
 
   const deleteCompanyMutation = useMutation({
@@ -92,7 +103,7 @@ const CompaniesPage = () => {
     onError: (error: any) => {
       toast({
         title: "Error deleting company",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message ?? "An unexpected error occurred.",
         variant: "destructive",
       });
     },
@@ -180,7 +191,7 @@ const CompaniesPage = () => {
                 companies?.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell className="font-medium">{company.name}</TableCell>
-                    <TableCell>{company.domain || "N/A"}</TableCell>
+                    <TableCell>{company.domain ?? "N/A"}</TableCell>
                     <TableCell>{company.default_currency}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Link to={`/company-settings?companyId=${company.id}`}>
