@@ -160,7 +160,16 @@ clone_repository() {
     fi
 
     cd $APP_DIR
-    git clone $GITHUB_REPO .
+
+    # Check if GITHUB_TOKEN is provided for private repos
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        log "Using GitHub token for private repository access..."
+        # Replace https://github.com with https://token@github.com
+        local auth_repo=$(echo "$GITHUB_REPO" | sed "s|https://github.com|https://${GITHUB_TOKEN}@github.com|")
+        git clone "$auth_repo" .
+    else
+        git clone $GITHUB_REPO .
+    fi
 
     # Set permissions
     chown -R $SUDO_USER:$SUDO_USER . 2>/dev/null || chown -R root:root .

@@ -70,6 +70,14 @@ update_code() {
     # Stash any local changes
     git stash
 
+    # Check if we need to update remote URL with token
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        log "Updating git remote with authentication token..."
+        local current_remote=$(git remote get-url origin)
+        local auth_remote=$(echo "$current_remote" | sed "s|https://github.com|https://${GITHUB_TOKEN}@github.com|")
+        git remote set-url origin "$auth_remote"
+    fi
+
     # Pull latest changes
     git pull origin main
 

@@ -11,11 +11,33 @@ Your entire application runs in Docker containers - **no local Node.js installat
 - Domain pointing to your server (info.onbb.ca)
 - Supabase project with database
 
-### 1. One-Command Installation
+### 1. Installation (Private Repository)
+
+Since this is a private repository, you'll need to clone it manually with your GitHub Personal Access Token:
 
 ```bash
-# Download and run the installation script
-curl -fsSL https://raw.githubusercontent.com/pil1/INFOtracClaude/main/scripts/deployment/install.sh | sudo GITHUB_REPO="https://github.com/pil1/INFOtracClaude.git" EMAIL="your-email@example.com" bash
+# Clone the repository with your GitHub PAT
+git clone https://github.com/pil1/INFOtracClaude.git /tmp/infotrac
+
+# Navigate to deployment scripts
+cd /tmp/infotrac/scripts/deployment
+
+# Make scripts executable
+chmod +x *.sh
+
+# Run installation with PAT support
+sudo GITHUB_REPO="https://github.com/pil1/INFOtracClaude.git" \
+     GITHUB_TOKEN="your_github_pat_here" \
+     EMAIL="your-email@example.com" \
+     ./install.sh
+```
+
+**Alternative: Set PAT as environment variable**
+```bash
+export GITHUB_TOKEN="your_personal_access_token"
+sudo -E GITHUB_REPO="https://github.com/pil1/INFOtracClaude.git" \
+       EMAIL="your-email@example.com" \
+       ./install.sh
 ```
 
 ### 2. Configure Your Environment
