@@ -166,6 +166,7 @@ clone_repository() {
     chown -R $SUDO_USER:$SUDO_USER . 2>/dev/null || chown -R root:root .
 
     log "Repository cloned successfully"
+    log "Note: Application will run entirely in Docker containers - no local Node.js required"
 }
 
 # Setup environment file
@@ -193,6 +194,12 @@ EOF
         warn "Created .env.production from template. Please edit with your values:"
         echo "  nano $APP_DIR/.env.production"
     fi
+
+    # Create logs directory for container mounting
+    mkdir -p $APP_DIR/logs/nginx
+    chown -R $SUDO_USER:$SUDO_USER $APP_DIR/logs 2>/dev/null || chown -R root:root $APP_DIR/logs
+
+    log "Environment configured for containerized deployment"
 }
 
 # Configure Nginx reverse proxy
@@ -229,7 +236,7 @@ server {
 
     # Proxy to Docker container
     location / {
-        proxy_pass http://localhost:80;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -250,7 +257,7 @@ server {
 
     # Health check
     location /health {
-        proxy_pass http://localhost:80/health;
+        proxy_pass http://localhost:8080/health;
         access_log off;
     }
 }
@@ -410,7 +417,7 @@ deploy_application() {
     sleep 30
 
     # Health check
-    if curl -f http://localhost/health > /dev/null 2>&1; then
+    if curl -f http://localhost:8080/health > /dev/null 2>&1; then
         log "Application is running successfully!"
     else
         warn "Application may not be responding. Check logs:"
