@@ -10,15 +10,15 @@ interface ChunkConfig {
   cacheStrategy?: 'aggressive' | 'normal' | 'minimal';
 }
 
-interface ChunkModule<T = any> {
+interface ChunkModule<T = unknown> {
   loader: () => Promise<T>;
   config: ChunkConfig;
   name: string;
 }
 
 class ChunkOptimizer {
-  private loadedModules = new Map<string, any>();
-  private loadingPromises = new Map<string, Promise<any>>();
+  private loadedModules = new Map<string, unknown>();
+  private loadingPromises = new Map<string, Promise<unknown>>();
   private preloadQueue = new Set<string>();
 
   /**
