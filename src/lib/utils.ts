@@ -14,7 +14,7 @@ export function formatCurrency(amount: number | null | undefined, currencyCode: 
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(numericAmount);
-  } catch (error) {
+  } catch (_error) {
     // Fallback for invalid currency codes
     return `${currencyCode} ${numericAmount.toFixed(2)}`;
   }
@@ -31,7 +31,7 @@ export async function getCurrencySymbol(currencyCode: string = 'USD'): Promise<s
     });
     // Format a zero amount and extract the non-numeric part
     return formatter.format(0).replace(/0/g, '').trim();
-  } catch (error) {
+  } catch (_error) {
     console.error("Error getting currency symbol:", error);
     return currencyCode; // Fallback to code if symbol cannot be determined
   }
@@ -44,7 +44,7 @@ export function formatDate(date: string | Date): string {
       month: 'short',
       day: 'numeric',
     });
-  } catch (error) {
+  } catch (_error) {
     return 'Invalid Date';
   }
 }
@@ -58,7 +58,7 @@ export function formatDateTime(date: string | Date): string {
       hour: '2-digit',
       minute: '2-digit',
     });
-  } catch (error) {
+  } catch (_error) {
     return 'Invalid Date';
   }
 }

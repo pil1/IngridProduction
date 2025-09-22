@@ -2,19 +2,22 @@ import { useState, useMemo, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Receipt, Download, Upload } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Plus, Receipt, Download, Upload, Sparkles } from "lucide-react";
 import { useExpensesWithSubmitter } from "@/hooks/useExpensesWithSubmitter";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SelectableExpenseTable } from "@/components/expenses/SelectableExpenseTable";
+import { EnhancedExpenseTableV2 } from "@/components/expenses/enhanced/EnhancedExpenseTableV2";
 import { Dialog } from "@/components/ui/dialog";
 import AddEditExpenseDialog from "@/components/AddEditExpenseDialog";
-import AdvancedSearchFilter, { SearchFilters } from "@/components/AdvancedSearchFilter";
+import { IngridExpenseCreationDialog } from "@/components/ingrid/IngridExpenseCreationDialog";
+import AdvancedSearchFilter from "@/components/AdvancedSearchFilter";
 import QuickFilters from "@/components/QuickFilters";
 import { useAdvancedSearch } from "@/hooks/useAdvancedSearch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BulkActionsToolbar from "@/components/BulkActionsToolbar";
@@ -41,10 +44,12 @@ const EnhancedExpensesPage = () => {
   );
 
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
+  const [isIngridDialogOpen, setIsIngridDialogOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expandedExpenseId, setExpandedExpenseId] = useState<string | null>(null);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [useEnhancedTable, setUseEnhancedTable] = useState(true);
 
   // Fetch categories for filtering
   const { data: categories = [] } = useQuery({
@@ -241,6 +246,12 @@ const EnhancedExpensesPage = () => {
 
   const handleAddClick = () => {
     startTransition(() => {
+      setIsIngridDialogOpen(true);
+    });
+  };
+
+  const handleLegacyAddClick = () => {
+    startTransition(() => {
       setEditingExpenseId(null);
       setIsAddEditDialogOpen(true);
     });
@@ -327,10 +338,16 @@ const EnhancedExpensesPage = () => {
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <Button onClick={handleAddClick}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Expense
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleAddClick} className="bg-blue-600 hover:bg-blue-700">
+              <Sparkles className="h-4 w-4 mr-2" />
+              New Expense with AI
+            </Button>
+            <Button onClick={handleLegacyAddClick} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Traditional Form
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -433,26 +450,49 @@ const EnhancedExpensesPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          {searchStats.isFiltered && (
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
-              Clear all filters
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="enhanced-table"
+                checked={useEnhancedTable}
+                onCheckedChange={setUseEnhancedTable}
+              />
+              <Label htmlFor="enhanced-table" className="text-sm font-medium">
+                Enhanced View
+              </Label>
+            </div>
+
+            {searchStats.isFiltered && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                Clear all filters
+              </Button>
+            )}
+          </div>
         </div>
 
         <TabsContent value={activeTab} className="space-y-4">
-          <SelectableExpenseTable
-            expenses={tabFilteredExpenses}
-            selectedExpenseIds={selectedExpenseIds}
-            onSelectionChange={handleSelectionChange}
-            onEditClick={handleEditClick}
-            onRowClick={handleRowClick}
-            onToggleExpand={handleToggleExpand}
-            expandedExpenseId={expandedExpenseId}
-            isLoading={isLoading}
-            isMobile={isMobile}
-            showSubmitterColumn={profile?.role === 'admin' || profile?.role === 'controller' || profile?.role === 'super-admin'}
-          />
+          {useEnhancedTable ? (
+            <EnhancedExpenseTableV2
+              expenses={tabFilteredExpenses}
+              selectedExpenseIds={selectedExpenseIds}
+              onSelectionChange={handleSelectionChange}
+              showAIIndicators={true}
+              compactMode={isMobile}
+            />
+          ) : (
+            <SelectableExpenseTable
+              expenses={tabFilteredExpenses}
+              selectedExpenseIds={selectedExpenseIds}
+              onSelectionChange={handleSelectionChange}
+              onEditClick={handleEditClick}
+              onRowClick={handleRowClick}
+              onToggleExpand={handleToggleExpand}
+              expandedExpenseId={expandedExpenseId}
+              isLoading={isLoading}
+              isMobile={isMobile}
+              showSubmitterColumn={profile?.role === 'admin' || profile?.role === 'controller' || profile?.role === 'super-admin'}
+            />
+          )}
         </TabsContent>
       </Tabs>
 
@@ -464,6 +504,19 @@ const EnhancedExpensesPage = () => {
           onOpenChange={(open) => startTransition(() => setIsAddEditDialogOpen(open))}
         />
       </Dialog>
+
+      {/* Ingrid AI Expense Creation Dialog */}
+      <IngridExpenseCreationDialog
+        isOpen={isIngridDialogOpen}
+        onOpenChange={(open) => startTransition(() => setIsIngridDialogOpen(open))}
+        onExpenseCreated={(expenseId) => {
+          console.log('New expense created with Ingrid:', expenseId);
+          toast({
+            title: "Success!",
+            description: "Your expense has been created with Ingrid's assistance.",
+          });
+        }}
+      />
 
       {/* Export Dialog */}
       <ExportDialog

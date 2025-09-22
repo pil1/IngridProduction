@@ -43,25 +43,25 @@ export const OptimizedAnalytics = lazy(
 );
 
 // Enhanced wrapper components with optimized loading
-export const LazyExpenseDialog = (props: any) => (
+export const LazyExpenseDialog = (props: Record<string, unknown>) => (
   <LazyLoader componentName="Expense Dialog" minDelay={100}>
     <OptimizedExpenseDialog {...props} />
   </LazyLoader>
 );
 
-export const LazyAiDialog = (props: any) => (
+export const LazyAiDialog = (props: Record<string, unknown>) => (
   <LazyLoader componentName="AI Template Designer" minDelay={300}>
     <OptimizedAiDialog {...props} />
   </LazyLoader>
 );
 
-export const LazySmartAddDialog = (props: any) => (
+export const LazySmartAddDialog = (props: Record<string, unknown>) => (
   <LazyLoader componentName="Smart Add Dialog" minDelay={200}>
     <OptimizedSmartAddDialog {...props} />
   </LazyLoader>
 );
 
-export const LazyAnalytics = (props: any) => (
+export const LazyAnalytics = (props: Record<string, unknown>) => (
   <LazyLoader componentName="Analytics Dashboard" minDelay={400}>
     <OptimizedAnalytics {...props} />
   </LazyLoader>

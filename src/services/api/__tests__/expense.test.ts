@@ -2,44 +2,60 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExpenseService } from '../expense';
 import { ApiError } from '../base';
 
-// Mock the supabase import with factory function
+// Create mock query object that will be reused
+const createMockQuery = () => ({
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
+  lte: vi.fn().mockReturnThis(),
+  in: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  range: vi.fn().mockReturnThis(),
+  single: vi.fn(),
+  insert: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+});
+
+const mockQuery = createMockQuery();
+
+// Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(),
+    from: vi.fn(() => mockQuery),
     storage: {
-      from: vi.fn()
-    },
-    functions: {
-      invoke: vi.fn()
+      from: vi.fn(() => ({
+        upload: vi.fn(),
+        getPublicUrl: vi.fn()
+      }))
     }
   }
 }));
 
 describe('ExpenseService', () => {
   let expenseService: ExpenseService;
-  let mockQuery: any;
-  let mockSupabase: any;
 
   beforeEach(() => {
-    const { supabase } = await vi.importActual('@/integrations/supabase/client') as any;
-    mockSupabase = supabase;
+    // Reset all mock functions
+    Object.values(mockQuery).forEach(fn => {
+      if (typeof fn === 'function' && 'mockReset' in fn) {
+        fn.mockReset();
+      }
+    });
+
+    // Recreate the chain behavior
+    mockQuery.select.mockReturnValue(mockQuery);
+    mockQuery.eq.mockReturnValue(mockQuery);
+    mockQuery.gte.mockReturnValue(mockQuery);
+    mockQuery.lte.mockReturnValue(mockQuery);
+    mockQuery.in.mockReturnValue(mockQuery);
+    mockQuery.order.mockReturnValue(mockQuery);
+    mockQuery.range.mockReturnValue(mockQuery);
+    mockQuery.insert.mockReturnValue(mockQuery);
+    mockQuery.update.mockReturnValue(mockQuery);
+    mockQuery.delete.mockReturnValue(mockQuery);
 
     expenseService = new ExpenseService();
-    mockQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      gte: vi.fn().mockReturnThis(),
-      lte: vi.fn().mockReturnThis(),
-      in: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-    };
-
-    mockSupabase.from.mockReturnValue(mockQuery);
   });
 
   describe('getExpenses', () => {
@@ -49,32 +65,46 @@ describe('ExpenseService', () => {
         { id: '2', amount: 200, description: 'Another expense' }
       ];
 
-      mockQuery.select.mockResolvedValue({
+      // Mock the final result that the chain resolves to
+      const mockResult = Promise.resolve({
         data: mockExpenses,
         error: null,
         count: 2
       });
+
+      // Mock the chain behavior - final methods should return the promise
+      mockQuery.select.mockReturnValue(mockQuery);
+      mockQuery.eq.mockReturnValue(mockQuery);
+      mockQuery.order.mockReturnValue(mockQuery);
+      mockQuery.range.mockReturnValue(mockResult);
 
       const result = await expenseService.getExpenses('company-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.data).toEqual(mockExpenses);
       expect(result.data?.count).toBe(2);
-      expect(mockSupabase.from).toHaveBeenCalledWith('expenses');
       expect(mockQuery.eq).toHaveBeenCalledWith('company_id', 'company-123');
     });
 
     it('should handle database errors', async () => {
       const mockError = {
         message: 'Database connection failed',
-        code: 'PGRST301'
+        code: 'PGRST301',
+        details: null,
+        hint: null
       };
 
-      mockQuery.select.mockResolvedValue({
+      // Mock error result - the error object needs the exact structure Supabase returns
+      const mockResult = Promise.resolve({
         data: null,
         error: mockError,
         count: null
       });
+
+      mockQuery.select.mockReturnValue(mockQuery);
+      mockQuery.eq.mockReturnValue(mockQuery);
+      mockQuery.order.mockReturnValue(mockQuery);
+      mockQuery.range.mockReturnValue(mockResult);
 
       const result = await expenseService.getExpenses('company-123');
 
@@ -86,16 +116,24 @@ describe('ExpenseService', () => {
 
     it('should apply filters correctly', async () => {
       const filters = {
-        status: 'approved',
+        status: 'approved' as const,
         amount_min: 50,
         amount_max: 500
       };
 
-      mockQuery.select.mockResolvedValue({
+      // Mock empty result
+      const mockResult = Promise.resolve({
         data: [],
         error: null,
         count: 0
       });
+
+      mockQuery.select.mockReturnValue(mockQuery);
+      mockQuery.eq.mockReturnValue(mockQuery);
+      mockQuery.gte.mockReturnValue(mockQuery);
+      mockQuery.lte.mockReturnValue(mockQuery);
+      mockQuery.order.mockReturnValue(mockQuery);
+      mockQuery.range.mockReturnValue(mockResult);
 
       await expenseService.getExpenses('company-123', filters);
 

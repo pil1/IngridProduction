@@ -24,8 +24,7 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: "companies", label: "Companies", path: "/companies", icon: Building, roles: ['super-admin'], isHidden: false },
   { id: "vendors", label: "Vendors", path: "/vendors", icon: Truck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
   { id: "customers", label: "Customers", path: "/customers", icon: UsersRound, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-  { id: "expenses", label: "My Expenses", path: "/expenses", icon: Receipt, companyRequired: true, isHidden: false },
-  { id: "enhanced-expenses", label: "Enhanced Expenses", path: "/enhanced-expenses", icon: Receipt, companyRequired: true, isHidden: false },
+  { id: "expenses", label: "Expenses", path: "/expenses", icon: Receipt, companyRequired: true, isHidden: false },
   { id: "expense-review", label: "Expense Review", path: "/expense-review", icon: ClipboardCheck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
   { id: "notifications-page", label: "Notifications", path: "/notifications", icon: Bell, companyRequired: true, isHidden: false },
   {
@@ -70,7 +69,7 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
     children: [
       { id: "profile-settings", label: "Profile", path: "/settings", icon: User, isHidden: false },
       { id: "company-settings", label: "Company", path: "/company-settings", icon: Building2, roles: ['admin', 'super-admin'], companyRequired: true, isHidden: false },
-      { id: "users", label: "Users", path: "/users", icon: Users, roles: ['admin', 'super-admin'], isHidden: false, isLocked: true }, // Marked as locked
+      { id: "users", label: "User Management", path: "/users", icon: Users, roles: ['admin', 'super-admin'], isHidden: false, isLocked: true }, // Enhanced user management system
       { id: "company-modules-overview", label: "Modules", path: "/company-modules-overview", icon: Package, roles: ['admin', 'super-admin'], companyRequired: true, isHidden: false },
       { id: "system-modules", label: "System Modules", path: "/system-modules", icon: Package, roles: ['super-admin'], isHidden: false },
       { id: "system-billing-settings", label: "System Billing", path: "/system-billing-settings", icon: CreditCard, roles: ['super-admin'], isHidden: false },
@@ -118,8 +117,8 @@ export function useUserMenuPreferences() {
   const { user, profile, isLoading: isLoadingSession, impersonatedProfile } = useSession();
 
   // Use the active user's ID for preferences and module access
-  const activeUserId = impersonatedProfile?.user_id || user?.id;
-  const activeProfile = impersonatedProfile || profile;
+  const activeUserId = impersonatedProfile?.user_id ?? user?.id;
+  const activeProfile = impersonatedProfile ?? profile;
 
   const { data: userPreferences, isLoading: isLoadingPreferences } = useQuery<UserMenuPreferences | null>({
     queryKey: ["userMenuPreferences", activeUserId], // Query key includes user.id for specific profile
@@ -246,7 +245,7 @@ export function useUserMenuPreferences() {
       case "system-notification-settings": return moduleNameToIdMap.get("System Notification Settings"); // New unified module
       case "profile-settings": return moduleNameToIdMap.get("Profile Settings");
       case "company-settings": return moduleNameToIdMap.get("Company Settings");
-      case "users": return moduleNameToIdMap.get("Users");
+      case "users": return moduleNameToIdMap.get("User Management");
       case "company-modules-overview": return moduleNameToIdMap.get("Company Modules Overview");
       case "system-modules": return moduleNameToIdMap.get("System Modules");
       case "system-billing-settings": return moduleNameToIdMap.get("System Billing Settings");
@@ -271,7 +270,7 @@ export function useUserMenuPreferences() {
     const mutableDefaultItems = deepCloneMenuItems(DEFAULT_MENU_ITEMS);
 
     const userPrefMap = new Map<string, UserMenuItemPreference>();
-    (userPreferences?.menu_items_order || []).forEach((pref: UserMenuItemPreference) => {
+    (userPreferences?.menu_items_order ?? []).forEach((pref: UserMenuItemPreference) => {
       userPrefMap.set(pref.id, pref);
     });
 
@@ -326,7 +325,7 @@ export function useUserMenuPreferences() {
     const finalOrderedTopLevelItems: MenuItem[] = [];
     const seenTopLevelIds = new Set<string>();
 
-    for (const pref of userPreferences?.menu_items_order || []) {
+    for (const pref of userPreferences?.menu_items_order ?? []) {
       const item = mutableDefaultItems.find(dItem => dItem.id === pref.id);
       if (item && !seenTopLevelIds.has(item.id)) {
         finalOrderedTopLevelItems.push(item);
@@ -410,7 +409,7 @@ export function useUserMenuPreferences() {
 
   const filteredMenuItems = useMemo(() => {
     if (!activeProfile || isLoadingSystemModules) return [];
-    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules || [], companyModules || [], systemModules, false); // Use false for ignoreIsHidden
+    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, false); // Use false for ignoreIsHidden
   }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules]);
 
   const editableMenuItems = useMemo(() => {
@@ -418,7 +417,7 @@ export function useUserMenuPreferences() {
     // For the editable menu, we want to show all items the user *could* potentially see,
     // regardless of their current 'isHidden' status, so we pass `true` for `ignoreIsHidden`.
     // This allows them to toggle visibility for items they have permission to access.
-    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules || [], companyModules || [], systemModules, true);
+    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, true);
   }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules]);
 
   return {

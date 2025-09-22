@@ -16,6 +16,7 @@ import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 
 // Lazy loaded components (loaded on demand)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const IngridAIPage = lazy(() => import("./pages/IngridAIPage"));
 
 const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
 const EnhancedExpensesPage = lazy(() => import("./pages/EnhancedExpensesPage"));
@@ -23,7 +24,9 @@ const ExpenseDetailPage = lazy(() => import("./pages/ExpenseDetailPage"));
 const ExpenseReviewPage = lazy(() => import("./pages/ExpenseReviewPage"));
 const CompaniesPage = lazy(() => import("./pages/Companies"));
 const UsersPage = lazy(() => import("./pages/Users"));
+const EnhancedUsersPage = lazy(() => import("./pages/EnhancedUsersPage"));
 const VendorsPage = lazy(() => import("./pages/VendorsPage"));
+const EnhancedVendorsPage = lazy(() => import("./pages/EnhancedVendorsPage"));
 const CustomersPage = lazy(() => import("./pages/CustomersPage"));
 const ExpenseCategoriesPage = lazy(() => import("./pages/ExpenseCategoriesPage"));
 const GLAccountsPage = lazy(() => import("./pages/GLAccountsPage"));
@@ -39,8 +42,10 @@ const ProcessAutomationPage = lazy(() => import("./pages/ProcessAutomationPage")
 const SystemNotificationSettingsPage = lazy(() => import("./pages/SystemNotificationSettingsPage"));
 const SystemModulesPage = lazy(() => import("./pages/SystemModulesPage"));
 const CompanyModulesOverviewPage = lazy(() => import("./pages/CompanyModulesOverviewPage"));
+const CompanyModuleManager = lazy(() => import("./components/CompanyModuleManager"));
 const FirstLoginOnboardingDialog = lazy(() => import("./components/FirstLoginOnboardingDialog"));
-const AnalyticsDashboard = lazy(() => import("./components/analytics/AnalyticsDashboard"));
+const AIAnalyticsPage = lazy(() => import("./pages/AIAnalyticsPage"));
+const PermissionsManagementPage = lazy(() => import("./pages/PermissionsManagementPage"));
 
 import { supabase } from "@/integrations/supabase/client";
 import AsyncErrorBoundary from "./components/AsyncErrorBoundary";
@@ -279,6 +284,11 @@ const routes: RouteObject[] = [
         handle: { pageTitle: "INFOtrac - Dashboard" },
       },
       {
+        path: "/ingrid-ai",
+        element: withSuspense(IngridAIPage, "Loading Ingrid AI...", "IngridAIPage"),
+        handle: { pageTitle: "INFOtrac - Ingrid AI Assistant" },
+      },
+      {
         path: "/super-admin-dashboard",
         element: withSuspense(SuperAdminDashboard, "Loading admin dashboard...", "SuperAdminDashboard"),
         handle: { pageTitle: "INFOtrac - Super Admin Dashboard" },
@@ -295,8 +305,13 @@ const routes: RouteObject[] = [
       },
       {
         path: "/vendors",
-        element: withSuspense(VendorsPage, "Loading vendors...", "VendorsPage"),
+        element: withSuspense(EnhancedVendorsPage, "Loading vendors...", "EnhancedVendorsPage"),
         handle: { pageTitle: "INFOtrac - Vendors" },
+      },
+      {
+        path: "/legacy-vendors",
+        element: withSuspense(VendorsPage, "Loading legacy vendors...", "VendorsPage"),
+        handle: { pageTitle: "INFOtrac - Legacy Vendors" },
       },
       {
         path: "/customers",
@@ -305,8 +320,13 @@ const routes: RouteObject[] = [
       },
       {
         path: "/expenses",
-        element: withSuspense(ExpensesPage, "Loading expenses...", "ExpensesPage"),
-        handle: { pageTitle: "INFOtrac - My Expenses" },
+        element: withSuspense(EnhancedExpensesPage, "Loading expenses...", "EnhancedExpensesPage"),
+        handle: { pageTitle: "INFOtrac - Expenses" },
+      },
+      {
+        path: "/legacy-expenses",
+        element: withSuspense(ExpensesPage, "Loading legacy expenses...", "ExpensesPage"),
+        handle: { pageTitle: "INFOtrac - Legacy Expenses" },
       },
       {
         path: "/enhanced-expenses",
@@ -369,6 +389,15 @@ const routes: RouteObject[] = [
         handle: { pageTitle: "INFOtrac - System Modules" },
       },
       {
+        path: "/company-modules",
+        element: (
+          <ProtectedRoute allowedRoles={['super-admin']}>
+            {withSuspense(CompanyModuleManager, "Loading company modules...", "CompanyModuleManager")}
+          </ProtectedRoute>
+        ),
+        handle: { pageTitle: "INFOtrac - Company Module Management" },
+      },
+      {
         path: "/company-notification-settings",
         element: withSuspense(CompanyNotificationSettingsPage, "Loading notification settings...", "CompanyNotificationSettingsPage"),
         handle: { pageTitle: "INFOtrac - Company Notification Settings" },
@@ -385,13 +414,32 @@ const routes: RouteObject[] = [
       },
       {
         path: "/analytics",
-        element: withSuspense(AnalyticsDashboard, "Loading analytics dashboard...", "AnalyticsDashboard"),
-        handle: { pageTitle: "INFOtrac - Analytics" },
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'controller', 'super-admin']}>
+            {withSuspense(AIAnalyticsPage, "Loading AI analytics...", "AIAnalyticsPage")}
+          </ProtectedRoute>
+        ),
+        handle: { pageTitle: "INFOtrac - AI Analytics" },
       },
       {
         path: "/users",
-        element: withSuspense(UsersPage, "Loading users...", "UsersPage"),
-        handle: { pageTitle: "INFOtrac - Users" },
+        element: withSuspense(PermissionsManagementPage, "Loading user management...", "PermissionsManagementPage"),
+        handle: { pageTitle: "INFOtrac - User Management" },
+      },
+      {
+        path: "/legacy-users",
+        element: withSuspense(UsersPage, "Loading legacy users...", "UsersPage"),
+        handle: { pageTitle: "INFOtrac - Legacy Users" },
+      },
+      {
+        path: "/enhanced-users",
+        element: withSuspense(EnhancedUsersPage, "Loading enhanced users...", "EnhancedUsersPage"),
+        handle: { pageTitle: "INFOtrac - Enhanced Users" },
+      },
+      {
+        path: "/permissions",
+        element: withSuspense(PermissionsManagementPage, "Loading permissions management...", "PermissionsManagementPage"),
+        handle: { pageTitle: "INFOtrac - Permissions Management" },
       },
       {
         path: "*",

@@ -24,6 +24,71 @@ export interface ExpenseLineItem {
   extracted_from_receipt_id?: string | null; // For traceability
 }
 
+// Enhanced AI and UI Types
+export type FieldSource = 'ai' | 'manual' | 'mixed' | 'override';
+export type UrgencyLevel = 'low' | 'medium' | 'high';
+export type ProcessingMethod = 'ai' | 'manual' | 'hybrid';
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+export interface FieldConfidence {
+  value: number;
+  level: ConfidenceLevel;
+  source: FieldSource;
+}
+
+export interface EnhancedStatus {
+  primary: 'draft' | 'submitted' | 'approved' | 'rejected' | 'pending_review' | 'info_requested';
+  aiContext: ProcessingMethod;
+  priority: UrgencyLevel;
+  flags: ('requires-receipt' | 'high-amount' | 'policy-check' | 'manual-review')[];
+}
+
+export interface AIMetrics {
+  processingStats: {
+    totalExpenses: number;
+    aiProcessed: number;
+    manualEntry: number;
+    hybridProcessing: number;
+    averageConfidence: number;
+    averageProcessingTime: number;
+  };
+
+  fieldAccuracy: Record<string, {
+    aiAccuracy: number;
+    manualOverrideRate: number;
+    averageConfidence: number;
+    totalProcessed: number;
+  }>;
+
+  timeSeriesData: {
+    date: string;
+    aiProcessed: number;
+    manualEntry: number;
+    averageConfidence: number;
+    processingTime: number;
+    errorRate: number;
+  }[];
+
+  userAdoption: {
+    totalUsers: number;
+    activeAIUsers: number;
+    adoptionRate: number;
+    satisfactionScore: number;
+  };
+}
+
+export interface ExpenseFieldModification {
+  id: string;
+  expense_id: string;
+  field_name: string;
+  original_value: string | null;
+  new_value: string;
+  source_type: FieldSource;
+  confidence_score: number | null;
+  modified_by: string;
+  modified_at: string;
+}
+
 export interface Expense {
   id: string;
   title: string;
@@ -71,6 +136,29 @@ export interface Expense {
   category_name: string | null; // From expense_categories join
   gl_account_name: string | null; // From gl_accounts join
   gl_account_code: string | null; // From gl_accounts join
+
+  // AI Processing Metadata (Enhanced)
+  ingrid_processed: boolean;
+  ingrid_confidence_score: number | null;
+  ingrid_field_confidences: Record<string, number>;
+  ingrid_suggestions: string[];
+  ingrid_response_id: string | null;
+  field_sources: Record<string, FieldSource>;
+  manual_overrides: string[];
+  processing_time_ms: number | null;
+
+  // Enhanced Receipt & Document Metadata
+  receipt_url: string | null;
+  receipt_count: number;
+  receipt_preview_url: string | null;
+  document_name: string | null;
+  document_size: number | null;
+  document_mime_type: string | null;
+
+  // Additional Enhancement Fields
+  tags: string[];
+  urgency_level: UrgencyLevel;
+  has_receipt: boolean;
 }
 
 export interface ExpenseComment {

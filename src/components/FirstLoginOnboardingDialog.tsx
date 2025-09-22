@@ -143,7 +143,7 @@ const FirstLoginOnboardingDialog = () => {
         .update({
           first_name: values.first_name,
           last_name: values.last_name,
-          full_name: (values.first_name || '') + ' ' + (values.last_name || ''),
+          full_name: (values.first_name ?? '') + ' ' + (values.last_name ?? ''),
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
         })
@@ -558,7 +558,7 @@ const FirstLoginOnboardingDialog = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {(companyModules || []).length === 0 ? (
+                {(companyModules ?? []).length === 0 ? (
                   <p className="text-muted-foreground">No modules are currently enabled for your company.</p>
                 ) : (
                   <Table>
@@ -570,9 +570,9 @@ const FirstLoginOnboardingDialog = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(companyModules || []).map((mod) => (
+                      {(companyModules ?? []).map((mod) => (
                         <TableRow key={mod.id}>
-                          <TableCell className="font-medium">{mod.modules?.name || "Unknown"}</TableCell>
+                          <TableCell className="font-medium">{mod.modules?.name ?? "Unknown"}</TableCell>
                           <TableCell>{mod.modules?.description ?? "N/A"}</TableCell>
                           <TableCell>
                             <Checkbox

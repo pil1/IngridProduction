@@ -51,7 +51,7 @@ export const PageErrorBoundary = ({ children, pageName }: PageErrorBoundaryProps
     <ErrorBoundary
       fallback={<PageErrorFallback error={new Error('Unknown error')} pageName={pageName} />}
       onError={(error, errorInfo) => {
-        console.error(`Page error in ${pageName || 'unknown page'}:`, error, errorInfo);
+        console.error(`Page error in ${pageName ?? 'unknown page'}:`, error, errorInfo);
         // In production, send to error reporting service with page context
       }}
     >

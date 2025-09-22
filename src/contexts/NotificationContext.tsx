@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, startTransition } from 'react'
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/components/SessionContextProvider';
-import { NotificationContext, Notification, NotificationContextType } from './NotificationContextTypes';
+import { NotificationContext, Notification } from './NotificationContextTypes';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Type for Supabase errors
@@ -12,11 +12,6 @@ interface SupabaseError {
   details?: string;
 }
 
-// Type for realtime payload
-interface RealtimePayload {
-  new?: Record<string, unknown>;
-  old?: Record<string, unknown>;
-}
 
 interface NotificationProviderProps {
   children: React.ReactNode;

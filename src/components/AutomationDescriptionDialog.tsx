@@ -50,22 +50,22 @@ const AutomationDescriptionDialog = ({ isOpen, onOpenChange, onAutomationGenerat
         onAutomationGenerated(data.automation);
         toast({
           title: "Automation Drafted",
-          description: data.message || "AI has drafted an automation based on your description. Please review.",
+          description: data.message ?? "AI has drafted an automation based on your description. Please review.",
         });
         onOpenChange(false);
         setDescription("");
       } else {
         toast({
           title: "Could Not Draft Automation",
-          description: data.message || "AI could not generate a suitable automation. Please try a different description.",
+          description: data.message ?? "AI could not generate a suitable automation. Please try a different description.",
           variant: "destructive",
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error generating automation",
-        description: error.message ?? "An unexpected error occurred.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     },

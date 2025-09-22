@@ -73,8 +73,8 @@ const CompanyLocationsTable = ({ companyId }: CompanyLocationsTableProps) => {
       setIsDeleteDialogOpen(false);
       setLocationToDelete(null);
     },
-    onError: (error: any) => {
-      toast({ title: "Error deleting location", description: error.message ?? "An unexpected error occurred.", variant: "destructive" });
+    onError: (error: unknown) => {
+      toast({ title: "Error deleting location", description: error instanceof Error ? error.message : "An unexpected error occurred.", variant: "destructive" });
     },
   });
 

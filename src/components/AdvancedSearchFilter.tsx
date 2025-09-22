@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Search, X, Filter, SlidersHorizontal } from "lucide-react";
+import { CalendarIcon, Search, X, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -53,7 +53,6 @@ export const AdvancedSearchFilter = ({
   categories = [],
   submitters = [],
   vendors = [],
-  isLoading = false,
 }: AdvancedSearchFilterProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState<"from" | "to" | null>(null);
@@ -148,7 +147,7 @@ export const AdvancedSearchFilter = ({
               className="w-full"
             />
           </div>
-          <Select value={filters.status[0] || "__all_statuses__"} onValueChange={(value) => updateFilters({ status: (value && value !== "__all_statuses__") ? [value] : [] })}>
+          <Select value={filters.status[0] ?? "__all_statuses__"} onValueChange={(value) => updateFilters({ status: (value && value !== "__all_statuses__") ? [value] : [] })}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -189,7 +188,7 @@ export const AdvancedSearchFilter = ({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Categories</Label>
                 <Select
-                  value={filters.category[0] || "__all_categories__"}
+                  value={filters.category[0] ?? "__all_categories__"}
                   onValueChange={(value) => updateFilters({ category: (value && value !== "__all_categories__") ? [value] : [] })}
                 >
                   <SelectTrigger>
@@ -211,7 +210,7 @@ export const AdvancedSearchFilter = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Submitter</Label>
                   <Select
-                    value={filters.submitter[0] || "__all_submitters__"}
+                    value={filters.submitter[0] ?? "__all_submitters__"}
                     onValueChange={(value) => updateFilters({ submitter: (value && value !== "__all_submitters__") ? [value] : [] })}
                   >
                     <SelectTrigger>
@@ -325,7 +324,7 @@ export const AdvancedSearchFilter = ({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Vendor</Label>
                 <Select
-                  value={filters.vendor || "__all_vendors__"}
+                  value={filters.vendor ?? "__all_vendors__"}
                   onValueChange={(value) => updateFilters({ vendor: (value && value !== "__all_vendors__") ? value : "" })}
                 >
                   <SelectTrigger>

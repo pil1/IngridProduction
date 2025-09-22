@@ -74,7 +74,7 @@ const SettingsPage = () => {
         .update({
           first_name: values.first_name,
           last_name: values.last_name,
-          full_name: (values.first_name || '') + ' ' + (values.last_name || ''),
+          full_name: (values.first_name ?? '') + ' ' + (values.last_name ?? ''),
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
         })

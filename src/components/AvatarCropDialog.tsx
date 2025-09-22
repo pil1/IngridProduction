@@ -92,7 +92,7 @@ async function getCroppedImgFile(imageSrc: string, pixelCrop: Record<string, unk
 const AvatarCropDialog = ({ isOpen, onOpenChange, imageSrc, onSave }: AvatarCropDialogProps) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Record<string, unknown> | null>(null);
 
   // Reset state when dialog opens with a new image
   useEffect(() => {

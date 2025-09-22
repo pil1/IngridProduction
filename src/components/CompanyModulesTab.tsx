@@ -109,7 +109,7 @@ const CompanyModulesTab = ({ companyId }: CompanyModulesTabProps) => {
     },
     enabled: !!companyId,
   });
-  const companyDefaultCurrency = companySettings?.default_currency || "USD";
+  const companyDefaultCurrency = companySettings?.default_currency ?? "USD";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -202,9 +202,9 @@ const CompanyModulesTab = ({ companyId }: CompanyModulesTabProps) => {
       const systemModule = systemModules.find(sm => sm.id === moduleSetting.module_id);
       return {
         ...moduleSetting,
-        systemModuleName: systemModule?.name || '',
+        systemModuleName: systemModule?.name ?? '',
         description: systemModule?.description ?? null,
-        module_type: systemModule?.module_type || 'add-on', // Ensure module_type is present
+        module_type: systemModule?.module_type ?? 'add-on', // Ensure module_type is present
       };
     });
 

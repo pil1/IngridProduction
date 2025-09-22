@@ -1,18 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Receipt,
-  Users,
-  Building2,
-  Calendar,
   BarChart3,
-  PieChart,
   Activity,
   Target,
   Clock,
@@ -25,7 +16,7 @@ import { AdvancedMetricsCard, MetricData } from './AdvancedMetricsCard';
 import { AnalyticsFilters, AnalyticsFilters as FiltersType } from './AnalyticsFilters';
 import { LazyLineChartCard, LazyBarChartCard } from '@/components/LazyCharts';
 import { exportService } from '@/services/exportService';
-import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export const AnalyticsDashboard = () => {
   const { profile } = useSession();
@@ -58,8 +49,8 @@ export const AnalyticsDashboard = () => {
           profiles!submitted_by(first_name, last_name, role)
         `)
         .eq('company_id', profile.company_id)
-        .gte('expense_date', filters.dateRange.from?.toISOString().split('T')[0] || '')
-        .lte('expense_date', filters.dateRange.to?.toISOString().split('T')[0] || '');
+        .gte('expense_date', filters.dateRange.from?.toISOString().split('T')[0] ?? '')
+        .lte('expense_date', filters.dateRange.to?.toISOString().split('T')[0] ?? '');
 
       if (error) throw error;
       return data;
@@ -91,7 +82,7 @@ export const AnalyticsDashboard = () => {
 
     const filteredExpenses = expenseAnalytics.filter(expense => {
       // Apply category filter
-      if (filters.category.length > 0 && !filters.category.includes(expense.category_id || '')) {
+      if (filters.category.length > 0 && !filters.category.includes(expense.category_id ?? '')) {
         return false;
       }
 
@@ -110,28 +101,28 @@ export const AnalyticsDashboard = () => {
 
     // Status breakdown
     const statusBreakdown = filteredExpenses.reduce((acc, expense) => {
-      acc[expense.status] = (acc[expense.status] || 0) + 1;
+      acc[expense.status] = (acc[expense.status] ?? 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     // Category breakdown
     const categoryBreakdown = filteredExpenses.reduce((acc, expense) => {
-      const categoryName = expense.expense_categories?.name || 'Uncategorized';
-      acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
+      const categoryName = expense.expense_categories?.name ?? 'Uncategorized';
+      acc[categoryName] = (acc[categoryName] ?? 0) + expense.amount;
       return acc;
     }, {} as Record<string, number>);
 
     // Monthly trends
     const monthlyTrends = filteredExpenses.reduce((acc, expense) => {
       const month = format(new Date(expense.expense_date), 'MMM yyyy');
-      acc[month] = (acc[month] || 0) + expense.amount;
+      acc[month] = (acc[month] ?? 0) + expense.amount;
       return acc;
     }, {} as Record<string, number>);
 
     // Reimbursable vs Non-reimbursable
     const reimbursableBreakdown = filteredExpenses.reduce((acc, expense) => {
       const type = expense.is_reimbursable ? 'Reimbursable' : 'Non-reimbursable';
-      acc[type] = (acc[type] || 0) + expense.amount;
+      acc[type] = (acc[type] ?? 0) + expense.amount;
       return acc;
     }, {} as Record<string, number>);
 
@@ -205,10 +196,10 @@ export const AnalyticsDashboard = () => {
       },
       {
         label: 'Pending Review',
-        value: analytics.statusBreakdown.submitted || 0,
+        value: analytics.statusBreakdown.submitted ?? 0,
         format: 'number',
         description: 'Expenses awaiting review',
-        status: (analytics.statusBreakdown.submitted || 0) > 10 ? 'warning' : 'good',
+        status: (analytics.statusBreakdown.submitted ?? 0) > 10 ? 'warning' : 'good',
       },
     ];
   }, [analytics]);
@@ -348,7 +339,7 @@ export const AnalyticsDashboard = () => {
                           ${amount.toLocaleString()}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          {((amount / (analytics?.totalExpenses || 1)) * 100).toFixed(1)}%
+                          {((amount / (analytics?.totalExpenses ?? 1)) * 100).toFixed(1)}%
                         </Badge>
                       </div>
                     </div>

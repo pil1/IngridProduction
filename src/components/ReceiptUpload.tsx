@@ -64,7 +64,7 @@ const ReceiptUpload = ({
       const extension = currentPreviewUrl.split('.').pop()?.toLowerCase();
       if (extension === 'pdf') {
         setLocalMimeType('application/pdf');
-      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension ?? '')) {
         setLocalMimeType(`image/${extension === 'jpg' ? 'jpeg' : extension}`);
       } else {
         setLocalMimeType(null); // Unknown type
@@ -152,7 +152,7 @@ const ReceiptUpload = ({
         console.error("AI analysis failed:", aiError);
         toast({
           title: "AI Analysis Failed",
-          description: aiError.message || "Could not extract details from the receipt. Please enter manually.",
+          description: aiError.message ?? "Could not extract details from the receipt. Please enter manually.",
           variant: "destructive",
         });
         // Fallback: still provide the file and preview, but with empty analysis result

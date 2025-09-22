@@ -4,10 +4,11 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, Trash2, Truck, Sparkles } from "lucide-react"; // Import Truck icon
+import { Loader2, PlusCircle, Trash2, Truck, Sparkles, Lightbulb } from "lucide-react"; // Import Truck, Lightbulb icons
 import { useSession } from "@/components/SessionContextProvider";
 import {
   AlertDialog,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import AddEditVendorDialog, { VendorFormValues } from "@/components/AddEditVendorDialog";
 import SmartAddDialog from "@/components/SmartAddDialog";
+import SuggestedVendorsTab from "@/components/SuggestedVendorsTab";
 
 export interface Vendor {
   id: string;
@@ -184,63 +186,91 @@ const VendorsPage = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" /> Vendors
-            </CardTitle>
-            <CardDescription>
-              Manage your company's vendor relationships.
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsSmartAddDialogOpen(true)} disabled={isLoadingVendors || !canManageVendors}>
-              <Sparkles className="mr-2 h-4 w-4" /> Smart Add
-            </Button>
-            <Button onClick={handleAddClick} disabled={isLoadingVendors || !canManageVendors}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Vendor
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoadingVendors ? (
-            <div className="flex justify-center items-center py-4">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading vendors...
-            </div>
-          ) : isErrorVendors ? (
-            <div className="text-red-500">Error loading vendors.</div>
-          ) : !hasVendors ? (
-            <div>No vendors defined for your company.</div>
-          ) : (
-            <div className="space-y-2">
-              {vendors?.map((vendor) => (
-                <Card key={vendor.id} className="p-2 hover:bg-muted cursor-pointer">
-                  <div className="flex justify-between items-center" onClick={() => handleViewEditClick(vendor)}>
-                    <div className="font-semibold">{vendor.name}</div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent opening the dialog when deleting
-                        handleDeleteClick(vendor);
-                      }}
-                      disabled={isActionPending}
-                    >
-                      {isActionPending && vendorToDelete?.id === vendor.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">Delete</span>
-                    </Button>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Vendors</h1>
+          <p className="text-muted-foreground">
+            Manage your company's vendor relationships and review AI-suggested vendors from Ingrid.
+          </p>
+        </div>
+
+        <Tabs defaultValue="vendors" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="vendors" className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Vendors
+            </TabsTrigger>
+            <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Ingrid Suggestions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="vendors" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" /> Vendors
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your company's vendor relationships.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => setIsSmartAddDialogOpen(true)} disabled={isLoadingVendors || !canManageVendors}>
+                    <Sparkles className="mr-2 h-4 w-4" /> Smart Add
+                  </Button>
+                  <Button onClick={handleAddClick} disabled={isLoadingVendors || !canManageVendors}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Vendor
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingVendors ? (
+                  <div className="flex justify-center items-center py-4">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading vendors...
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ) : isErrorVendors ? (
+                  <div className="text-red-500">Error loading vendors.</div>
+                ) : !hasVendors ? (
+                  <div>No vendors defined for your company.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {vendors?.map((vendor) => (
+                      <Card key={vendor.id} className="p-2 hover:bg-muted cursor-pointer">
+                        <div className="flex justify-between items-center" onClick={() => handleViewEditClick(vendor)}>
+                          <div className="font-semibold">{vendor.name}</div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent opening the dialog when deleting
+                              handleDeleteClick(vendor);
+                            }}
+                            disabled={isActionPending}
+                          >
+                            {isActionPending && vendorToDelete?.id === vendor.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suggestions" className="space-y-4">
+            <SuggestedVendorsTab />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <Dialog open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen}>
         <AddEditVendorDialog

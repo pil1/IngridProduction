@@ -189,7 +189,7 @@ export const useAdvancedSearch = <T extends SearchableItem>(
       case 'reimbursable':
         setFilters(prev => ({ ...prev, isReimbursable: true }));
         break;
-      case 'thisMonth':
+      case 'thisMonth': {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -198,6 +198,7 @@ export const useAdvancedSearch = <T extends SearchableItem>(
           dateRange: { from: startOfMonth, to: endOfMonth }
         }));
         break;
+      }
       default:
         break;
     }

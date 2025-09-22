@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { router, queryClient } from "./exports";
 import { Toaster, Sonner, TooltipProvider } from "./App.tsx";
 import "./globals.css";
-import React, { startTransition } from "react";
+import React from "react";
 import { RouterProvider } from "react-router-dom";
 import { SessionContextProvider } from "./components/SessionContextProvider";
 import { QueryClientProvider } from "@tanstack/react-query";

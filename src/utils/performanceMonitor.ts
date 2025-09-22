@@ -5,12 +5,30 @@
 
 import React from 'react';
 
+// Type definitions for performance APIs
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number;
+  hadRecentInput: boolean;
+  sources?: Array<{
+    node?: Element;
+  }>;
+}
+
+interface LongTaskEntry extends PerformanceEntry {
+  attribution?: Array<unknown>;
+}
+
+interface LargestContentfulPaintEntry extends PerformanceEntry {
+  element?: Element;
+  url?: string;
+}
+
 interface PerformanceMetric {
   name: string;
   value: number;
   timestamp: number;
   category: 'loading' | 'rendering' | 'interaction' | 'bundle';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface ComponentMetric {
@@ -49,8 +67,8 @@ class PerformanceMonitor {
             category: 'loading',
             metadata: {
               url: entry.name,
-              size: 'transferSize' in entry ? (entry as any).transferSize : 0,
-              cached: 'transferSize' in entry ? (entry as any).transferSize === 0 : false
+              size: 'transferSize' in entry ? (entry as PerformanceResourceTiming).transferSize : 0,
+              cached: 'transferSize' in entry ? (entry as PerformanceResourceTiming).transferSize === 0 : false
             }
           });
         }
@@ -59,15 +77,16 @@ class PerformanceMonitor {
 
     // Track layout shifts and cumulative layout shift
     const layoutObserver = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry: any) => {
+      list.getEntries().forEach((entry) => {
+        const layoutShiftEntry = entry as LayoutShiftEntry;
         this.recordMetric({
           name: 'layout_shift',
-          value: entry.value,
+          value: layoutShiftEntry.value,
           timestamp: Date.now(),
           category: 'rendering',
           metadata: {
-            hadRecentInput: entry.hadRecentInput,
-            sources: entry.sources?.map((s: any) => s.node?.tagName)
+            hadRecentInput: layoutShiftEntry.hadRecentInput,
+            sources: layoutShiftEntry.sources?.map(s => s.node?.tagName)
           }
         });
       });
@@ -83,7 +102,7 @@ class PerformanceMonitor {
           category: 'interaction',
           metadata: {
             startTime: entry.startTime,
-            attribution: 'attribution' in entry ? (entry as any).attribution : []
+            attribution: 'attribution' in entry ? (entry as LongTaskEntry).attribution : []
           }
         });
       });
@@ -136,8 +155,8 @@ class PerformanceMonitor {
         timestamp: Date.now(),
         category: 'loading',
         metadata: {
-          element: 'element' in lastEntry ? (lastEntry as any).element?.tagName : null,
-          url: 'url' in lastEntry ? (lastEntry as any).url : null
+          element: 'element' in lastEntry ? (lastEntry as LargestContentfulPaintEntry).element?.tagName : null,
+          url: 'url' in lastEntry ? (lastEntry as LargestContentfulPaintEntry).url : null
         }
       });
     });
@@ -152,27 +171,60 @@ class PerformanceMonitor {
   }
 
   /**
-   * Record a performance metric
+   * Record a performance metric with optimized storage
    */
   recordMetric(metric: PerformanceMetric) {
+    // Use more efficient storage strategy
     this.metrics.push(metric);
 
     // Log performance issues in development
     if (process.env.NODE_ENV === 'development') {
-      if (metric.category === 'loading' && metric.value > 3000) {
-        console.warn(`🐌 Slow loading: ${metric.name} took ${metric.value}ms`);
-      }
-      if (metric.category === 'rendering' && metric.value > 16) {
-        console.warn(`🎨 Slow render: ${metric.name} took ${metric.value}ms`);
-      }
-      if (metric.name === 'long_task') {
-        console.warn(`⏱️  Long task detected: ${metric.value}ms`);
-      }
+      this.logPerformanceIssues(metric);
     }
 
-    // Keep metrics array manageable
+    // More efficient memory management using circular buffer approach
     if (this.metrics.length > 1000) {
-      this.metrics = this.metrics.slice(-500);
+      // Instead of slice, use a more efficient approach
+      this.metrics.splice(0, 500);
+    }
+  }
+
+  /**
+   * Log performance issues with throttling to avoid console spam
+   */
+  private logPerformanceIssues(metric: PerformanceMetric) {
+    const issueKey = `${metric.name}_${metric.category}`;
+    const lastLogged = this.lastLoggedIssues?.get(issueKey) ?? 0;
+    const now = Date.now();
+
+    // Throttle warnings to once per 5 seconds
+    if (now - lastLogged < 5000) return;
+
+    if (metric.category === 'loading' && metric.value > 3000) {
+      console.warn(`🐌 Slow loading: ${metric.name} took ${metric.value}ms`);
+      this.setLastLoggedIssue(issueKey, now);
+    } else if (metric.category === 'rendering' && metric.value > 16) {
+      console.warn(`🎨 Slow render: ${metric.name} took ${metric.value}ms`);
+      this.setLastLoggedIssue(issueKey, now);
+    } else if (metric.name === 'long_task') {
+      console.warn(`⏱️  Long task detected: ${metric.value}ms`);
+      this.setLastLoggedIssue(issueKey, now);
+    }
+  }
+
+  /**
+   * Track last logged issues to prevent spam
+   */
+  private lastLoggedIssues = new Map<string, number>();
+
+  private setLastLoggedIssue(key: string, timestamp: number) {
+    this.lastLoggedIssues.set(key, timestamp);
+
+    // Clean up old entries to prevent memory leaks
+    if (this.lastLoggedIssues.size > 100) {
+      const entries = Array.from(this.lastLoggedIssues.entries());
+      entries.sort((a, b) => a[1] - b[1]); // Sort by timestamp
+      entries.slice(0, 50).forEach(([key]) => this.lastLoggedIssues.delete(key));
     }
   }
 
@@ -186,7 +238,7 @@ class PerformanceMonitor {
   /**
    * End timing and record metric
    */
-  endTiming(name: string, category: PerformanceMetric['category'] = 'rendering', metadata?: Record<string, any>) {
+  endTiming(name: string, category: PerformanceMetric['category'] = 'rendering', metadata?: Record<string, unknown>) {
     const startTime = this.startTimes.get(name);
     if (startTime) {
       const duration = performance.now() - startTime;
@@ -207,7 +259,7 @@ class PerformanceMonitor {
   trackComponent(name: string, phase: 'mount' | 'update' | 'unmount', actualDuration?: number) {
     if (!actualDuration) return;
 
-    const existing = this.componentMetrics.get(name) || {
+    const existing = this.componentMetrics.get(name) ?? {
       name,
       mountTime: 0,
       renderTime: 0,
@@ -240,51 +292,65 @@ class PerformanceMonitor {
   }
 
   /**
-   * Get performance summary
+   * Get performance summary with optimized calculations
    */
   getSummary() {
     const now = Date.now();
-    const recentMetrics = this.metrics.filter(m => now - m.timestamp < 60000); // Last minute
+    const oneMinuteAgo = now - 60000;
 
-    const summary = {
-      totalMetrics: this.metrics.length,
-      recentMetrics: recentMetrics.length,
-      categories: {} as Record<string, number>,
-      slowComponents: [] as string[],
-      avgLoadTime: 0,
-      avgRenderTime: 0,
-      longTasks: 0,
-      layoutShifts: 0
-    };
+    // Use a single pass to collect all needed data
+    let loadingSum = 0;
+    let loadingCount = 0;
+    let renderingSum = 0;
+    let renderingCount = 0;
+    let longTasks = 0;
+    let layoutShifts = 0;
+    let recentCount = 0;
+    const categories: Record<string, number> = {};
 
-    // Calculate category distribution
-    recentMetrics.forEach(metric => {
-      summary.categories[metric.category] = (summary.categories[metric.category] || 0) + 1;
-    });
+    // Single pass through recent metrics for efficiency
+    for (const metric of this.metrics) {
+      if (metric.timestamp < oneMinuteAgo) continue;
 
-    // Find slow components
-    this.componentMetrics.forEach((metric, name) => {
-      if (metric.mountTime > 100 || metric.renderTime / metric.propsChanges > 50) {
-        summary.slowComponents.push(name);
+      recentCount++;
+      categories[metric.category] = (categories[metric.category] ?? 0) + 1;
+
+      switch (metric.category) {
+        case 'loading':
+          loadingSum += metric.value;
+          loadingCount++;
+          break;
+        case 'rendering':
+          renderingSum += metric.value;
+          renderingCount++;
+          break;
+        case 'interaction':
+          if (metric.name === 'long_task') longTasks++;
+          break;
       }
-    });
 
-    // Calculate averages
-    const loadingMetrics = recentMetrics.filter(m => m.category === 'loading');
-    const renderingMetrics = recentMetrics.filter(m => m.category === 'rendering');
+      if (metric.name === 'layout_shift') layoutShifts++;
+    }
 
-    summary.avgLoadTime = loadingMetrics.length > 0
-      ? loadingMetrics.reduce((sum, m) => sum + m.value, 0) / loadingMetrics.length
-      : 0;
+    // Find slow components efficiently
+    const slowComponents: string[] = [];
+    for (const [name, metric] of this.componentMetrics) {
+      const avgRenderTime = metric.propsChanges > 0 ? metric.renderTime / metric.propsChanges : 0;
+      if (metric.mountTime > 100 || avgRenderTime > 50) {
+        slowComponents.push(name);
+      }
+    }
 
-    summary.avgRenderTime = renderingMetrics.length > 0
-      ? renderingMetrics.reduce((sum, m) => sum + m.value, 0) / renderingMetrics.length
-      : 0;
-
-    summary.longTasks = recentMetrics.filter(m => m.name === 'long_task').length;
-    summary.layoutShifts = recentMetrics.filter(m => m.name === 'layout_shift').length;
-
-    return summary;
+    return {
+      totalMetrics: this.metrics.length,
+      recentMetrics: recentCount,
+      categories,
+      slowComponents,
+      avgLoadTime: loadingCount > 0 ? loadingSum / loadingCount : 0,
+      avgRenderTime: renderingCount > 0 ? renderingSum / renderingCount : 0,
+      longTasks,
+      layoutShifts
+    };
   }
 
   /**
@@ -306,10 +372,10 @@ class PerformanceMonitor {
     if (bundleMetrics.length > 0) {
       stats.avgLoadTime = bundleMetrics.reduce((sum, m) => sum + m.value, 0) / bundleMetrics.length;
       stats.cachedBundles = bundleMetrics.filter(m => m.metadata?.cached).length;
-      stats.totalSize = bundleMetrics.reduce((sum, m) => sum + (m.metadata?.size || 0), 0);
+      stats.totalSize = bundleMetrics.reduce((sum, m) => sum + (typeof m.metadata?.size === 'number' ? m.metadata.size : 0), 0);
       stats.slowBundles = bundleMetrics
         .filter(m => m.value > 2000)
-        .map(m => m.metadata?.url || 'unknown');
+        .map(m => m.metadata?.url ?? 'unknown');
     }
 
     return stats;
@@ -340,13 +406,24 @@ class PerformanceMonitor {
   }
 
   /**
-   * Clean up observers
+   * Clean up observers and memory
    */
   destroy() {
-    this.observers.forEach(observer => observer.disconnect());
+    // Disconnect all observers
+    this.observers.forEach(observer => {
+      try {
+        observer.disconnect();
+      } catch (error) {
+        console.warn('Error disconnecting performance observer:', error);
+      }
+    });
+
+    // Clear all collections
     this.observers = [];
     this.metrics = [];
     this.componentMetrics.clear();
+    this.startTimes.clear();
+    this.lastLoggedIssues.clear();
   }
 }
 
@@ -380,9 +457,9 @@ export function withPerformanceTracking<P extends object>(
   Component: React.ComponentType<P>,
   name?: string
 ) {
-  const componentName = name || Component.displayName || Component.name || 'Unknown';
+  const componentName = name ?? Component.displayName ?? Component.name ?? 'Unknown';
 
-  const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
+  const WrappedComponent = React.forwardRef<unknown, P>((props, ref) => {
     usePerformanceTracking(componentName);
     return React.createElement(Component, { ...props, ref });
   });

@@ -40,7 +40,7 @@ const CompanyNotificationSettingsPage = () => {
   });
 
   // Determine the company ID to use for displaying settings
-  const targetCompanyId = urlCompanyId || profile?.company_id;
+  const targetCompanyId = urlCompanyId ?? profile?.company_id;
 
   // Determine if the current user has permission to view/manage settings for this specific company
   const canAccess = userRole && (
@@ -111,7 +111,7 @@ const CompanyNotificationSettingsPage = () => {
             <Mail className="h-5 w-5" /> Notification Settings
             {isSuperAdmin && urlCompanyId && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                (Company: {allCompanies?.find(c => c.id === urlCompanyId)?.name || "Loading..."})
+                (Company: {allCompanies?.find(c => c.id === urlCompanyId)?.name ?? "Loading..."})
               </span>
             )}
           </CardTitle>

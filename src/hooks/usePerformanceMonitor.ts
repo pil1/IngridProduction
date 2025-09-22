@@ -162,7 +162,9 @@ export const useMemoryMonitor = (interval = 5000, enabled = false) => {
     }
 
     const updateMemoryInfo = () => {
-      const memory = (performance as any).memory as MemoryInfo;
+      const memory = (performance as Performance & { memory?: MemoryInfo }).memory;
+      if (!memory) return;
+
       setMemoryInfo(memory);
 
       // Log memory warnings with emojis

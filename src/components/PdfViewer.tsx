@@ -57,9 +57,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl }) => {
         await page.render(renderContext).promise;
         setLoading(false);
         console.log(`PdfViewer: Successfully rendered page ${currentPage} of ${numPages}.`);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("PdfViewer: Error rendering PDF:", err);
-        setError(`Failed to load PDF: ${err.message || 'Unknown error'}. Check console for details.`);
+        setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Check console for details.`);
         setLoading(false);
       }
     };

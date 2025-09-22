@@ -233,7 +233,7 @@ describe('ResizableTable', () => {
       row: TestData,
       rowIndex: number,
       columns: TableColumn<TestData>[],
-      columnWidths: Record<string, number>
+      _columnWidths: Record<string, number>
     ) => (
       <tr key={row.id} data-testid={`custom-row-${rowIndex}`}>
         <td colSpan={columns.length}>

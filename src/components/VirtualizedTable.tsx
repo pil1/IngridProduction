@@ -1,5 +1,5 @@
-import React, { forwardRef, memo, useMemo } from 'react';
-import { TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import React, { memo, useMemo } from 'react';
+import { TableHeader, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 // Conditional import for react-window

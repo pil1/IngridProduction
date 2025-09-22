@@ -12,8 +12,62 @@ import {
   PaginatedResponse
 } from './types';
 
+/**
+ * Service class for managing expenses and expense categories
+ *
+ * Provides comprehensive CRUD operations for expenses, expense categories,
+ * bulk operations, file uploads, and analytics. All methods include proper
+ * error handling and return standardized ApiResponse objects.
+ *
+ * @example
+ * ```typescript
+ * import { expenseService } from '@/services/api/expense';
+ *
+ * // Get expenses with filtering and pagination
+ * const response = await expenseService.getExpenses('company-id', {
+ *   status: 'submitted',
+ *   date_from: '2024-01-01'
+ * }, { limit: 25, offset: 0 });
+ *
+ * if (response.success) {
+ *   console.log(`Found ${response.data.count} expenses`);
+ *   response.data.data.forEach(expense => console.log(expense.title));
+ * }
+ * ```
+ */
 export class ExpenseService extends BaseApiService {
-  // Expense CRUD operations
+  /**
+   * Retrieves expenses for a company with optional filtering and pagination
+   *
+   * @param companyId - The ID of the company to get expenses for
+   * @param filters - Optional filters to apply to the expense query
+   * @param filters.status - Filter by expense status (draft, submitted, approved, rejected)
+   * @param filters.category_id - Filter by expense category ID
+   * @param filters.vendor_id - Filter by vendor ID
+   * @param filters.date_from - Filter expenses from this date (YYYY-MM-DD)
+   * @param filters.date_to - Filter expenses to this date (YYYY-MM-DD)
+   * @param filters.amount_min - Filter expenses with amount >= this value
+   * @param filters.amount_max - Filter expenses with amount <= this value
+   * @param filters.submitted_by - Filter by user ID who submitted the expense
+   * @param pagination - Optional pagination parameters
+   * @param pagination.limit - Number of items per page (default: 50)
+   * @param pagination.offset - Number of items to skip (default: 0)
+   * @returns Promise resolving to paginated expense data with metadata
+   *
+   * @example
+   * ```typescript
+   * // Get recent submitted expenses
+   * const response = await expenseService.getExpenses('company-123', {
+   *   status: 'submitted',
+   *   date_from: '2024-01-01'
+   * });
+   *
+   * if (response.success) {
+   *   console.log(`Page ${response.data.currentPage} of ${response.data.totalPages}`);
+   *   console.log(`${response.data.count} total expenses found`);
+   * }
+   * ```
+   */
   async getExpenses(
     companyId: string,
     filters?: ExpenseFilters,
@@ -74,6 +128,21 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
+  /**
+   * Retrieves a single expense by ID with full details
+   *
+   * @param id - The expense ID to retrieve
+   * @returns Promise resolving to expense data with related entities
+   *
+   * @example
+   * ```typescript
+   * const response = await expenseService.getExpenseById('expense-123');
+   * if (response.success) {
+   *   console.log(`Expense: ${response.data.title}`);
+   *   console.log(`Category: ${response.data.expense_categories?.name}`);
+   * }
+   * ```
+   */
   async getExpenseById(id: string): Promise<ApiResponse<Expense>> {
     return this.handleRequest(async () => {
       return this.supabase
@@ -84,6 +153,23 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
+  /**
+   * Creates a new expense in draft status
+   *
+   * @param expense - The expense data to create
+   * @returns Promise resolving to the created expense with full details
+   *
+   * @example
+   * ```typescript
+   * const response = await expenseService.createExpense({
+   *   title: 'Office Supplies',
+   *   amount: 150.00,
+   *   expense_date: '2024-01-15',
+   *   company_id: 'company-123',
+   *   submitted_by: 'user-456'
+   * });
+   * ```
+   */
   async createExpense(expense: CreateExpenseRequest): Promise<ApiResponse<Expense>> {
     return this.handleRequest(async () => {
       return this.supabase
@@ -97,6 +183,21 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
+  /**
+   * Updates an existing expense with partial data
+   *
+   * @param id - The expense ID to update
+   * @param updates - Partial expense data to update
+   * @returns Promise resolving to the updated expense
+   *
+   * @example
+   * ```typescript
+   * const response = await expenseService.updateExpense('expense-123', {
+   *   status: 'submitted',
+   *   review_notes: 'Updated with receipt'
+   * });
+   * ```
+   */
   async updateExpense(id: string, updates: UpdateExpenseRequest): Promise<ApiResponse<Expense>> {
     return this.handleRequest(async () => {
       return this.supabase
@@ -117,7 +218,21 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
-  // Expense status management
+  /**
+   * Submits an expense for approval
+   *
+   * @param id - The expense ID to submit
+   * @param submittedBy - The user ID submitting the expense
+   * @returns Promise resolving to the updated expense
+   *
+   * @example
+   * ```typescript
+   * const response = await expenseService.submitExpense('expense-123', 'user-456');
+   * if (response.success) {
+   *   console.log('Expense submitted for approval');
+   * }
+   * ```
+   */
   async submitExpense(id: string, submittedBy: string): Promise<ApiResponse<Expense>> {
     return this.updateExpense(id, {
       status: 'submitted',
@@ -125,6 +240,13 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
+  /**
+   * Approves a submitted expense
+   *
+   * @param approvedBy - The user ID approving the expense
+   * @param id - The expense ID to approve
+   * @returns Promise resolving to the approved expense
+   */
   async approveExpense(id: string, approvedBy: string): Promise<ApiResponse<Expense>> {
     return this.updateExpense(id, {
       status: 'approved',
@@ -139,7 +261,22 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
-  // Bulk operations
+  /**
+   * Updates multiple expenses with the same data
+   *
+   * @param ids - Array of expense IDs to update
+   * @param updates - The updates to apply to all expenses
+   * @returns Promise resolving to array of updated expenses
+   *
+   * @example
+   * ```typescript
+   * // Bulk approve multiple expenses
+   * const response = await expenseService.bulkUpdateExpenses(
+   *   ['exp-1', 'exp-2', 'exp-3'],
+   *   { status: 'approved', approved_by: 'manager-123' }
+   * );
+   * ```
+   */
   async bulkUpdateExpenses(ids: string[], updates: UpdateExpenseRequest): Promise<ApiResponse<Expense[]>> {
     return this.handleRequest(async () => {
       return this.supabase
@@ -159,7 +296,23 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
-  // Expense Categories CRUD operations
+  /**
+   * Retrieves expense categories for a company with optional filtering
+   *
+   * @param companyId - The company ID to get categories for
+   * @param filters - Optional filters for categories
+   * @param filters.is_active - Filter by active/inactive status
+   * @param filters.search - Search categories by name
+   * @returns Promise resolving to array of expense categories
+   *
+   * @example
+   * ```typescript
+   * const response = await expenseService.getExpenseCategories('company-123', {
+   *   is_active: true,
+   *   search: 'travel'
+   * });
+   * ```
+   */
   async getExpenseCategories(
     companyId: string,
     filters?: CategoryFilters
@@ -226,7 +379,14 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
-  // Report and analytics methods
+  /**
+   * Gets expense summary analytics for a company
+   *
+   * @param companyId - The company ID to get summary for
+   * @param dateFrom - Optional start date for the summary
+   * @param dateTo - Optional end date for the summary
+   * @returns Promise resolving to expense summary data
+   */
   async getExpenseSummary(companyId: string, dateFrom?: string, dateTo?: string) {
     return this.handleRpcRequest('get_expense_summary', {
       company_id: companyId,
@@ -243,7 +403,25 @@ export class ExpenseService extends BaseApiService {
     });
   }
 
-  // File upload helpers
+  /**
+   * Uploads a receipt file for an expense
+   *
+   * @param file - The receipt file to upload
+   * @param expenseId - The expense ID to associate the receipt with
+   * @returns Promise resolving to the public URL of the uploaded file
+   *
+   * @example
+   * ```typescript
+   * const fileInput = document.getElementById('receipt') as HTMLInputElement;
+   * const file = fileInput.files?.[0];
+   * if (file) {
+   *   const response = await expenseService.uploadReceipt(file, 'expense-123');
+   *   if (response.success) {
+   *     console.log('Receipt uploaded:', response.data);
+   *   }
+   * }
+   * ```
+   */
   async uploadReceipt(file: File, expenseId: string): Promise<ApiResponse<string>> {
     return this.handleRequest(async () => {
       const fileExt = file.name.split('.').pop();

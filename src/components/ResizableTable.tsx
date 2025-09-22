@@ -185,8 +185,8 @@ export function ResizableTable<T extends TableDataItem>({
 
     const doResize = (moveEvent: MouseEvent) => {
       const newWidth = startWidth + (moveEvent.clientX - startX);
-      const min = columns.find(c => c.key === columnKey)?.minWidth || 50;
-      const max = columns.find(c => c.key === columnKey)?.maxWidth || Infinity;
+      const min = columns.find(c => c.key === columnKey)?.minWidth ?? 50;
+      const max = columns.find(c => c.key === columnKey)?.maxWidth ?? Infinity;
       const clampedWidth = Math.max(min, Math.min(max, newWidth));
       setCurrentColumnWidths(prev => ({ ...prev, [columnKey]: clampedWidth }));
     };
@@ -285,7 +285,7 @@ export function ResizableTable<T extends TableDataItem>({
                   column.headerClassName,
                   column.className
                 )}
-                style={{ width: currentColumnWidths[column.key], minWidth: column.minWidth || 50 }}
+                style={{ width: currentColumnWidths[column.key], minWidth: column.minWidth ?? 50 }}
               >
                 <div className="flex items-center h-full">
                   <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -324,7 +324,7 @@ export function ResizableTable<T extends TableDataItem>({
                         column.cellClassName,
                         column.className
                       )}
-                      style={{ width: currentColumnWidths[column.key], minWidth: column.minWidth || 50 }}
+                      style={{ width: currentColumnWidths[column.key], minWidth: column.minWidth ?? 50 }}
                       title={typeof column.render(row, dynamicProps) === 'string' ? column.render(row, dynamicProps) as string : undefined} // Show full text on hover
                     >
                       {/* Pass dynamic props to the render function */}

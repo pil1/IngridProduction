@@ -21,5 +21,7 @@ export const queryClient = new QueryClient({
 
 // Router configuration
 export const router = createBrowserRouter(routes, {
-  future: undefined, // Explicitly set to undefined to silence warnings
+  future: {
+    v7_startTransition: true, // Enable React startTransition for state updates
+  },
 });

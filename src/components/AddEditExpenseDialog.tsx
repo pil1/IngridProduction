@@ -25,7 +25,7 @@ import FormattedCurrencyDisplay from "@/components/FormattedCurrencyDisplay";
 import FormattedCurrencyInput from "@/components/FormattedCurrencyInput"; // Import FormattedCurrencyInput
 import ReceiptUpload from "./ReceiptUpload"; // New component import
 import { Checkbox } from "@/components/ui/checkbox"; // shadcn Checkbox
-import { Expense, ALL_EXPENSE_FIELDS } from "@/types/expenses"; // Import shared Expense interface and ALL_EXPENSE_FIELDS
+import { Expense, ExpenseLineItem, ALL_EXPENSE_FIELDS } from "@/types/expenses"; // Import shared Expense interface and ALL_EXPENSE_FIELDS
 
 interface AddEditExpenseDialogProps {
   isOpen: boolean;
@@ -692,8 +692,8 @@ const AddEditExpenseDialog = ({
     // Apply results to form
     form.setValue("title", result.title ?? "");
     form.setValue("description", result.description ?? null);
-    form.setValue("amount", result.original_currency_amount || 0);
-    form.setValue("currency_code", result.original_currency_code || "USD");
+    form.setValue("amount", result.original_currency_amount ?? 0);
+    form.setValue("currency_code", result.original_currency_code ?? "USD");
     if (result.expense_date) form.setValue("expense_date", new Date(result.expense_date));
     form.setValue("category_id", result.category_id ?? null);
     form.setValue("gl_account_id", result.gl_account_id ?? null);
@@ -707,7 +707,7 @@ const AddEditExpenseDialog = ({
 
     // Handle line items
     if (result.line_items && result.line_items.length > 0) {
-      form.setValue("line_items", result.line_items.map((item: any) => ({
+      form.setValue("line_items", result.line_items.map((item: Partial<ExpenseLineItem>) => ({
         description: item.description,
         quantity: item.quantity,
         unit_price: item.unit_price,
@@ -769,7 +769,7 @@ const AddEditExpenseDialog = ({
 
   const isLoadingPage = isLoadingSession || isLoadingExpenseModuleId || isLoadingConfig;
   const isSaving = createExpenseMutation.isPending || updateExpenseMutation.isPending;
-  const canViewGLAccounts = ['admin', 'controller', 'super-admin'].includes(userRole || '');
+  const canViewGLAccounts = ['admin', 'controller', 'super-admin'].includes(userRole ?? '');
 
   const amount = form.watch("amount");
   const currencyCode = form.watch("currency_code");
@@ -777,7 +777,7 @@ const AddEditExpenseDialog = ({
 
   // Helper to get field visibility and required status
   const getFieldConfig = (fieldKey: string): FieldSetting => {
-    return userFieldsConfig[fieldKey] || { visible: true, required: false }; // Default to visible, not required
+    return userFieldsConfig[fieldKey] ?? { visible: true, required: false }; // Default to visible, not required
   };
 
   if (isLoadingPage) {
@@ -1141,7 +1141,7 @@ const AddEditExpenseDialog = ({
                   <Separator />
                   <h4 className="text-md font-semibold flex items-center gap-2">
                     Line Items {getFieldConfig("line_items").required && "*"}
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendLineItem({ description: "", line_amount: 0, currency_code: form.watch("currency_code") || "USD" })} disabled={isSaving}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendLineItem({ description: "", line_amount: 0, currency_code: form.watch("currency_code") ?? "USD" })} disabled={isSaving}>
                       <PlusCircle className="h-3 w-3 mr-1" /> Add Line Item
                     </Button>
                   </h4>

@@ -15,8 +15,10 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, Edit, Trash2, ListChecks } from "lucide-react"; // Import ListChecks icon
+import { Loader2, PlusCircle, Edit, Trash2, ListChecks, Lightbulb } from "lucide-react"; // Import ListChecks and Lightbulb icons
 import { useSession } from "@/components/SessionContextProvider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SuggestedCategoriesTab from "@/components/SuggestedCategoriesTab";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -216,120 +218,148 @@ const ExpenseCategoriesPage = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5" /> Expense Categories
-            </CardTitle>
-            <CardDescription>
-              Manage the categories used for classifying expenses in your company.
-            </CardDescription>
-          </div>
-          <Dialog open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAddClick}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>{editingCategory ? "Edit Expense Category" : "Add New Expense Category"}</DialogTitle>
-                <DialogDescription>
-                  {editingCategory ? "Update the details of this expense category." : "Define a new category for your company's expenses."}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    {...form.register("name")}
-                    className="col-span-3"
-                    disabled={isActionPending}
-                  />
-                  {form.formState.errors.name && (
-                    <p className="col-span-4 text-right text-sm text-destructive">
-                      {form.formState.errors.name.message}
-                    </p>
-                  )}
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Expense Categories</h1>
+          <p className="text-muted-foreground">
+            Manage expense categories and review AI-suggested categories from Ingrid.
+          </p>
+        </div>
+
+        <Tabs defaultValue="categories" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="categories" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Ingrid Suggestions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="categories" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ListChecks className="h-5 w-5" /> Expense Categories
+                  </CardTitle>
+                  <CardDescription>
+                    Manage the categories used for classifying expenses in your company.
+                  </CardDescription>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    {...form.register("description")}
-                    className="col-span-3"
-                    disabled={isActionPending}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="is_active" className="text-right">
-                    Active
-                  </Label>
-                  <Checkbox
-                    id="is_active"
-                    checked={form.watch("is_active")}
-                    onCheckedChange={(checked) => form.setValue("is_active", checked as boolean)}
-                    className="col-span-3"
-                    disabled={isActionPending}
-                  />
-                </div>
-                <Button type="submit" disabled={isActionPending}>
-                  {isActionPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingCategory ? "Update Category" : "Create Category"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    No expense categories defined.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                categories?.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{category.description ?? "N/A"}</TableCell>
-                    <TableCell>{category.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditClick(category)}>
-                        <Edit className="h-4 w-4 mr-1" /> Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(category)} disabled={isActionPending}>
-                        {isActionPending && categoryToDelete?.id === category.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 mr-1" />
+                <Dialog open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={handleAddClick}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>{editingCategory ? "Edit Expense Category" : "Add New Expense Category"}</DialogTitle>
+                      <DialogDescription>
+                        {editingCategory ? "Update the details of this expense category." : "Define a new category for your company's expenses."}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">
+                          Name
+                        </Label>
+                        <Input
+                          id="name"
+                          {...form.register("name")}
+                          className="col-span-3"
+                          disabled={isActionPending}
+                        />
+                        {form.formState.errors.name && (
+                          <p className="col-span-4 text-right text-sm text-destructive">
+                            {form.formState.errors.name.message}
+                          </p>
                         )}
-                        Delete
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="description" className="text-right">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="description"
+                          {...form.register("description")}
+                          className="col-span-3"
+                          disabled={isActionPending}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="is_active" className="text-right">
+                          Active
+                        </Label>
+                        <Checkbox
+                          id="is_active"
+                          checked={form.watch("is_active")}
+                          onCheckedChange={(checked) => form.setValue("is_active", checked as boolean)}
+                          className="col-span-3"
+                          disabled={isActionPending}
+                        />
+                      </div>
+                      <Button type="submit" disabled={isActionPending}>
+                        {isActionPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {editingCategory ? "Update Category" : "Create Category"}
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Active</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories?.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No expense categories defined.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      categories?.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>{category.description ?? "N/A"}</TableCell>
+                          <TableCell>{category.is_active ? "Yes" : "No"}</TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditClick(category)}>
+                              <Edit className="h-4 w-4 mr-1" /> Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(category)} disabled={isActionPending}>
+                              {isActionPending && categoryToDelete?.id === category.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-1" />
+                              )}
+                              Delete
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suggestions" className="space-y-4">
+            <SuggestedCategoriesTab />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

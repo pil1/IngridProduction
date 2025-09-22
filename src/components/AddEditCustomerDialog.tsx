@@ -65,7 +65,7 @@ const customerSchema = z.object({
     z.number().int().nullable().optional()
   ),
   user_def_2: z.string().optional().nullable(),
-  udf_data: z.any().optional().nullable(), // JSONB, can be any type
+  udf_data: z.record(z.unknown()).optional().nullable(), // JSONB record type
   statement_type: z.string().optional().nullable(),
   payment_provider_id_int: z.preprocess(
     (val) => (val === "" ? null : Number(val)),
@@ -207,7 +207,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           default_ship_to_code: editingCustomer.default_ship_to_code ?? "",
           foreground_color_int: editingCustomer.foreground_color_int ?? undefined,
           user_def_2: editingCustomer.user_def_2 ?? "",
-          udf_data: editingCustomer.udf_data ?? {},
+          udf_data: editingCustomer.udf_data ?? {} as Record<string, unknown>,
           statement_type: editingCustomer.statement_type ?? "",
           payment_provider_id_int: editingCustomer.payment_provider_id_int ?? undefined,
           special_code: editingCustomer.special_code ?? "",
@@ -255,7 +255,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           default_ship_to_code: prefillData.default_ship_to_code ?? "",
           foreground_color_int: prefillData.foreground_color_int ?? undefined,
           user_def_2: prefillData.user_def_2 ?? "",
-          udf_data: prefillData.udf_data ?? {},
+          udf_data: prefillData.udf_data ?? {} as Record<string, unknown>,
           statement_type: prefillData.statement_type ?? "",
           payment_provider_id_int: prefillData.payment_provider_id_int ?? undefined,
           special_code: prefillData.special_code ?? "",
@@ -332,7 +332,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
       const payload = {
         ...values,
         company_id: companyId,
-        udf_data: values.udf_data ?? {}, // Ensure JSONB is an object
+        udf_data: values.udf_data ?? {} as Record<string, unknown>, // Ensure JSONB is an object
       };
 
       if (editingCustomer) {
@@ -702,7 +702,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
                   default_ship_to_code: editingCustomer.default_ship_to_code ?? "",
                   foreground_color_int: editingCustomer.foreground_color_int ?? undefined,
                   user_def_2: editingCustomer.user_def_2 ?? "",
-                  udf_data: editingCustomer.udf_data ?? {},
+                  udf_data: editingCustomer.udf_data ?? {} as Record<string, unknown>,
                   statement_type: editingCustomer.statement_type ?? "",
                   payment_provider_id_int: editingCustomer.payment_provider_id_int ?? undefined,
                   special_code: editingCustomer.special_code ?? "",

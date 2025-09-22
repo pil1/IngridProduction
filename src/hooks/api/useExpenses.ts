@@ -4,12 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/components/SessionContextProvider';
 import { toast } from '@/hooks/use-toast';
 import type {
-  Expense,
-  ExpenseCategory,
   CreateExpenseRequest,
   UpdateExpenseRequest,
   CreateCategoryRequest,
-  UpdateCategoryRequest,
   ExpenseFilters,
   CategoryFilters,
   PaginationOptions

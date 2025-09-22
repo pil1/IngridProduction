@@ -20,7 +20,7 @@ export interface ErrorDetails {
   type: ErrorType;
   message: string;
   code?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timestamp: string;
   retryable: boolean;
   userFriendly: boolean;
@@ -41,16 +41,19 @@ export class ProductionErrorHandler {
   /**
    * Classify and handle different types of errors
    */
-  classifyError(error: any): ErrorDetails {
+  classifyError(error: unknown): ErrorDetails {
     const timestamp = new Date().toISOString();
+    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    const errorMessage = typeof errorObj.message === 'string' ? errorObj.message : String(error);
+    const errorCode = typeof errorObj.code === 'string' ? errorObj.code : undefined;
 
     // Network errors
     if (this.isNetworkError(error)) {
       return {
         type: ErrorType.NETWORK_ERROR,
         message: 'Network connection failed. Please check your internet connection.',
-        code: error.code || 'NETWORK_FAILURE',
-        context: { originalError: error.message },
+        code: errorCode || 'NETWORK_FAILURE',
+        context: { originalError: errorMessage },
         timestamp,
         retryable: true,
         userFriendly: true
@@ -62,8 +65,8 @@ export class ProductionErrorHandler {
       return {
         type: ErrorType.AUTH_ERROR,
         message: 'Authentication failed. Please log in again.',
-        code: error.code || 'AUTH_FAILURE',
-        context: { originalError: error.message },
+        code: errorCode || 'AUTH_FAILURE',
+        context: { originalError: errorMessage },
         timestamp,
         retryable: false,
         userFriendly: true
@@ -75,8 +78,8 @@ export class ProductionErrorHandler {
       return {
         type: ErrorType.DATABASE_ERROR,
         message: 'Database temporarily unavailable. Please try again in a moment.',
-        code: error.code || 'DB_FAILURE',
-        context: { originalError: error.message },
+        code: errorCode || 'DB_FAILURE',
+        context: { originalError: errorMessage },
         timestamp,
         retryable: true,
         userFriendly: true
@@ -87,8 +90,8 @@ export class ProductionErrorHandler {
     if (this.isValidationError(error)) {
       return {
         type: ErrorType.VALIDATION_ERROR,
-        message: error.message || 'Please check your input and try again.',
-        code: error.code || 'VALIDATION_FAILURE',
+        message: errorMessage || 'Please check your input and try again.',
+        code: errorCode || 'VALIDATION_FAILURE',
         context: { originalError: error },
         timestamp,
         retryable: false,
@@ -101,8 +104,8 @@ export class ProductionErrorHandler {
       return {
         type: ErrorType.PERMISSION_ERROR,
         message: 'You do not have permission to perform this action.',
-        code: error.code || 'PERMISSION_DENIED',
-        context: { originalError: error.message },
+        code: errorCode || 'PERMISSION_DENIED',
+        context: { originalError: errorMessage },
         timestamp,
         retryable: false,
         userFriendly: true
@@ -114,8 +117,8 @@ export class ProductionErrorHandler {
       return {
         type: ErrorType.TIMEOUT_ERROR,
         message: 'Request timed out. Please try again.',
-        code: error.code || 'TIMEOUT',
-        context: { originalError: error.message },
+        code: errorCode || 'TIMEOUT',
+        context: { originalError: errorMessage },
         timestamp,
         retryable: true,
         userFriendly: true
@@ -126,8 +129,8 @@ export class ProductionErrorHandler {
     return {
       type: ErrorType.UNKNOWN_ERROR,
       message: 'An unexpected error occurred. Please try again or contact support.',
-      code: error.code || 'UNKNOWN',
-      context: { originalError: error.message || String(error) },
+      code: errorCode || 'UNKNOWN',
+      context: { originalError: errorMessage },
       timestamp,
       retryable: true,
       userFriendly: true
@@ -137,7 +140,7 @@ export class ProductionErrorHandler {
   /**
    * Handle error with appropriate user feedback and logging
    */
-  handleError(error: any, context?: Record<string, any>): ErrorDetails {
+  handleError(error: unknown, context?: Record<string, unknown>): ErrorDetails {
     const errorDetails = this.classifyError(error);
 
     // Add context if provided
@@ -162,7 +165,7 @@ export class ProductionErrorHandler {
     maxRetries = 3,
     retryDelay = 1000
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -228,59 +231,71 @@ export class ProductionErrorHandler {
   }
 
   // Private helper methods
-  private isNetworkError(error: any): boolean {
+  private isNetworkError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.code === 'NETWORK_ERROR' ||
-      error?.message?.includes('network') ||
-      error?.message?.includes('fetch') ||
-      error?.name === 'NetworkError' ||
-      error?.code === 'FETCH_ERROR'
+      errorObj.code === 'NETWORK_ERROR' ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('network')) ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('fetch')) ||
+      errorObj.name === 'NetworkError' ||
+      errorObj.code === 'FETCH_ERROR'
     );
   }
 
-  private isAuthError(error: any): boolean {
+  private isAuthError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.status === 401 ||
-      error?.code === 'UNAUTHORIZED' ||
-      error?.code === 'AUTH_ERROR' ||
-      error?.message?.includes('unauthorized') ||
-      error?.message?.includes('authentication')
+      errorObj.status === 401 ||
+      errorObj.code === 'UNAUTHORIZED' ||
+      errorObj.code === 'AUTH_ERROR' ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('unauthorized')) ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('authentication'))
     );
   }
 
-  private isDatabaseError(error: any): boolean {
+  private isDatabaseError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.code === 'DATABASE_ERROR' ||
-      error?.code === 'CONNECTION_ERROR' ||
-      error?.message?.includes('database') ||
-      error?.message?.includes('relation') ||
-      error?.code?.startsWith('PGRST')
+      errorObj.code === 'DATABASE_ERROR' ||
+      errorObj.code === 'CONNECTION_ERROR' ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('database')) ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('relation')) ||
+      (typeof errorObj.code === 'string' && errorObj.code.startsWith('PGRST'))
     );
   }
 
-  private isValidationError(error: any): boolean {
+  private isValidationError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.status === 400 ||
-      error?.code === 'VALIDATION_ERROR' ||
-      error?.name === 'ValidationError' ||
-      error?.errors // Zod validation errors
+      errorObj.status === 400 ||
+      errorObj.code === 'VALIDATION_ERROR' ||
+      errorObj.name === 'ValidationError' ||
+      'errors' in errorObj // Zod validation errors
     );
   }
 
-  private isPermissionError(error: any): boolean {
+  private isPermissionError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.status === 403 ||
-      error?.code === 'PERMISSION_DENIED' ||
-      error?.message?.includes('permission') ||
-      error?.message?.includes('forbidden')
+      errorObj.status === 403 ||
+      errorObj.code === 'PERMISSION_DENIED' ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('permission')) ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('forbidden'))
     );
   }
 
-  private isTimeoutError(error: any): boolean {
+  private isTimeoutError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const errorObj = error as Record<string, unknown>;
     return (
-      error?.code === 'TIMEOUT' ||
-      error?.name === 'TimeoutError' ||
-      error?.message?.includes('timeout')
+      errorObj.code === 'TIMEOUT' ||
+      errorObj.name === 'TimeoutError' ||
+      (typeof errorObj.message === 'string' && errorObj.message.includes('timeout'))
     );
   }
 
@@ -343,7 +358,7 @@ export class ProductionErrorHandler {
   }
 
   getErrorStats(): Record<ErrorType, number> {
-    const stats: Record<ErrorType, number> = {} as any;
+    const stats: Record<ErrorType, number> = {} as Record<ErrorType, number>;
 
     Object.values(ErrorType).forEach(type => {
       stats[type] = 0;
@@ -364,7 +379,7 @@ export const productionErrorHandler = ProductionErrorHandler.getInstance();
 export const useProductionErrorHandler = () => {
   const { toast } = useToast();
 
-  const handleError = (error: any, context?: Record<string, any>) => {
+  const handleError = (error: unknown, context?: Record<string, unknown>) => {
     const errorDetails = productionErrorHandler.handleError(error, context);
     productionErrorHandler.showErrorToast(errorDetails, toast);
     return errorDetails;

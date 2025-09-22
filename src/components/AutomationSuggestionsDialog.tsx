@@ -33,7 +33,7 @@ const AutomationSuggestionsDialog = ({ isOpen, onOpenChange, onSelectSuggestion,
         body: { companyId: companyId }, // Use the passed companyId
       });
       if (error) throw error;
-      return data.suggestions || [];
+      return data.suggestions ?? [];
     },
   });
 

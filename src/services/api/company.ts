@@ -25,8 +25,47 @@ export interface CompanySettings {
   expense_approval_required: boolean;
   max_expense_amount: number;
   receipt_required_above: number;
+  // AI/Ingrid Configuration
+  openai_api_key?: string;
+  ai_provider?: 'openai' | 'mock';
+  ai_model?: string;
+  ai_enabled?: boolean;
+  ocr_provider?: 'openai-vision' | 'google-vision' | 'aws-textract' | 'azure-document' | 'mock';
+  google_vision_api_key?: string;
+  aws_access_key_id?: string;
+  aws_secret_access_key?: string;
+  aws_region?: string;
+  azure_api_key?: string;
+  azure_endpoint?: string;
+  enable_web_enrichment?: boolean;
+  enable_spire_integration?: boolean;
+  auto_approval_threshold?: number;
 }
 
+/**
+ * Service class for company and organization management
+ *
+ * Provides comprehensive company administration including CRUD operations,
+ * settings management, location management, and vendor/customer management.
+ * Designed for multi-tenant applications with proper access control.
+ *
+ * @example
+ * ```typescript
+ * import { companyService } from '@/services/api/company';
+ *
+ * // Get company details
+ * const response = await companyService.getCompanyById('company-123');
+ * if (response.success) {
+ *   console.log(`Company: ${response.data.name}`);
+ * }
+ *
+ * // Update company settings
+ * await companyService.updateCompanySettings('company-123', {
+ *   expense_approval_required: true,
+ *   max_expense_amount: 5000
+ * });
+ * ```
+ */
 export class CompanyService extends BaseApiService {
   // Company CRUD operations
   async getAllCompanies(): Promise<ApiResponse<Company[]>> {

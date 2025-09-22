@@ -25,6 +25,8 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyModulesTab from "@/components/CompanyModulesTab";
 import CompanyNotificationSettingsPage from "./CompanyNotificationSettingsPage"; // Import the notification settings page
+import IngridSettingsTab from "@/components/IngridSettingsTab";
+import SecurityAlertsUI from "@/components/SecurityAlertsUI";
 
 const companySettingsSchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -86,10 +88,11 @@ const CompanySettingsPage = () => {
 
   const [searchParams] = useSearchParams();
   const urlCompanyId = searchParams.get("companyId");
-  const targetCompanyId = urlCompanyId || profile?.company_id;
+  const targetCompanyId = urlCompanyId ?? profile?.company_id;
 
   const userRole = profile?.role;
   const isSuperAdmin = userRole === 'super-admin';
+  const isCompanyAdmin = userRole === 'admin' && targetCompanyId === profile?.company_id;
 
   const { data: company, isLoading: isLoadingCompany, isError: isErrorCompany } = useQuery<Company | null>({
     queryKey: ["companySettings", targetCompanyId],
@@ -284,11 +287,13 @@ const CompanySettingsPage = () => {
 
   return (
     <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-4"> {/* Increased grid-cols to 4 */}
+      <TabsList className="grid w-full grid-cols-6"> {/* Increased grid-cols to 6 */}
         <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="locations">Locations</TabsTrigger>
         <TabsTrigger value="modules" disabled={!isSuperAdmin && targetCompanyId !== profile?.company_id}>Modules</TabsTrigger>
-        <TabsTrigger value="notifications">Notifications</TabsTrigger> {/* New Tab */}
+        <TabsTrigger value="ingrid" disabled={!isCompanyAdmin && !isSuperAdmin}>Ingrid AI</TabsTrigger>
+        <TabsTrigger value="security" disabled={!isCompanyAdmin && !isSuperAdmin}>Security</TabsTrigger> {/* New Security Tab */}
+        <TabsTrigger value="notifications">Notifications</TabsTrigger>
       </TabsList>
       <TabsContent value="details">
         <Card className="mb-6">
@@ -467,7 +472,25 @@ const CompanySettingsPage = () => {
           </div>
         )}
       </TabsContent>
-      <TabsContent value="notifications"> {/* New Tab Content */}
+      <TabsContent value="ingrid"> {/* Ingrid AI Tab Content */}
+        {targetCompanyId ? (
+          <IngridSettingsTab />
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground py-8">
+            Select a company to configure Ingrid AI settings.
+          </div>
+        )}
+      </TabsContent>
+      <TabsContent value="security"> {/* Security Monitoring Tab Content */}
+        {targetCompanyId ? (
+          <SecurityAlertsUI />
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground py-8">
+            Select a company to view security monitoring.
+          </div>
+        )}
+      </TabsContent>
+      <TabsContent value="notifications">
         {targetCompanyId ? (
           <CompanyNotificationSettingsPage />
         ) : (

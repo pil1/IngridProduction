@@ -1,8 +1,8 @@
-import React, { Suspense, startTransition } from 'react';
+import React, { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import PageLoader from './PageLoader';
 
 interface AsyncErrorBoundaryProps {
@@ -56,7 +56,7 @@ export const AsyncErrorBoundary = ({
     <ErrorBoundary
       fallback={<AsyncErrorFallback error={new Error('Unknown error')} componentName={componentName} />}
       onError={(error, errorInfo) => {
-        console.error(`Async component error in ${componentName || 'unknown component'}:`, error, errorInfo);
+        console.error(`Async component error in ${componentName ?? 'unknown component'}:`, error, errorInfo);
         // In production, send to error reporting service with component context
       }}
     >

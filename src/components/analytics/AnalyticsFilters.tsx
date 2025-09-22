@@ -16,8 +16,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { CalendarIcon, Filter, RotateCcw, Download } from 'lucide-react';
-import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 export interface AnalyticsFilters {
   dateRange: {

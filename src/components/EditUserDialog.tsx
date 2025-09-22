@@ -249,8 +249,8 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
       if (error) throw error;
 
       // Send notification for module access change
-      const moduleName = allModules?.find(m => m.id === moduleId)?.name || 'Unknown Module';
-      const companyName = companies?.find(c => c.id === editingUser.company_id)?.name || 'Your Company';
+      const moduleName = allModules?.find(m => m.id === moduleId)?.name ?? 'Unknown Module';
+      const companyName = companies?.find(c => c.id === editingUser.company_id)?.name ?? 'Your Company';
       const accessStatus = isEnabled ? 'Enabled' : 'Disabled';
 
       await supabase.functions.invoke('send-email', {
@@ -258,13 +258,13 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
           template_name: 'user_module_access_updated',
           recipient_email: currentUserProfile.email, // Send to the admin who performed the action
           template_variables: {
-            admin_name: currentUserProfile.first_name || currentUserProfile.full_name || currentUserProfile.email,
+            admin_name: currentUserProfile.first_name ?? currentUserProfile.full_name ?? currentUserProfile.email,
             company_name: companyName,
-            target_user_name: editingUser.full_name || `${editingUser.first_name} ${editingUser.last_name}`,
+            target_user_name: editingUser.full_name ?? `${editingUser.first_name} ${editingUser.last_name}`,
             target_user_email: editingUser.email,
             module_name: moduleName,
             access_status: accessStatus,
-            performed_by_name: currentUserProfile.full_name || currentUserProfile.email,
+            performed_by_name: currentUserProfile.full_name ?? currentUserProfile.email,
             performed_by_email: currentUserProfile.email,
             users_link: `${window.location.origin}/users`,
             year: new Date().getFullYear(),
@@ -321,7 +321,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Edit User: {editingUser.full_name || editingUser.email}</DialogTitle>
+        <DialogTitle>Edit User: {editingUser.full_name ?? editingUser.email}</DialogTitle>
         <DialogDescription>
           Update the profile details and module access for this user.
         </DialogDescription>

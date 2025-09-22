@@ -105,7 +105,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
         if (modulesError) throw modulesError;
         if (!enabledModules || enabledModules.length === 0) return [];
 
-        const moduleIds = enabledModules.map(m => m.module_id);
+        const moduleIds = enabledModules.map((m: { module_id: string }) => m.module_id);
 
         const { data: triggers, error: triggersError } = await supabase
             .from('module_triggers')
@@ -116,7 +116,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
 
         // Combine static triggers with dynamic module triggers
         const staticTriggers = TRIGGER_TYPES.filter(t => t.value.startsWith('schedule.')); // Filter for scheduled triggers
-        return [...staticTriggers, ...triggers.map(t => ({ value: t.trigger_name, label: t.label }))];
+        return [...staticTriggers, ...triggers.map((t: { trigger_name: string; label: string }) => ({ value: t.trigger_name, label: t.label }))];
     },
     enabled: !!companyId && !isLoadingSession,
   });
@@ -304,7 +304,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingTriggers}>
                   <SelectTrigger><SelectValue placeholder={isLoadingTriggers ? "Loading triggers..." : "Select a trigger..."} /></SelectTrigger>
                   <SelectContent>
-                    {availableTriggers?.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {availableTriggers?.map((t: { value: string; label: string }) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
@@ -372,7 +372,7 @@ const AddEditAutomationDialog = ({ isOpen, onOpenChange, editingAutomation, sugg
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger><SelectValue placeholder="Select an email template..." /></SelectTrigger>
                       <SelectContent>
-                        {templates?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                        {templates?.map((t: { id: string; name: string }) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}

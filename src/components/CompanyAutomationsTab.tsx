@@ -96,8 +96,8 @@ const CompanyAutomationsTab = ({ companyId }: CompanyAutomationsTabProps) => {
       queryClient.invalidateQueries({ queryKey: ["automations", companyId] });
       toast({ title: "Automation status updated." });
     },
-    onError: (error: any) => {
-      toast({ title: "Error updating status", description: error.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      toast({ title: "Error updating status", description: error instanceof Error ? error.message : "An unexpected error occurred.", variant: "destructive" });
     },
   });
 
@@ -132,7 +132,7 @@ const CompanyAutomationsTab = ({ companyId }: CompanyAutomationsTabProps) => {
   };
 
   const getTriggerLabel = (value: string) => {
-    return availableTriggers?.find(t => t.value === value)?.label || value;
+    return availableTriggers?.find(t => t.value === value)?.label ?? value;
   };
 
   const canManageAutomations = userRole && (

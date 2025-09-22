@@ -83,7 +83,7 @@ const CompanyTestEmailTab = ({ companyId }: CompanyTestEmailTabProps) => {
       if (values.use_template && values.template_variables) {
         try {
           parsedVariables = JSON.parse(values.template_variables);
-        } catch (e) {
+        } catch (_e) {
           throw new Error("Invalid JSON for template variables.");
         }
       }

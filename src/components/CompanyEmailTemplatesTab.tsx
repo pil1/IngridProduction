@@ -275,9 +275,9 @@ const CompanyEmailTemplatesTab = ({ companyId }: CompanyEmailTemplatesTabProps) 
       year: new Date().getFullYear(),
       public_web_url: window.location.origin, // Use window.location.origin for local development
       logo_url: finalLogoUrl,
-      logo_width: systemLayout?.default_logo_width || 150,
-      logo_height: systemLayout?.default_logo_height || 'auto',
-      company_name: companyNameData?.name || "Your Company", // Use fetched company name
+      logo_width: systemLayout?.default_logo_width ?? 150,
+      logo_height: systemLayout?.default_logo_height ?? 'auto',
+      company_name: companyNameData?.name ?? "Your Company", // Use fetched company name
       
       // User-related
       user_name: "John Doe",
@@ -373,7 +373,7 @@ const CompanyEmailTemplatesTab = ({ companyId }: CompanyEmailTemplatesTabProps) 
       if (previewError) setPreviewError(null); // Clear error if rendering succeeds
     } catch (e: any) {
       console.error("Error rendering template preview:", e);
-      setPreviewError(`Error rendering preview: ${e.message || "Unknown error"}. Please check template syntax.`);
+      setPreviewError(`Error rendering preview: ${e.message ?? "Unknown error"}. Please check template syntax.`);
       setFullPreviewHtml(`<p style="color: red;">Error: Could not render preview. Please check template syntax.</p>`);
     }
   }, [currentBody, currentSubject, dummyTemplateVariables, previewError, systemLayout]);

@@ -1,5 +1,4 @@
-import React, { Suspense } from 'react';
-import PageLoader from './PageLoader';
+import React from 'react';
 
 // Direct imports for now - lazy loading can be enabled later when needed
 import AddEditExpenseDialog from './AddEditExpenseDialog';
@@ -16,19 +15,7 @@ import ExportDialog from './ExportDialog';
 import RichTextEditor from './RichTextEditor';
 import ReceiptUpload from './ReceiptUpload';
 
-// Common loading fallback for dialogs
-const DialogLoader = () => (
-  <div className="flex h-[300px] w-full items-center justify-center">
-    <PageLoader text="Loading..." />
-  </div>
-);
 
-// Common loading fallback for components
-const ComponentLoader = () => (
-  <div className="flex h-[100px] w-full items-center justify-center">
-    <PageLoader text="Loading component..." />
-  </div>
-);
 
 // Direct component wrappers (no lazy loading for now)
 export const LazyAddEditExpenseDialog: React.FC<React.ComponentProps<typeof AddEditExpenseDialog>> = (props) => (

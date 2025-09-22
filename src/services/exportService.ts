@@ -18,6 +18,29 @@ export interface ExportableItem {
   [key: string]: any;
 }
 
+/**
+ * Service for exporting application data to various formats
+ *
+ * Supports exporting expenses, vendors, and other data to CSV, XLSX, PDF, and JSON formats.
+ * Provides automatic filename generation, data formatting, and browser download functionality.
+ *
+ * @example
+ * ```typescript
+ * import { exportService } from '@/services/exportService';
+ *
+ * // Export expenses to CSV
+ * await exportService.exportExpenses(expenseData, {
+ *   format: 'csv',
+ *   filename: 'my-expenses.csv',
+ *   includeHeaders: true
+ * });
+ *
+ * // Export vendors to JSON
+ * await exportService.exportVendors(vendorData, {
+ *   format: 'json'
+ * });
+ * ```
+ */
 class ExportService {
   /**
    * Convert data to CSV format
@@ -73,7 +96,36 @@ class ExportService {
   }
 
   /**
-   * Export expense data
+   * Exports expense data to the specified format
+   *
+   * Formats expense data appropriately for export, including date formatting,
+   * currency values, and boolean conversions. Automatically generates filename
+   * if not provided.
+   *
+   * @param expenses - Array of expense objects to export
+   * @param options - Export configuration options
+   * @param options.format - Export format (csv, xlsx, pdf, json)
+   * @param options.filename - Custom filename (optional, auto-generated if not provided)
+   * @param options.includeHeaders - Whether to include column headers (default: true)
+   * @param options.dateRange - Optional date range filter
+   * @param options.filters - Additional filters to apply
+   * @returns Promise that resolves when export is complete
+   *
+   * @example
+   * ```typescript
+   * // Export all expenses as CSV
+   * await exportService.exportExpenses(expenses, { format: 'csv' });
+   *
+   * // Export with custom filename and date range
+   * await exportService.exportExpenses(expenses, {
+   *   format: 'xlsx',
+   *   filename: 'Q1-expenses.xlsx',
+   *   dateRange: {
+   *     from: new Date('2024-01-01'),
+   *     to: new Date('2024-03-31')
+   *   }
+   * });
+   * ```
    */
   async exportExpenses(
     expenses: any[],
@@ -131,7 +183,23 @@ class ExportService {
   }
 
   /**
-   * Export vendor data
+   * Exports vendor data to the specified format
+   *
+   * Formats vendor contact information, addresses, and business details
+   * for export. Handles optional fields gracefully.
+   *
+   * @param vendors - Array of vendor objects to export
+   * @param options - Export configuration options
+   * @returns Promise that resolves when export is complete
+   *
+   * @example
+   * ```typescript
+   * // Export vendors as JSON
+   * await exportService.exportVendors(vendors, {
+   *   format: 'json',
+   *   filename: 'vendor-directory.json'
+   * });
+   * ```
    */
   async exportVendors(
     vendors: any[],
@@ -230,15 +298,17 @@ class ExportService {
     filename: string
   ): Promise<void> {
     switch (options.format) {
-      case 'csv':
+      case 'csv': {
         const csvContent = this.toCSV(data, headers);
         this.downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
         break;
+      }
 
-      case 'json':
+      case 'json': {
         const jsonContent = this.toJSON(data);
         this.downloadFile(jsonContent, filename, 'application/json;charset=utf-8;');
         break;
+      }
 
       case 'xlsx':
         // For now, fall back to CSV format

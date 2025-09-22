@@ -227,7 +227,7 @@ const UsersPage = () => {
   // Populate modules in form when system modules and company modules are loaded
   useEffect(() => {
     if (allSystemModules && companyEnabledModules && newlyCreatedUserRole) {
-      const targetCompany = addUserForm.getValues("company_id") || currentCompanyId;
+      const targetCompany = addUserForm.getValues("company_id") ?? currentCompanyId;
 
       const initialModules = allSystemModules
         .filter(sysMod => {
@@ -361,7 +361,7 @@ const UsersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       toast({
         title: "Invitation Resent",
-        description: data.message || "The invitation has been successfully resent.",
+        description: data.message ?? "The invitation has been successfully resent.",
       });
       console.log("New Invitation Link:", data.invitationLink);
       setResendingInvitationId(null);
@@ -388,7 +388,7 @@ const UsersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       toast({
         title: "Invitation Deleted",
-        description: data.message || "The invitation has been successfully deleted.",
+        description: data.message ?? "The invitation has been successfully deleted.",
       });
       setIsDeleteInvitationDialogOpen(false);
       setInvitationToDelete(null);
@@ -416,7 +416,7 @@ const UsersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
         title: "User Deleted",
-        description: data.message || "The user account has been successfully deleted.",
+        description: data.message ?? "The user account has been successfully deleted.",
       });
       setIsDeleteUserDialogOpen(false);
       setUserToDelete(null);
@@ -474,7 +474,7 @@ const UsersPage = () => {
   const isSavingModules = updateUserModulesMutation.isPending;
 
   const modulesForNewUser = addUserForm.watch("modules");
-  const selectedRoleForNewUser = newlyCreatedUserRole || addUserForm.watch("role"); // Use newlyCreatedUserRole if available
+  const selectedRoleForNewUser = newlyCreatedUserRole ?? addUserForm.watch("role"); // Use newlyCreatedUserRole if available
 
   const getModulesByCategory = (type: "core" | "super" | "add-on") => {
     return modulesForNewUser
@@ -921,7 +921,7 @@ const UsersPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user "{userToDelete?.full_name || userToDelete?.email}"
+              This action cannot be undone. This will permanently delete the user "{userToDelete?.full_name ?? userToDelete?.email}"
               and all their associated data.
               {currentUser?.id === userToDelete?.user_id && (
                 <p className="text-red-500 font-semibold mt-2">You cannot delete your own account.</p>
