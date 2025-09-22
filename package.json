@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --mode local",
+    "dev:remote": "vite --mode production",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:staging": "vite build --mode staging",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
@@ -20,7 +23,16 @@
     "analyze": "vite build --mode analyze",
     "bundle:monitor": "node scripts/bundle-monitor.js",
     "bundle:analyze": "npm run analyze && npm run bundle:monitor",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:studio": "open http://127.0.0.1:54323",
+    "db:seed": "node scripts/seed-database.js",
+    "dev:full": "npm run db:start && npm run dev:local",
+    "dev:setup": "node scripts/dev-setup.js",
+    "clean": "rm -rf dist node_modules/.vite",
+    "clean:full": "npm run clean && npm run db:stop && docker system prune -f"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

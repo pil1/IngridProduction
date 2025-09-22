@@ -70,8 +70,6 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
       { id: "profile-settings", label: "Profile", path: "/settings", icon: User, isHidden: false },
       { id: "company-settings", label: "Company", path: "/company-settings", icon: Building2, roles: ['admin', 'super-admin'], companyRequired: true, isHidden: false },
       { id: "users", label: "User Management", path: "/users", icon: Users, roles: ['admin', 'super-admin'], isHidden: false, isLocked: true }, // Enhanced user management system
-      { id: "company-modules-overview", label: "Modules", path: "/company-modules-overview", icon: Package, roles: ['admin', 'super-admin'], companyRequired: true, isHidden: false },
-      { id: "system-modules", label: "System Modules", path: "/system-modules", icon: Package, roles: ['super-admin'], isHidden: false },
       { id: "system-billing-settings", label: "System Billing", path: "/system-billing-settings", icon: CreditCard, roles: ['super-admin'], isHidden: false },
     ]
   },
@@ -246,8 +244,6 @@ export function useUserMenuPreferences() {
       case "profile-settings": return moduleNameToIdMap.get("Profile Settings");
       case "company-settings": return moduleNameToIdMap.get("Company Settings");
       case "users": return moduleNameToIdMap.get("User Management");
-      case "company-modules-overview": return moduleNameToIdMap.get("Company Modules Overview");
-      case "system-modules": return moduleNameToIdMap.get("System Modules");
       case "system-billing-settings": return moduleNameToIdMap.get("System Billing Settings");
       case "company-notification-settings": return moduleNameToIdMap.get("Company Notification Settings"); // Assuming this is a module
       // Parent items like "accounting", "process-automation", "system-notification-settings", "settings" don't have a direct module_id

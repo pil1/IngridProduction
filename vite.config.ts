@@ -8,10 +8,35 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    open: false, // Don't auto-open browser
+    cors: true,
+    // Enhanced HMR configuration
+    hmr: {
+      port: 8080,
+    },
+    // Proxy configuration for development
+    proxy: mode === 'local' ? {
+      '/api': {
+        target: 'http://127.0.0.1:54321',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    } : {},
   },
   plugins: [
     dyadComponentTagger(),
-    react(),
+    react({
+      // Fast refresh optimization
+      fastRefresh: true,
+      // Only include development plugins in dev mode
+      ...(mode === 'development' && {
+        babel: {
+          plugins: [
+            // Add any development-specific babel plugins here
+          ],
+        },
+      }),
+    }),
     // Bundle analyzer - only in analyze mode
     mode === 'analyze' && visualizer({
       filename: 'dist/stats.html',
@@ -24,6 +49,25 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Development optimizations
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+      '@tanstack/react-query',
+      'lucide-react',
+      'clsx',
+      'tailwind-merge'
+    ],
+    exclude: [
+      // Exclude large dependencies that don't need pre-bundling
+      'pdfjs-dist'
+    ],
+  },
+  // Enhanced caching for faster rebuilds
+  cacheDir: '.vite',
   build: {
     // Optimize chunk splitting
     rollupOptions: {
@@ -63,7 +107,9 @@ export default defineConfig(({ mode }) => ({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable source maps for better debugging
-    sourcemap: false, // Set to true for development builds
+    // Enable source maps for better debugging based on mode
+    sourcemap: mode === 'development' || mode === 'local',
+    // Faster builds for development
+    minify: mode === 'development' ? false : 'esbuild',
   },
 }));

@@ -8,55 +8,125 @@ services:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        NODE_ENV: production
+        BUILD_VERSION: ${BUILD_VERSION:-latest}
+        BUILD_DATE: ${BUILD_DATE}
+        GIT_COMMIT: ${GIT_COMMIT}
     container_name: infotrac-frontend
     restart: unless-stopped
     ports:
-      - "4211:80"
+      - "4211:8080"
     environment:
       - NODE_ENV=production
+      - TZ=America/Vancouver
     networks:
       - infotrac-network
     volumes:
       # Mount nginx logs for monitoring
-      - ./logs/nginx:/var/log/nginx
+      - nginx-logs:/var/log/nginx
+      # Mount custom error pages
+      - ./nginx/error-pages:/usr/share/nginx/html/errors:ro
     labels:
       # Traefik labels for reverse proxy (if using Traefik)
       - "traefik.enable=true"
       - "traefik.http.routers.infotrac.rule=Host(`info.onbb.ca`)"
       - "traefik.http.routers.infotrac.tls=true"
       - "traefik.http.routers.infotrac.tls.certresolver=letsencrypt"
-      - "traefik.http.services.infotrac.loadbalancer.server.port=80"
+      - "traefik.http.services.infotrac.loadbalancer.server.port=8080"
       # Docker labels for identification
       - "app=infotrac"
       - "environment=production"
       - "domain=info.onbb.ca"
+      - "version=${BUILD_VERSION:-latest}"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Optional: Add monitoring services
+  # Auto-update service
   watchtower:
-    image: containrrr/watchtower
+    image: containrrr/watchtower:latest
     container_name: infotrac-watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_SCHEDULE=0 2 * * * # Daily at 2 AM
-      - WATCHTOWER_NOTIFICATIONS=email
-      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=${NOTIFICATION_EMAIL_FROM}
-      - WATCHTOWER_NOTIFICATION_EMAIL_TO=${NOTIFICATION_EMAIL_TO}
-      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
-      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
-      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
-      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD}
-    command: --label-enable --cleanup --schedule "0 2 * * *"
+      - WATCHTOWER_POLL_INTERVAL=3600  # Check every hour
+      - WATCHTOWER_SCHEDULE=0 2 * * *   # Update daily at 2 AM
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL=${NOTIFICATION_WEBHOOK_URL:-}
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=${NOTIFICATION_EMAIL_FROM:-}
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=${NOTIFICATION_EMAIL_TO:-}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER:-}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT:-587}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER:-}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD:-}
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_INCLUDE_STOPPED=true
+    command: --label-enable --cleanup --debug
     networks:
       - infotrac-network
+    labels:
+      - "app=infotrac"
+      - "service=watchtower"
+
+  # Log aggregation and monitoring
+  infotrac-monitor:
+    image: prom/node-exporter:latest
+    container_name: infotrac-monitor
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - nginx-logs:/logs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points'
+      - '^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - infotrac-network
+    labels:
+      - "app=infotrac"
+      - "service=monitoring"
+
+  # Log rotation service
+  logrotate:
+    image: linkyard/docker-logrotate:latest
+    container_name: infotrac-logrotate
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-logs:/logs
+    environment:
+      - LOGROTATE_INTERVAL=daily
+      - LOGROTATE_COPIES=7
+    networks:
+      - infotrac-network
+    labels:
+      - "app=infotrac"
+      - "service=logging"
 
 networks:
   infotrac-network:
@@ -66,3 +136,7 @@ networks:
 volumes:
   nginx-logs:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/nginx

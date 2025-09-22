@@ -40,8 +40,6 @@ const CompanySettingsPage = lazy(() => import("./pages/CompanySettingsPage"));
 const SystemBillingSettingsPage = lazy(() => import("./pages/SystemBillingSettingsPage"));
 const ProcessAutomationPage = lazy(() => import("./pages/ProcessAutomationPage"));
 const SystemNotificationSettingsPage = lazy(() => import("./pages/SystemNotificationSettingsPage"));
-const SystemModulesPage = lazy(() => import("./pages/SystemModulesPage"));
-const CompanyModulesOverviewPage = lazy(() => import("./pages/CompanyModulesOverviewPage"));
 const CompanyModuleManager = lazy(() => import("./components/CompanyModuleManager"));
 const FirstLoginOnboardingDialog = lazy(() => import("./components/FirstLoginOnboardingDialog"));
 const AIAnalyticsPage = lazy(() => import("./pages/AIAnalyticsPage"));
@@ -377,16 +375,6 @@ const routes: RouteObject[] = [
         path: "/system-notification-settings", // New unified route
         element: withSuspense(SystemNotificationSettingsPage, "Loading notification settings...", "SystemNotificationSettingsPage"),
         handle: { pageTitle: "INFOtrac - System Notification Settings" },
-      },
-      {
-        path: "/company-modules-overview",
-        element: withSuspense(CompanyModulesOverviewPage, "Loading modules overview...", "CompanyModulesOverviewPage"),
-        handle: { pageTitle: "INFOtrac - Modules Overview" },
-      },
-      {
-        path: "/system-modules",
-        element: withSuspense(SystemModulesPage, "Loading system modules...", "SystemModulesPage"),
-        handle: { pageTitle: "INFOtrac - System Modules" },
       },
       {
         path: "/company-modules",
