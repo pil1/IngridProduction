@@ -391,7 +391,11 @@ export const IndividualUserPermissionDialog: React.FC<IndividualUserPermissionDi
     }
 
     const currentModule = moduleMap.get(moduleId);
-    const originalValue = currentModule?.is_enabled || false;
+
+    // Calculate original value considering Super Admin default access
+    const originalValue = userDetails?.role === 'super-admin'
+      ? (currentModule?.is_enabled ?? true)
+      : (currentModule?.is_enabled || false);
 
     setPendingChanges(prev => {
       const filtered = prev.filter(change =>
@@ -428,6 +432,14 @@ export const IndividualUserPermissionDialog: React.FC<IndividualUserPermissionDi
     if (pendingChange) return pendingChange.value;
 
     const currentModule = moduleMap.get(moduleId);
+
+    // Super Admins should have access to all modules by default
+    if (userDetails?.role === 'super-admin') {
+      // If there's an explicit database entry, use it; otherwise default to true
+      return currentModule?.is_enabled ?? true;
+    }
+
+    // For regular users and admins, require explicit enablement
     return currentModule?.is_enabled || false;
   };
 

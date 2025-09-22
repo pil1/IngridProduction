@@ -218,7 +218,23 @@ export const UserPermissionMatrix: React.FC<UserPermissionMatrixProps> = ({
           }
         }
 
-        // For now, create simplified user data with basic role-based permissions
+        // Fetch all user module assignments for all users at once
+        const userIds = profilesData.map(p => p.user_id);
+        const { data: allUserModulesData } = await supabase
+          .from('user_modules')
+          .select('user_id, module_id, is_enabled')
+          .in('user_id', userIds);
+
+        // Create a map of user module assignments for quick lookup
+        const userModulesLookup = new Map<string, Map<string, boolean>>();
+        allUserModulesData?.forEach(um => {
+          if (!userModulesLookup.has(um.user_id)) {
+            userModulesLookup.set(um.user_id, new Map());
+          }
+          userModulesLookup.get(um.user_id)!.set(um.module_id, um.is_enabled);
+        });
+
+        // Create user data with correct module access
         const usersWithPermissions: UserWithPermissions[] = profilesData.map((profile) => {
           // Basic role-based permissions (simplified)
           const permissions: Record<string, boolean> = {};
@@ -232,14 +248,24 @@ export const UserPermissionMatrix: React.FC<UserPermissionMatrixProps> = ({
             }
           });
 
-          // Basic module access (simplified)
+          // Get user's actual module assignments from our lookup map
+          const userModulesMap = userModulesLookup.get(profile.user_id) || new Map();
           const moduleMap: Record<string, { enabled: boolean; hasAccess: boolean }> = {};
+
           modules?.forEach(module => {
+            const explicitlyEnabled = userModulesMap.get(module.id);
+
+            // Super Admins get access to all modules by default unless explicitly disabled
+            const isEnabled = profile.role === 'super-admin'
+              ? (explicitlyEnabled !== false) // Default true unless explicitly set to false
+              : (explicitlyEnabled === true);  // Require explicit enablement for others
+
             const hasAccess = profile.role === 'super-admin' ||
                             module.is_core_required ||
                             (profile.role === 'admin' && module.module_type !== 'super');
+
             moduleMap[module.name] = {
-              enabled: hasAccess,
+              enabled: isEnabled,
               hasAccess: hasAccess,
             };
           });
