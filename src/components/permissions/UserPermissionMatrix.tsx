@@ -220,10 +220,29 @@ export const UserPermissionMatrix: React.FC<UserPermissionMatrixProps> = ({
 
         // Fetch all user module assignments for all users at once
         const userIds = profilesData.map(p => p.user_id);
-        const { data: allUserModulesData } = await supabase
-          .from('user_modules')
-          .select('user_id, module_id, is_enabled')
-          .in('user_id', userIds);
+        let allUserModulesData: any[] = [];
+
+        try {
+          const { data, error } = await supabase
+            .from('user_modules')
+            .select('user_id, module_id, is_enabled')
+            .in('user_id', userIds);
+
+          if (error) {
+            // If table doesn't exist (400 error), continue with empty data for graceful degradation
+            if (error.code === '42P01' || error.message?.includes('does not exist')) {
+              console.warn('user_modules table does not exist, using role-based defaults');
+              allUserModulesData = [];
+            } else {
+              throw error;
+            }
+          } else {
+            allUserModulesData = data || [];
+          }
+        } catch (error) {
+          console.error('Error fetching user modules:', error);
+          allUserModulesData = [];
+        }
 
         // Create a map of user module assignments for quick lookup
         const userModulesLookup = new Map<string, Map<string, boolean>>();

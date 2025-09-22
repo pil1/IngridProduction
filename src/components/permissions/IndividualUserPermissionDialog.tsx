@@ -172,7 +172,14 @@ export const IndividualUserPermissionDialog: React.FC<IndividualUserPermissionDi
           .select('permission_key, is_granted, granted_by, granted_at')
           .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {
+          // If table doesn't exist (400 error), return empty array for graceful degradation
+          if (error.code === '42P01' || error.message?.includes('does not exist')) {
+            console.warn('user_permissions table does not exist, using role-based defaults');
+            return [];
+          }
+          throw error;
+        }
         return data || [];
       } catch (error) {
         console.error('Error fetching user permissions:', error);
@@ -194,7 +201,14 @@ export const IndividualUserPermissionDialog: React.FC<IndividualUserPermissionDi
           .select('module_id, is_enabled, granted_by, granted_at')
           .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {
+          // If table doesn't exist (400 error), return empty array for graceful degradation
+          if (error.code === '42P01' || error.message?.includes('does not exist')) {
+            console.warn('user_modules table does not exist, using role-based defaults');
+            return [];
+          }
+          throw error;
+        }
 
         // Enhance with module names
         const userModulesWithNames = (data || []).map(um => {

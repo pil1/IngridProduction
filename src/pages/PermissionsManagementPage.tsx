@@ -65,6 +65,11 @@ const PermissionsManagementPage: React.FC = () => {
           .order('name');
 
         if (error) {
+          // If table doesn't exist (400 error), return empty array for graceful degradation
+          if (error.code === '42P01' || error.message?.includes('does not exist')) {
+            console.warn('companies table does not exist, using fallback data');
+            return [];
+          }
           console.error('Error fetching companies:', error);
           return [];
         }
