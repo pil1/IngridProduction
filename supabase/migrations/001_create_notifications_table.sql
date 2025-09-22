@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT,
   type TEXT DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error')),
@@ -38,7 +38,7 @@ CREATE POLICY "Admins can create notifications" ON notifications
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
+      WHERE profiles.user_id = auth.uid()
       AND profiles.role IN ('admin', 'super-admin', 'system')
     )
   );

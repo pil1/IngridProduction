@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS suggested_categories (
   -- Suggestion details
   suggested_name VARCHAR(255) NOT NULL,
   suggested_description TEXT,
-  suggested_by_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  suggested_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
 
   -- AI context and confidence
   confidence_score DECIMAL(3,2) CHECK (confidence_score >= 0 AND confidence_score <= 1),
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS suggested_categories (
 
   -- Approval workflow
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'merged')),
-  reviewed_by_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  reviewed_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   reviewed_at TIMESTAMP WITH TIME ZONE,
   review_notes TEXT,
 
