@@ -424,55 +424,25 @@ export default function IngridSettingsTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* OpenAI Configuration */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="openai-key" className="text-base font-medium">OpenAI API Key</Label>
-                {isSaving && (
-                  <Activity className="h-3 w-3 animate-spin text-blue-500" />
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setApiKeyVisible(!apiKeyVisible)}
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                {apiKeyVisible ? 'Hide' : 'Show'}
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Input
-                id="openai-key"
-                type={apiKeyVisible ? 'text' : 'password'}
-                placeholder="sk-..."
-                value={config.apiKey ?? ''}
-                onChange={(e) => updateConfig({ apiKey: e.target.value })}
-                disabled={isSaving}
-              />
-              <Button
-                onClick={status.realAI ? handleDisableRealAI : handleEnableRealAI}
-                disabled={isValidating || isSaving}
-                variant={status.realAI ? "destructive" : "default"}
-              >
-                {isValidating ? (
-                  <Activity className="h-4 w-4 mr-2 animate-spin" />
-                ) : status.realAI ? (
-                  <XCircle className="h-4 w-4 mr-2" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                {isValidating ? 'Validating...' : status.realAI ? 'Disable Real AI' : 'Enable Real AI'}
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Enter your OpenAI API key to enable GPT-4 powered conversations and Vision API for document processing.
-              Settings are automatically saved to your company database.
-            </p>
-          </div>
+          {/* API Key Management Notification */}
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              <strong>API Key Management:</strong> API keys for OpenAI and other AI services are now managed centrally by super-administrators.
+              Contact your super-admin to provision or update API keys for your company.
+              {status.realAI ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">OpenAI API key is active and configured</span>
+                </div>
+              ) : (
+                <div className="mt-2 flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-700">No OpenAI API key configured for your company</span>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
 
           {/* Model Configuration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -513,24 +483,17 @@ export default function IngridSettingsTab() {
             </div>
           </div>
 
-          {/* OCR Provider API Keys */}
+          {/* OCR Provider API Keys - Notification */}
           {config.ocrProvider === 'google-vision' && (
             <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
               <h4 className="font-medium text-sm">Google Cloud Vision Configuration</h4>
-              <div className="space-y-2">
-                <Label htmlFor="google-api-key">Google Vision API Key</Label>
-                <Input
-                  id="google-api-key"
-                  type="password"
-                  placeholder="AIza..."
-                  value={config.googleVisionApiKey ?? ''}
-                  onChange={(e) => updateConfig({ googleVisionApiKey: e.target.value })}
-                  disabled={isSaving}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter your Google Cloud Vision API key for OCR processing.
-                </p>
-              </div>
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  Google Vision API keys are managed by super-administrators.
+                  Contact your super-admin to configure OCR processing credentials.
+                </AlertDescription>
+              </Alert>
             </div>
           )}
 
@@ -587,33 +550,13 @@ export default function IngridSettingsTab() {
           {config.ocrProvider === 'azure-document' && (
             <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
               <h4 className="font-medium text-sm">Azure Document Intelligence Configuration</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="azure-api-key">Azure API Key</Label>
-                  <Input
-                    id="azure-api-key"
-                    type="password"
-                    placeholder="..."
-                    value={config.azureApiKey ?? ''}
-                    onChange={(e) => updateConfig({ azureApiKey: e.target.value })}
-                    disabled={isSaving}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="azure-endpoint">Azure Endpoint</Label>
-                  <Input
-                    id="azure-endpoint"
-                    type="url"
-                    placeholder="https://your-resource.cognitiveservices.azure.com/"
-                    value={config.azureEndpoint ?? ''}
-                    onChange={(e) => updateConfig({ azureEndpoint: e.target.value })}
-                    disabled={isSaving}
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Enter your Azure Document Intelligence API key and endpoint.
-              </p>
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  Azure Document Intelligence API keys are managed by super-administrators.
+                  Contact your super-admin to configure OCR processing credentials.
+                </AlertDescription>
+              </Alert>
             </div>
           )}
         </CardContent>

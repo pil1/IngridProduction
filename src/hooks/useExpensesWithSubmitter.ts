@@ -8,8 +8,10 @@ export const useExpensesWithSubmitter = (companyId?: string) => {
   return useQuery({
     queryKey: ["expenses-with-submitter", companyId],
     queryFn: async () => {
+      if (!companyId) return [];
+
       const { data, error } = await supabase.rpc("get_expenses_with_submitter", {
-        company_id_param: companyId ?? null,
+        company_id_param: companyId,
       });
 
       if (error) {
@@ -17,7 +19,10 @@ export const useExpensesWithSubmitter = (companyId?: string) => {
         throw error;
       }
 
-      return data as Expense[]; // Return as Expense[]
+      return (data || []) as Expense[]; // Ensure we return an array
     },
+    enabled: !!companyId,
+    retry: 1,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };

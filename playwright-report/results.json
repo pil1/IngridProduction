@@ -1,0 +1,355 @@
+{
+  "config": {
+    "configFile": "/Users/richard/Downloads/INFOtrac New/playwright.config.ts",
+    "rootDir": "/Users/richard/Downloads/INFOtrac New/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/richard/Downloads/INFOtrac New/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/richard/Downloads/INFOtrac New/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.1",
+    "workers": 5,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:8080",
+      "reuseExistingServer": true,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "console-monitor.spec.ts",
+      "file": "console-monitor.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Console Error Monitoring",
+          "file": "console-monitor.spec.ts",
+          "line": 142,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should monitor console errors during application load",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2846,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 Starting console monitoring...\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "📊 Console Monitor Report\\n=================================\\nTimestamp: 2025-09-25T14:02:23.024Z\\nTotal Errors: 0\\nTotal Warnings: 2\\n\\n⚠️  WARNINGS:\\n-----------\\n1. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:20.877Z\\n\\n2. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:20.921Z\\n\\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-25T14:02:20.008Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "13bfd0fd75dd572428aa-0d4eb08f8709fb68d314",
+              "file": "console-monitor.spec.ts",
+              "line": 143,
+              "column": 3
+            },
+            {
+              "title": "should monitor console errors during login flow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 6033,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔐 Testing login flow for console errors...\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "❌ Console Error: Failed to load resource: the server responded with a status of 401 (Unauthorized)\n"
+                        },
+                        {
+                          "text": "📊 Console Monitor Report\\n=================================\\nTimestamp: 2025-09-25T14:02:26.141Z\\nTotal Errors: 1\\nTotal Warnings: 2\\n\\n❌ ERRORS:\\n---------\\n1. Failed to load resource: the server responded with a status of 401 (Unauthorized)\\n   Source: http://localhost:3001/api/auth/login\\n   Time: 2025-09-25T14:02:21.207Z\\n\\n⚠️  WARNINGS:\\n-----------\\n1. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:20.886Z\\n\\n2. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:20.919Z\\n\\n\n"
+                        },
+                        {
+                          "text": "Current URL: http://localhost:8080/login\n"
+                        },
+                        {
+                          "text": "⚠️  Console errors detected during login flow (this may be expected if credentials are invalid)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-25T14:02:20.005Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "13bfd0fd75dd572428aa-cb87ec7d426c325ffdb3",
+              "file": "console-monitor.spec.ts",
+              "line": 173,
+              "column": 3
+            },
+            {
+              "title": "should monitor console errors during navigation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 9031,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🧭 Testing navigation for console errors...\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /dashboard\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /expenses\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /vendors\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /customers\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /users\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "Testing page: /settings\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "📊 Console Monitor Report\\n=================================\\nTimestamp: 2025-09-25T14:02:29.224Z\\nTotal Errors: 0\\nTotal Warnings: 14\\n\\n⚠️  WARNINGS:\\n-----------\\n1. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:20.877Z\\n\\n2. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:20.914Z\\n\\n3. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:22.942Z\\n\\n4. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:22.950Z\\n\\n5. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:23.998Z\\n\\n6. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:24.005Z\\n\\n7. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:25.070Z\\n\\n8. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:25.079Z\\n\\n9. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:26.111Z\\n\\n10. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:26.119Z\\n\\n11. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:27.161Z\\n\\n12. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:27.166Z\\n\\n13. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:28.225Z\\n\\n14. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:28.230Z\\n\\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-25T14:02:20.010Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "13bfd0fd75dd572428aa-527e919f766940d628a0",
+              "file": "console-monitor.spec.ts",
+              "line": 215,
+              "column": 3
+            },
+            {
+              "title": "should generate comprehensive error report",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 5925,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📝 Generating comprehensive application scan...\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\n"
+                        },
+                        {
+                          "text": "⚠️  Console Warning: No access token available for modules fetch\n"
+                        },
+                        {
+                          "text": "\\n📋 FINAL COMPREHENSIVE REPORT:\n"
+                        },
+                        {
+                          "text": "📊 Console Monitor Report\\n=================================\\nTimestamp: 2025-09-25T14:02:26.046Z\\nTotal Errors: 0\\nTotal Warnings: 2\\n\\n⚠️  WARNINGS:\\n-----------\\n1. ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\\n   Source: http://localhost:8080/.vite/deps/react-router-dom.js?v=76d018f4\\n   Line: 4392:12\\n   Time: 2025-09-25T14:02:20.891Z\\n\\n2. No access token available for modules fetch\\n   Source: http://localhost:8080/src/hooks/use-user-menu-preferences.tsx\\n   Line: 337:28\\n   Time: 2025-09-25T14:02:20.975Z\\n\\n\n"
+                        },
+                        {
+                          "text": "\\n🎯 Monitoring complete. Found 0 errors and 2 warnings.\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-25T14:02:20.006Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "13bfd0fd75dd572428aa-044f3d428923b7c56c5f",
+              "file": "console-monitor.spec.ts",
+              "line": 263,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-09-25T14:02:19.680Z",
+    "duration": 9639.492,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

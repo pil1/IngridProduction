@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,45 +11,74 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Edit, Save, XCircle } from "lucide-react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Vendor } from "@/pages/VendorsPage";
+import { AddressForm } from "@/components/ui/address-form";
+
+// Helper function to make fields truly optional
+const optionalString = () => z.preprocess(
+  (val) => (val === "" || val === null || val === undefined ? null : val),
+  z.string().nullable().optional()
+);
+
+const optionalEmail = () => z.preprocess(
+  (val) => {
+    if (!val || val === "") return null;
+    return val;
+  },
+  z.string().email("Invalid email address").nullable().optional()
+);
+
+const optionalUrl = () => z.preprocess(
+  (val) => (val === "" || val === null || val === undefined ? null : val),
+  z.string().nullable().optional()
+);
+
+const optionalNumber = () => z.preprocess(
+  (val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  },
+  z.number().nullable().optional()
+);
 
 const vendorSchema = z.object({
   name: z.string().min(1, "Vendor name is required"),
-  contact_person: z.string().optional().nullable(),
-  email: z.string().email("Invalid email address").optional().nullable(),
-  phone: z.string().optional().nullable(),
-  address_line_1: z.string().optional().nullable(),
-  address_line_2: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state_province: z.string().optional().nullable(),
-  postal_code: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  spire_id: z.string().optional().nullable(), // Spire's vendorNo
+  contact_person: optionalString(),
+  email: optionalEmail(),
+  phone: optionalString(),
+  address_line_1: optionalString(),
+  address_line_2: optionalString(),
+  city: optionalString(),
+  state_province: optionalString(),
+  postal_code: optionalString(),
+  country: optionalString(),
+  spire_id: optionalString(),
   is_active: z.boolean().default(true),
-  website: z.string().url("Invalid URL").or(z.literal('')).optional().nullable(), // FIX: Allow empty string
-  tax_id: z.string().optional().nullable(),
-  payment_terms: z.string().optional().nullable(),
-  default_currency_code: z.string().min(1, "Default currency is required").default("USD"),
-  notes: z.string().optional().nullable(),
-  account_number: z.string().optional().nullable(),
-  tax_exempt: z.boolean().default(false),
-  credit_limit: z.preprocess(
-    (val) => (val === "" ? 0 : Number(val)),
-    z.number().min(0, "Credit limit must be non-negative").default(0)
+  website: optionalUrl(),
+  tax_id: optionalString(),
+  payment_terms: optionalString(),
+  default_currency_code: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? "USD" : val),
+    z.string().default("USD")
   ),
-  payment_method: z.string().optional().nullable(),
-  shipping_address_line_1: z.string().optional().nullable(),
-  shipping_address_line_2: z.string().optional().nullable(),
-  shipping_city: z.string().optional().nullable(),
-  shipping_state_province: z.string().optional().nullable(),
-  shipping_postal_code: z.string().optional().nullable(),
-  shipping_country: z.string().optional().nullable(),
-  shipping_addresses_data: z.any().optional().nullable(), // New field for Spire's array of shipping addresses
+  notes: optionalString(),
+  account_number: optionalString(),
+  tax_exempt: z.boolean().default(false),
+  credit_limit: optionalNumber(),
+  payment_method: optionalString(),
+  shipping_address_line_1: optionalString(),
+  shipping_address_line_2: optionalString(),
+  shipping_city: optionalString(),
+  shipping_state_province: optionalString(),
+  shipping_postal_code: optionalString(),
+  shipping_country: optionalString(),
+  shipping_addresses_data: z.any().optional().nullable(),
 });
 
 export type VendorFormValues = z.infer<typeof vendorSchema>; // Explicitly export this type
@@ -112,15 +141,16 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
     },
   });
 
-  // Fetch available currencies
-  const { data: currencies, isLoading: isLoadingCurrencies } = useQuery<Currency[]>({
-    queryKey: ["currencies"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("currencies").select("id, code, name, symbol").eq("is_active", true).order("code");
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Static currency list for now
+  const currencies: Currency[] = [
+    { id: "1", code: "USD", name: "US Dollar", symbol: "$" },
+    { id: "2", code: "EUR", name: "Euro", symbol: "€" },
+    { id: "3", code: "GBP", name: "British Pound", symbol: "£" },
+    { id: "4", code: "CAD", name: "Canadian Dollar", symbol: "C$" },
+    { id: "5", code: "AUD", name: "Australian Dollar", symbol: "A$" },
+    { id: "6", code: "JPY", name: "Japanese Yen", symbol: "¥" },
+  ];
+  const isLoadingCurrencies = false;
 
   useEffect(() => {
     if (isOpen) {
@@ -238,17 +268,27 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
         shipping_addresses_data: values.shipping_addresses_data ?? null,
       };
 
+      console.log('Submitting vendor payload:', payload);
+
+      let response;
       if (editingVendor) {
-        const { error } = await supabase.from("vendors").update({
-          ...payload,
-          updated_at: new Date().toISOString(),
-        }).eq("id", editingVendor.id);
-        if (error) throw error;
+        // Update existing vendor
+        response = await apiClient.from('vendors')
+          .eq('id', editingVendor.id)
+          .update(payload);
       } else {
-        const { error } = await supabase.from("vendors").insert(payload);
-        if (error) throw error;
+        // Create new vendor
+        response = await apiClient.from('vendors')
+          .insert(payload);
       }
-      return null;
+
+      console.log('API response:', response);
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save vendor');
+      }
+
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
@@ -259,6 +299,7 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
       onOpenChange(false);
     },
     onError: (error: Error) => {
+      console.error('Vendor save error:', error);
       toast({
         title: "Error Saving Vendor",
         description: error.message ?? "An unexpected error occurred.",
@@ -275,13 +316,14 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
   const isReadOnly = currentMode === "view";
 
   return (
-    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{editingVendor ? (isReadOnly ? "View Vendor" : "Edit Vendor") : "Add New Vendor"}</DialogTitle>
-        <DialogDescription>
-          {editingVendor ? (isReadOnly ? "Details of this vendor." : "Update the details of this vendor.") : "Add a new vendor to your company's records."}
-        </DialogDescription>
-      </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent variant="full-width">
+        <DialogHeader>
+          <DialogTitle>{editingVendor ? (isReadOnly ? "View Vendor" : "Edit Vendor") : "Add New Vendor"}</DialogTitle>
+          <DialogDescription>
+            {editingVendor ? (isReadOnly ? "Details of this vendor." : "Update the details of this vendor.") : "Add a new vendor to your company's records."}
+          </DialogDescription>
+        </DialogHeader>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -361,68 +403,55 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
         </div>
 
         <h4 className="text-md font-semibold mt-4">Billing Address</h4>
-        <div className="space-y-2">
-          <Label htmlFor="address_line_1">Address Line 1 (Optional)</Label>
-          <Input id="address_line_1" {...form.register("address_line_1")} disabled={isLoading || isReadOnly} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="address_line_2">Address Line 2 (Optional)</Label>
-          <Input id="address_line_2" {...form.register("address_line_2")} disabled={isLoading || isReadOnly} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="city">City (Optional)</Label>
-            <Input id="city" {...form.register("city")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="state_province">State/Province (Optional)</Label>
-            <Input id="state_province" {...form.register("state_province")} disabled={isLoading || isReadOnly} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="postal_code">Zip/Postal Code (Optional)</Label>
-            <Input id="postal_code" {...form.register("postal_code")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="country">Country (Optional)</Label>
-            <Input id="country" {...form.register("country")} disabled={isLoading || isReadOnly} />
-          </div>
-        </div>
+        <AddressForm
+          values={{
+            address_line1: form.watch("address_line_1") || "",
+            address_line2: form.watch("address_line_2") || "",
+            city: form.watch("city") || "",
+            state: form.watch("state_province") || "",
+            postal_code: form.watch("postal_code") || "",
+            country: form.watch("country") || ""
+          }}
+          onChange={(field, value) => {
+            // Map AddressForm field names to vendor schema field names
+            const fieldMap: Record<string, string> = {
+              'address_line1': 'address_line_1',
+              'address_line2': 'address_line_2',
+              'state': 'state_province'
+            };
+            const vendorField = fieldMap[field] || field;
+            form.setValue(vendorField as keyof VendorFormValues, value);
+          }}
+          required={false}
+          className={isLoading || isReadOnly ? "pointer-events-none opacity-50" : ""}
+        />
 
         <h4 className="text-md font-semibold mt-4">Shipping Address (Optional)</h4>
-        <div className="space-y-2">
-          <Label htmlFor="shipping_address_line_1">Shipping Address Line 1</Label>
-          <Input id="shipping_address_line_1" {...form.register("shipping_address_line_1")} disabled={isLoading || isReadOnly} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="shipping_address_line_2">Shipping Address Line 2</Label>
-          <Input id="shipping_address_line_2" {...form.register("shipping_address_line_2")} disabled={isLoading || isReadOnly} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="shipping_city">Shipping City</Label>
-            <Input id="shipping_city" {...form.register("shipping_city")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_state_province">Shipping State/Province</Label>
-            <Input id="shipping_state_province" {...form.register("shipping_state_province")} disabled={isLoading || isReadOnly} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="shipping_postal_code">Shipping Zip/Postal Code</Label>
-            <Input id="shipping_postal_code" {...form.register("shipping_postal_code")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_country">Shipping Country</Label>
-            <Input id="shipping_country" {...form.register("shipping_country")} disabled={isLoading || isReadOnly} />
-          </div>
-        </div>
+        <AddressForm
+          values={{
+            address_line1: form.watch("shipping_address_line_1") || "",
+            address_line2: form.watch("shipping_address_line_2") || "",
+            city: form.watch("shipping_city") || "",
+            state: form.watch("shipping_state_province") || "",
+            postal_code: form.watch("shipping_postal_code") || "",
+            country: form.watch("shipping_country") || ""
+          }}
+          onChange={(field, value) => {
+            // Map AddressForm field names to shipping field names
+            const fieldMap: Record<string, string> = {
+              'address_line1': 'shipping_address_line_1',
+              'address_line2': 'shipping_address_line_2',
+              'city': 'shipping_city',
+              'state': 'shipping_state_province',
+              'postal_code': 'shipping_postal_code',
+              'country': 'shipping_country'
+            };
+            const shippingField = fieldMap[field];
+            form.setValue(shippingField as keyof VendorFormValues, value);
+          }}
+          required={false}
+          className={isLoading || isReadOnly ? "pointer-events-none opacity-50" : ""}
+        />
 
         <div className="space-y-2">
           <Label htmlFor="default_currency_code">Default Currency</Label>
@@ -547,7 +576,8 @@ const AddEditVendorDialog = ({ isOpen, onOpenChange, editingVendor, companyId, i
           </Button>
         )}
       </DialogFooter>
-    </DialogContent>
+      </DialogContent>
+    </Dialog>
   );
 };
 

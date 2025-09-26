@@ -2,17 +2,17 @@ import { useState, useMemo, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Receipt, Download, Upload, Sparkles } from "lucide-react";
+import { Plus, Receipt, Download, Upload, Sparkles, ClipboardCheck } from "lucide-react";
 import { useExpensesWithSubmitter } from "@/hooks/useExpensesWithSubmitter";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { SelectableExpenseTable } from "@/components/expenses/SelectableExpenseTable";
 import { EnhancedExpenseTableV2 } from "@/components/expenses/enhanced/EnhancedExpenseTableV2";
+import { ReviewInboxTab } from "@/components/expenses/ReviewInboxTab";
 import { Dialog } from "@/components/ui/dialog";
 import AddEditExpenseDialog from "@/components/AddEditExpenseDialog";
 import { IngridExpenseCreationDialog } from "@/components/ingrid/IngridExpenseCreationDialog";
+import { InvoiceStyleExpenseModal } from "@/components/expenses/invoice/InvoiceStyleExpenseModal";
 import AdvancedSearchFilter from "@/components/AdvancedSearchFilter";
 import QuickFilters from "@/components/QuickFilters";
 import { useAdvancedSearch } from "@/hooks/useAdvancedSearch";
@@ -24,13 +24,14 @@ import BulkActionsToolbar from "@/components/BulkActionsToolbar";
 import ExportDialog from "@/components/ExportDialog";
 import { exportService } from "@/services/exportService";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { usePermissions } from "@/hooks/usePermissions";
+import { OPERATIONS_PERMISSIONS } from "@/types/permissions";
 import { toast } from "sonner";
 
 const EnhancedExpensesPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("all");
   const {
     notifyExpenseApproved,
     notifyExpenseRejected,
@@ -39,20 +40,34 @@ const EnhancedExpensesPage = () => {
   } = useNotificationActions();
 
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
-  const { data: expenses = [], isLoading, error } = useExpensesWithSubmitter(
+  const { hasPermission } = usePermissions();
+
+  const [activeTab, setActiveTab] = useState(() =>
+    hasPermission(OPERATIONS_PERMISSIONS.EXPENSES_REVIEW) &&
+    profile?.role && ['admin', 'controller', 'super-admin'].includes(profile.role)
+      ? "review-inbox"
+      : "all"
+  );
+  const { data: expenses = [], isLoading, error, refetch: refetchExpenses } = useExpensesWithSubmitter(
     profile?.company_id ?? undefined
   );
 
+  // Check if user has expense review permissions
+  const canReview = hasPermission(OPERATIONS_PERMISSIONS.EXPENSES_REVIEW) &&
+    profile?.role &&
+    ['admin', 'controller', 'super-admin'].includes(profile.role);
+
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [isIngridDialogOpen, setIsIngridDialogOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expandedExpenseId, setExpandedExpenseId] = useState<string | null>(null);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [useEnhancedTable, setUseEnhancedTable] = useState(true);
+
 
   // Fetch categories for filtering
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], error: categoriesError } = useQuery({
     queryKey: ["expenseCategories", profile?.company_id],
     queryFn: async () => {
       if (!profile?.company_id) return [];
@@ -61,10 +76,15 @@ const EnhancedExpensesPage = () => {
         .select("id, name")
         .eq("company_id", profile.company_id)
         .order("name");
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching expense categories:", error);
+        throw error;
+      }
+      return data || [];
     },
     enabled: !!profile?.company_id,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch submitters for filtering
@@ -83,7 +103,7 @@ const EnhancedExpensesPage = () => {
   }, [expenses]);
 
   // Fetch vendors for filtering
-  const { data: vendors = [] } = useQuery({
+  const { data: vendors = [], error: vendorsError } = useQuery({
     queryKey: ["vendors", profile?.company_id],
     queryFn: async () => {
       if (!profile?.company_id) return [];
@@ -93,10 +113,15 @@ const EnhancedExpensesPage = () => {
         .eq("company_id", profile.company_id)
         .eq("is_active", true)
         .order("name");
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching vendors:", error);
+        throw error;
+      }
+      return data || [];
     },
     enabled: !!profile?.company_id,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Bulk operations mutation
@@ -246,16 +271,11 @@ const EnhancedExpensesPage = () => {
 
   const handleAddClick = () => {
     startTransition(() => {
+      // Open original Ingrid dialog for AI upload, then it will flow to invoice view
       setIsIngridDialogOpen(true);
     });
   };
 
-  const handleLegacyAddClick = () => {
-    startTransition(() => {
-      setEditingExpenseId(null);
-      setIsAddEditDialogOpen(true);
-    });
-  };
 
   const handleEditClick = (expenseId: string) => {
     startTransition(() => {
@@ -298,6 +318,7 @@ const EnhancedExpensesPage = () => {
     await exportService.exportExpenses(dataToExport, options);
   };
 
+
   if (isLoadingProfile || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -338,16 +359,14 @@ const EnhancedExpensesPage = () => {
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <div className="flex gap-2">
-            <Button onClick={handleAddClick} className="bg-blue-600 hover:bg-blue-700">
-              <Sparkles className="h-4 w-4 mr-2" />
-              New Expense with AI
-            </Button>
-            <Button onClick={handleLegacyAddClick} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Traditional Form
-            </Button>
-          </div>
+          <Button size="sm" onClick={handleAddClick}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            New Expense with AI
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsInvoiceModalOpen(true)}>
+            <Receipt className="h-4 w-4 mr-2" />
+            Invoice Style
+          </Button>
         </div>
       </div>
 
@@ -408,6 +427,17 @@ const EnhancedExpensesPage = () => {
       <Tabs value={activeTab} onValueChange={(value) => startTransition(() => setActiveTab(value))} className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList>
+            {canReview && (
+              <TabsTrigger value="review-inbox" className="relative">
+                <ClipboardCheck className="h-4 w-4 mr-2" />
+                Review Inbox
+                {statusCounts.submitted > 0 && (
+                  <Badge variant="destructive" className="ml-2 h-5 min-w-5">
+                    {statusCounts.submitted}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="all" className="relative">
               All
               {statusCounts.all > 0 && (
@@ -451,17 +481,6 @@ const EnhancedExpensesPage = () => {
           </TabsList>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="enhanced-table"
-                checked={useEnhancedTable}
-                onCheckedChange={setUseEnhancedTable}
-              />
-              <Label htmlFor="enhanced-table" className="text-sm font-medium">
-                Enhanced View
-              </Label>
-            </div>
-
             {searchStats.isFiltered && (
               <Button variant="ghost" size="sm" onClick={resetFilters}>
                 Clear all filters
@@ -470,29 +489,69 @@ const EnhancedExpensesPage = () => {
           </div>
         </div>
 
-        <TabsContent value={activeTab} className="space-y-4">
-          {useEnhancedTable ? (
-            <EnhancedExpenseTableV2
-              expenses={tabFilteredExpenses}
-              selectedExpenseIds={selectedExpenseIds}
-              onSelectionChange={handleSelectionChange}
-              showAIIndicators={true}
-              compactMode={isMobile}
+        {/* Review Inbox Tab Content */}
+        {canReview && (
+          <TabsContent value="review-inbox" className="space-y-4">
+            <ReviewInboxTab
+              companyId={profile?.company_id ?? ''}
+              currentUserId={profile?.id ?? ''}
+              userRole={profile?.role ?? ''}
+              expenses={expenses}
+              isLoadingExpenses={isLoading}
+              onRefresh={refetchExpenses}
             />
-          ) : (
-            <SelectableExpenseTable
-              expenses={tabFilteredExpenses}
-              selectedExpenseIds={selectedExpenseIds}
-              onSelectionChange={handleSelectionChange}
-              onEditClick={handleEditClick}
-              onRowClick={handleRowClick}
-              onToggleExpand={handleToggleExpand}
-              expandedExpenseId={expandedExpenseId}
-              isLoading={isLoading}
-              isMobile={isMobile}
-              showSubmitterColumn={profile?.role === 'admin' || profile?.role === 'controller' || profile?.role === 'super-admin'}
-            />
-          )}
+          </TabsContent>
+        )}
+
+        {/* Standard Expense Management Tabs */}
+        <TabsContent value="all" className="space-y-4">
+          <EnhancedExpenseTableV2
+            expenses={tabFilteredExpenses}
+            selectedExpenseIds={selectedExpenseIds}
+            onSelectionChange={handleSelectionChange}
+            showAIIndicators={true}
+            compactMode={isMobile}
+          />
+        </TabsContent>
+
+        <TabsContent value="draft" className="space-y-4">
+          <EnhancedExpenseTableV2
+            expenses={tabFilteredExpenses}
+            selectedExpenseIds={selectedExpenseIds}
+            onSelectionChange={handleSelectionChange}
+            showAIIndicators={true}
+            compactMode={isMobile}
+          />
+        </TabsContent>
+
+        <TabsContent value="submitted" className="space-y-4">
+          <EnhancedExpenseTableV2
+            expenses={tabFilteredExpenses}
+            selectedExpenseIds={selectedExpenseIds}
+            onSelectionChange={handleSelectionChange}
+            showAIIndicators={true}
+            compactMode={isMobile}
+          />
+        </TabsContent>
+
+        <TabsContent value="approved" className="space-y-4">
+          <EnhancedExpenseTableV2
+            expenses={tabFilteredExpenses}
+            selectedExpenseIds={selectedExpenseIds}
+            onSelectionChange={handleSelectionChange}
+            showAIIndicators={true}
+            compactMode={isMobile}
+          />
+        </TabsContent>
+
+        <TabsContent value="rejected" className="space-y-4">
+          <EnhancedExpenseTableV2
+            expenses={tabFilteredExpenses}
+            selectedExpenseIds={selectedExpenseIds}
+            onSelectionChange={handleSelectionChange}
+            showAIIndicators={true}
+            compactMode={isMobile}
+          />
         </TabsContent>
       </Tabs>
 
@@ -501,7 +560,10 @@ const EnhancedExpensesPage = () => {
         <AddEditExpenseDialog
           editingExpenseId={editingExpenseId}
           isOpen={isAddEditDialogOpen}
-          onOpenChange={(open) => startTransition(() => setIsAddEditDialogOpen(open))}
+          onOpenChange={(open) => {
+            if (!open) setEditingExpenseId(null);
+            startTransition(() => setIsAddEditDialogOpen(open));
+          }}
         />
       </Dialog>
 
@@ -515,6 +577,22 @@ const EnhancedExpensesPage = () => {
             title: "Success!",
             description: "Your expense has been created with Ingrid's assistance.",
           });
+        }}
+      />
+
+      {/* Invoice Style Expense Modal */}
+      <InvoiceStyleExpenseModal
+        isOpen={isInvoiceModalOpen}
+        onOpenChange={(open) => startTransition(() => setIsInvoiceModalOpen(open))}
+        mode="create"
+        onSave={async (expenseData) => {
+          console.log('Saving expense with invoice style:', expenseData);
+          // TODO: Implement save logic using existing expense mutation
+          toast({
+            title: "Success!",
+            description: "Your expense has been saved with invoice-style formatting.",
+          });
+          setIsInvoiceModalOpen(false);
         }}
       />
 

@@ -1,13 +1,160 @@
-# 🐳 Docker-Only Deployment Guide
+# 🐳 INFOtrac Docker Production Deployment
 
-**INFOtrac** - Fully Containerized Deployment for Ubuntu Server
+**Status**: Production Ready with PostgreSQL Database
+**Date**: September 24, 2025
 
-## 🚀 Quick Deployment
+## 🚀 **Quick Start Deployment**
 
-Your entire application runs in Docker containers - **no local Node.js installation required!**
+### **Prerequisites**
+- Docker 20.0+ installed
+- Docker Compose installed
+- Server with domain access
+- Local PostgreSQL database setup complete
 
-### Prerequisites
-- Ubuntu 20.04+ server
+### **1-Command Deployment**
+```bash
+# Make deployment script executable
+chmod +x deploy-infotrac.sh
+
+# Deploy with interactive setup
+./deploy-infotrac.sh
+```
+
+That's it! The script will:
+- ✅ **Check prerequisites** (Docker, Docker Compose)
+- ✅ **Build complete stack** (PostgreSQL, Redis, Backend, Frontend, Nginx)
+- ✅ **Interactive environment setup** (prompts for all required vars)
+- ✅ **Deploy and start** the full application stack
+- ✅ **Health checks** and status verification
+- ✅ **Show logs** and management commands
+
+## 📋 **Environment Variables Required**
+
+During deployment, you'll be prompted for:
+
+### **Required (Database)**
+- `DATABASE_URL` - PostgreSQL connection string
+- `POSTGRES_DB` - PostgreSQL database name (default: infotrac)
+- `POSTGRES_USER` - Database username (default: infotrac_user)
+- `POSTGRES_PASSWORD` - Database password (generated if not set)
+- `JWT_SECRET` - JWT token signing secret (generated if not set)
+
+### **Optional (API Keys)**
+- `OPENAI_API_KEY` - For AI features
+- `REDIS_URL` - Redis connection string (auto-configured)
+- `SMTP_HOST` - For email functionality
+- `SMTP_USER` - SMTP username
+- `SMTP_PASS` - SMTP password
+
+### **Auto-Configured**
+- `NODE_ENV=production`
+- `VITE_API_URL=http://backend:3001/api`
+- Port `80` (HTTP) and `443` (HTTPS) configuration
+
+## 🛠️ **Manual Deployment Steps**
+
+If you prefer manual control:
+
+### **1. Build the Complete Stack**
+```bash
+docker-compose -f docker-compose.production.yml build
+```
+
+### **2. Start All Services**
+```bash
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### **3. Configure Environment**
+The stack will automatically initialize with default configurations.
+
+### **4. Verify Deployment**
+```bash
+# Check all container status
+docker-compose ps
+
+# Test backend health endpoint
+curl -f http://localhost:3001/health
+
+# Test frontend
+curl -f http://localhost
+
+# View all logs
+docker-compose -f docker-compose.production.yml logs -f
+```
+
+## 📁 **File Structure**
+
+```
+INFOtrac/
+├── docker/
+│   ├── Dockerfile.production      # Production-optimized Dockerfile
+│   ├── nginx-production.conf      # Nginx configuration
+│   └── entrypoint.sh             # Container startup script
+├── backend/
+│   ├── Dockerfile.dev            # Backend development container
+│   └── package.json              # Node.js backend dependencies
+├── database/
+│   ├── init/                     # Database initialization scripts
+│   └── migrations/               # PostgreSQL migration files
+├── docker-compose.yml            # Production compose config
+├── docker-compose.dev.yml        # Development compose config
+├── deploy-infotrac.sh            # One-command deployment
+├── dev-setup.sh                  # Development environment setup
+├── .dockerignore                 # Build optimization
+└── DOCKER_DEPLOYMENT.md          # This documentation
+```
+
+## 🔧 **Configuration Details**
+
+### **Nginx Configuration**
+- **Port**: 4211 (as specified)
+- **Domain**: info.onbb.ca
+- **SSL**: Ready for SSL termination
+- **Gzip**: Enabled for performance
+- **Security headers**: Full security hardening
+- **Health endpoint**: `/health.json`
+
+### **Container Features**
+- **Multi-stage build** for optimized image size
+- **Non-root user** for security
+- **Health checks** with automatic restart
+- **Volume persistence** for config and logs
+- **Resource limits** (512MB RAM, 0.5 CPU)
+- **Security hardening** (no-new-privileges)
+
+### **Environment Management**
+- **Interactive setup** on first run
+- **Persistent configuration** in volumes
+- **Validation** of required variables
+- **Connectivity testing** to Supabase
+- **Runtime config injection** for frontend
+
+## 🌐 **Access Information**
+
+### **Application URLs**
+- **Main App**: `http://localhost:8080` (development) or configured domain
+- **API Health**: `http://localhost:3001/health`
+- **Database**: `localhost:5432` (PostgreSQL)
+- **Redis**: `localhost:6379`
+
+### **Container Management**
+```bash
+# View logs
+docker-compose -f docker-compose.production.yml logs -f
+
+# Stop application
+docker-compose -f docker-compose.production.yml down
+
+# Restart application
+docker-compose -f docker-compose.production.yml restart
+
+# Update deployment
+./deploy-infotrac.sh
+
+# Shell access
+docker exec -it infotrac-production /bin/sh
+```
 - Domain pointing to your server (info.onbb.ca)
 - Supabase project with database
 
@@ -63,17 +210,22 @@ sudo ./deploy.sh deploy
 ## 🏗️ Architecture
 
 ```
-Internet → Nginx (SSL/HTTPS) → Docker Container (React App)
-                                     ↓
-                              Supabase (Database)
+Internet → Nginx (SSL/HTTPS) → React Frontend (Vite)
+                                       ↓
+                              Node.js/Express Backend
+                                       ↓
+                          PostgreSQL + Redis Containers
+                                       ↓
+                                JWT Authentication
 ```
 
 ### What Gets Installed:
 - ✅ **Docker & Docker Compose** - Container runtime
-- ✅ **Nginx** - Reverse proxy with SSL termination
-- ✅ **Let's Encrypt SSL** - Automatic HTTPS certificates
-- ✅ **UFW Firewall** - Security configuration
-- ✅ **INFOtrac Container** - Your React application
+- ✅ **Nginx Container** - Reverse proxy with SSL termination
+- ✅ **PostgreSQL Container** - Primary database
+- ✅ **Redis Container** - Session storage and caching
+- ✅ **Node.js Backend Container** - REST API and business logic
+- ✅ **React Frontend Container** - User interface
 
 ### What Does NOT Get Installed:
 - ❌ Node.js (runs inside container)

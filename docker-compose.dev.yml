@@ -1,0 +1,90 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: infotrac_postgres_dev
+    environment:
+      POSTGRES_DB: infotrac
+      POSTGRES_USER: infotrac_user
+      POSTGRES_PASSWORD: infotrac_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infotrac_user -d infotrac"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for session storage and caching
+  redis:
+    image: redis:7-alpine
+    container_name: infotrac_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Backend API Service (Development Mode)
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+      target: development
+    container_name: infotrac_backend_dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://infotrac_user:infotrac_password@postgres:5432/infotrac
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-key-change-for-production
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_ROUNDS: 8
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:8080,http://localhost:5173,http://localhost:3000
+      LOG_LEVEL: debug
+      # AI API Keys (optional for dev)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Email settings (optional for dev)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: ["npm", "run", "dev"]
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  default:
+    name: infotrac_dev_network

@@ -16,7 +16,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import NotificationBell from "@/components/NotificationBell";
 import UserProfileMenuButton from "@/components/UserProfileMenuButton";
 
-import { supabase } from "@/integrations/supabase/client";
 
 import {
   DndContext,
@@ -314,41 +313,30 @@ const RootLayout = () => {
   const handleLogout = async () => {
     console.log("Attempting logout. Current session:", session);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        // Check for specific "auth session missing" error
-        if (error.message.includes("Auth session missing!") || error.message.includes("No current session")) {
-          console.warn("Logout: Supabase reported no active session. Treating as successful logout.");
-          toast({
-            title: "Logged out",
-            description: "You have been successfully logged out.",
-          });
-        } else {
-          console.error("Logout error from Supabase:", error);
-          toast({
-            title: "Logout Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        console.log("Successfully signed out from Supabase.");
-        toast({
-          title: "Logged out",
-          description: "You have been successfully logged out.",
-        });
-      }
-    } catch (e: any) {
-      console.error("Unexpected error during logout:", e);
+      // Call backend logout endpoint
+      const response = await supabase.post('/auth/logout');
+
+      console.log("Successfully logged out from backend.");
       toast({
-        title: "Unexpected Logout Error",
-        description: e.message || "An unexpected error occurred during logout.",
-        variant: "destructive",
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      // Even if logout fails on backend, clear client-side state
+      toast({
+        title: "Logged out",
+        description: "You have been logged out.",
       });
     } finally {
-      // Always perform a full page reload to ensure all client-side state is reset
-      // This is the most reliable way to clear everything after logout.
-      window.location.reload();
+      // Clear all authentication data
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('infotrac_token');
+      localStorage.removeItem('supabase.auth.token');
+
+      // Redirect to login page
+      window.location.href = '/login';
     }
   };
 

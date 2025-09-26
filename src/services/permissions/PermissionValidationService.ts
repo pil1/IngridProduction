@@ -6,6 +6,7 @@
  */
 
 import { UserRole } from '@/types/permissions';
+import { permissionDependencyService } from './PermissionDependencyService';
 
 export interface ValidationRule {
   id: string;
@@ -184,9 +185,72 @@ export class PermissionValidationService {
   }
 
   /**
-   * Validate a permission change
+   * Validate a permission change with dependency checking
    */
-  validatePermissionChange(context: ValidationContext): ValidationResult {
+  async validatePermissionChange(
+    context: ValidationContext,
+    currentUserPermissions?: string[]
+  ): Promise<ValidationResult> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const info: string[] = [];
+    const blockedBy: string[] = [];
+
+    // First run role-based validation rules
+    for (const rule of this.rules) {
+      const passed = rule.check(context);
+
+      if (!passed) {
+        switch (rule.severity) {
+          case 'error':
+            errors.push(rule.message);
+            blockedBy.push(rule.id);
+            break;
+          case 'warning':
+            warnings.push(rule.message);
+            break;
+          case 'info':
+            info.push(rule.message);
+            break;
+        }
+      }
+    }
+
+    // Then run dependency validation if we have permission key and user permissions
+    if (context.permissionKey && currentUserPermissions) {
+      try {
+        const dependencyResult = await permissionDependencyService.validatePermissionChange(
+          context.targetUserId,
+          context.permissionKey,
+          context.isGranting,
+          currentUserPermissions
+        );
+
+        errors.push(...dependencyResult.errors);
+        warnings.push(...dependencyResult.warnings);
+
+        if (!dependencyResult.isValid) {
+          blockedBy.push('permission-dependencies');
+        }
+      } catch (error) {
+        console.warn('Failed to validate permission dependencies:', error);
+        warnings.push('Could not validate permission dependencies. Please verify manually.');
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      info,
+      blockedBy: blockedBy.length > 0 ? blockedBy : undefined,
+    };
+  }
+
+  /**
+   * Synchronous validation for backward compatibility
+   */
+  validatePermissionChangeSync(context: ValidationContext): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
     const info: string[] = [];

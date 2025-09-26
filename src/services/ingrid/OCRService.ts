@@ -6,6 +6,7 @@
  */
 
 import { IngridConfig } from '@/types/ingrid';
+import { CurrencyIntelligenceService } from './CurrencyIntelligenceService';
 
 export interface OCRResult {
   text: string;
@@ -13,6 +14,58 @@ export interface OCRResult {
   blocks: OCRBlock[];
   tables?: OCRTable[];
   keyValuePairs?: OCRKeyValue[];
+  invoiceData?: InvoiceOCRData; // Enhanced structured invoice extraction
+}
+
+// Structured invoice data from OCR
+export interface InvoiceOCRData {
+  header: {
+    invoiceNumber?: string;
+    purchaseOrderNumber?: string;
+    issueDate?: string;
+    dueDate?: string;
+    reference?: string;
+  };
+  vendor: {
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    taxNumber?: string;
+  };
+  billTo: {
+    name?: string;
+    address?: string;
+  };
+  lineItems: Array<{
+    lineNumber?: number;
+    description: string;
+    productCode?: string;
+    quantity?: number;
+    unitPrice?: number;
+    amount: number;
+    taxRate?: number;
+    taxAmount?: number;
+    confidence: number;
+  }>;
+  taxes: Array<{
+    type: string; // 'GST', 'PST', 'HST', 'VAT', etc.
+    rate: number;
+    baseAmount: number;
+    taxAmount: number;
+    jurisdiction?: string;
+    confidence: number;
+  }>;
+  totals: {
+    subtotal: number;
+    totalTax: number;
+    grandTotal: number;
+    currency: string;
+    confidence: number;
+  };
+  documentQuality: 'excellent' | 'good' | 'fair' | 'poor';
+  overallConfidence: number;
 }
 
 export interface OCRBlock {
@@ -285,10 +338,10 @@ Analyze the document and return ONLY the JSON response with maximum accuracy and
       // The Supabase function returns { data: extractedData }, not raw Document AI response
       if (data.data) {
         console.log('📊 Processing Supabase function response with extracted data');
-        return this.parseSupabaseFunctionResponse(data.data);
+        return await this.parseSupabaseFunctionResponse(data.data, profileData.company_id);
       } else {
         console.warn('📊 Unexpected response format from Supabase function:', data);
-        return this.parseSupabaseFunctionResponse(data);
+        return await this.parseSupabaseFunctionResponse(data, profileData.company_id);
       }
 
     } catch (error) {
@@ -731,22 +784,6 @@ ${parsed.extraction_notes ? '\nNOTES: ' + parsed.extraction_notes : ''}
     }
   }
 
-  private mapCurrency(text: string): string {
-    const mapping: Record<string, string> = {
-      '$': 'USD',
-      '€': 'EUR',
-      '£': 'GBP',
-      '¥': 'JPY',
-      '₹': 'INR',
-      'USD': 'USD',
-      'EUR': 'EUR',
-      'GBP': 'GBP',
-      'CAD': 'CAD',
-      'JPY': 'JPY',
-      'AUD': 'AUD'
-    };
-    return mapping[text] || 'USD';
-  }
 
   private createBlocksFromText(text: string): OCRBlock[] {
     return text.split('\n').map((line, index) => ({
@@ -917,8 +954,9 @@ ${parsed.extraction_notes ? '\nNOTES: ' + parsed.extraction_notes : ''}
 
   /**
    * Parse response from existing Supabase analyze-expense function
+   * Enhanced with intelligent currency detection
    */
-  private parseSupabaseFunctionResponse(data: any): OCRResult {
+  private async parseSupabaseFunctionResponse(data: any, companyId: string): Promise<OCRResult> {
     console.log('📄 Parsing Supabase function response');
     console.log('📊 Response data keys:', Object.keys(data));
 
@@ -962,18 +1000,47 @@ ${parsed.extraction_notes ? '\nNOTES: ' + parsed.extraction_notes : ''}
       });
     }
 
-    // Map currency_code with smart detection based on tax patterns
+    // Enhanced currency detection with intelligent tax-aware service
     let currency = data.original_currency_code || data.currency_code;
     let currencyConfidence = 0.95;
 
-    // Smart currency detection based on tax patterns
-    if (!currency || currency === 'USD') {
+    try {
+      // Use CurrencyIntelligenceService for sophisticated detection
+      const currencyService = CurrencyIntelligenceService.getInstance();
       const textContent = data.receipt_summary || data.raw_text || '';
-      const smartCurrency = this.detectCurrencyFromTaxPatterns(data, textContent);
-      if (smartCurrency.currency !== currency) {
-        currency = smartCurrency.currency;
-        currencyConfidence = smartCurrency.confidence;
-        console.log(`💰 Smart currency detection: ${currency} (${Math.round(currencyConfidence * 100)}% confidence based on ${smartCurrency.reason})`);
+
+      const detectionResult = await currencyService.detectCurrency(
+        textContent,
+        data,
+        companyId
+      );
+
+      // Use the intelligent detection result
+      currency = detectionResult.currency;
+      currencyConfidence = detectionResult.confidence;
+
+      console.log(`🧠 Intelligent currency detection: ${currency} (${Math.round(currencyConfidence * 100)}% confidence - ${detectionResult.reason})`);
+
+      if (detectionResult.companyMismatch) {
+        console.log(`⚠️ Currency mismatch detected - invoice currency differs from company default`);
+      }
+
+      if (detectionResult.warnings.length > 0) {
+        console.log(`⚠️ Currency detection warnings:`, detectionResult.warnings);
+      }
+
+    } catch (error) {
+      console.warn('⚠️ CurrencyIntelligenceService failed, using fallback detection:', error);
+
+      // Fallback to simple detection
+      if (!currency || currency === 'USD') {
+        const textContent = data.receipt_summary || data.raw_text || '';
+        const smartCurrency = this.detectCurrencyFromTaxPatterns(data, textContent);
+        if (smartCurrency.currency !== currency) {
+          currency = smartCurrency.currency;
+          currencyConfidence = smartCurrency.confidence;
+          console.log(`💰 Fallback currency detection: ${currency} (${Math.round(currencyConfidence * 100)}% confidence based on ${smartCurrency.reason})`);
+        }
       }
     }
 

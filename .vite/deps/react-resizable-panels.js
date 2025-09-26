@@ -1,9 +1,9 @@
 import {
   require_react
-} from "./chunk-FXJVXTVJ.js";
+} from "./chunk-2CLD7BNN.js";
 import {
   __toESM
-} from "./chunk-4B2QHNJT.js";
+} from "./chunk-WOOG5QLI.js";
 
 // node_modules/react-resizable-panels/dist/react-resizable-panels.browser.development.esm.js
 var React = __toESM(require_react());

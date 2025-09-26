@@ -23,6 +23,10 @@ import { IngridAvatar } from './IngridAvatar';
 import { Step1DocumentUpload } from './Step1DocumentUpload';
 import { Step2SmartForm } from './Step2SmartForm';
 import { Step3ReviewSubmit } from './Step3ReviewSubmit';
+import DualColumnInvoiceView from '@/components/DualColumnInvoiceView';
+import { InvoiceExtractionService } from '@/services/ingrid/InvoiceExtractionService';
+import type { InvoiceOCRData } from '@/services/ingrid/OCRService';
+import type { InvoiceStructure, InvoiceLineItem } from '@/types/expenses';
 import { useIngridExpenseCreation } from '@/hooks/useIngridExpenseCreation';
 import type { IngridResponse } from '@/types/ingrid';
 
@@ -85,6 +89,10 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
   const [formData, setFormData] = useState<ProcessedExpenseData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Invoice structure for dual-column view
+  const [invoiceStructure, setInvoiceStructure] = useState<InvoiceStructure | null>(null);
+  const [documentPreviewUrl, setDocumentPreviewUrl] = useState<string | null>(null);
+
   const {
     validateExpenseData,
     submitExpense,
@@ -104,6 +112,8 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
       setFormData(null);
       setIsSubmitting(false);
       setProcessingStartTime(null);
+      setInvoiceStructure(null);
+      setDocumentPreviewUrl(null);
     }
     onOpenChange(open);
   }, [onOpenChange]);
@@ -148,10 +158,87 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
         setFormData(processedExpenseData);
         setCanProceed(true);
 
+        // Create document preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setDocumentPreviewUrl(previewUrl);
+
+        // Create invoice structure from processed data
+        const mockOcrData: InvoiceOCRData = {
+          header: {
+            invoiceNumber: processedExpenseData.description.split(' ')[0] || 'INV-001',
+            purchaseOrderNumber: null,
+            issueDate: processedExpenseData.expense_date,
+            dueDate: null,
+            reference: null
+          },
+          vendor: {
+            name: processedExpenseData.vendor_name || 'Demo Vendor',
+            address: processedExpenseData.gl_account_code || 'Demo Address',
+            phone: null,
+            email: null,
+            website: null,
+            taxNumber: null
+          },
+          billTo: {
+            name: 'Your Company',
+            address: 'Your Company Address'
+          },
+          lineItems: [{
+            lineNumber: 1,
+            description: processedExpenseData.description,
+            quantity: 1,
+            unitPrice: processedExpenseData.amount,
+            amount: processedExpenseData.amount,
+            productCode: null,
+            taxRate: processedExpenseData.tax_amount ? (processedExpenseData.tax_amount / processedExpenseData.amount) : 0.13,
+            taxAmount: processedExpenseData.tax_amount || (processedExpenseData.amount * 0.13),
+            confidence: processedExpenseData.confidence_score
+          }],
+          taxes: [{
+            type: 'Sales Tax',
+            rate: processedExpenseData.tax_amount ? (processedExpenseData.tax_amount / processedExpenseData.amount) : 0.13,
+            baseAmount: processedExpenseData.amount,
+            taxAmount: processedExpenseData.tax_amount || (processedExpenseData.amount * 0.13),
+            jurisdiction: 'Unknown',
+            confidence: processedExpenseData.field_confidences.tax_amount || 0.8
+          }],
+          totals: {
+            subtotal: processedExpenseData.amount - (processedExpenseData.tax_amount || (processedExpenseData.amount * 0.13)),
+            totalTax: processedExpenseData.tax_amount || (processedExpenseData.amount * 0.13),
+            grandTotal: processedExpenseData.amount,
+            currency: processedExpenseData.currency_code,
+            confidence: processedExpenseData.field_confidences.amount || 0.9
+          },
+          overallConfidence: processedExpenseData.confidence_score,
+          documentQuality: 'good'
+        };
+
+        const extractionService = new InvoiceExtractionService({
+          companyDefaultCurrency: processedExpenseData.currency_code,
+          enableTaxValidation: true,
+          strictModeEnabled: false,
+          confidenceThreshold: 0.6
+        });
+
+        extractionService.extractInvoiceFromOCR(
+          mockOcrData,
+          processingTime,
+          'ingrid-ai'
+        ).then(invoiceStruct => {
+          setInvoiceStructure(invoiceStruct);
+        }).catch(error => {
+          console.error('Failed to create invoice structure:', error);
+        });
+
         toast({
           title: "Document Processed Successfully",
           description: `Ingrid analyzed your ${file.name} with ${Math.round(response.confidence)}% confidence.`,
         });
+
+        // Automatically proceed to step 2 to show the invoice view
+        setTimeout(() => {
+          setCurrentStep(2);
+        }, 1000); // Small delay to let user see the success message
       } else {
         // AI processing failed, but allow manual entry
         console.warn("Unable to extract expense data from document, enabling manual entry");
@@ -187,11 +274,88 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
         setFormData(emptyData);
         setCanProceed(true); // Allow proceeding to manual entry
 
+        // Create document preview URL for manual entry too
+        const previewUrl = URL.createObjectURL(file);
+        setDocumentPreviewUrl(previewUrl);
+
+        // Create basic invoice structure for manual entry
+        const basicOcrData: InvoiceOCRData = {
+          header: {
+            invoiceNumber: null,
+            purchaseOrderNumber: null,
+            issueDate: new Date().toISOString(),
+            dueDate: null,
+            reference: null
+          },
+          vendor: {
+            name: 'Unknown Vendor',
+            address: null,
+            phone: null,
+            email: null,
+            website: null,
+            taxNumber: null
+          },
+          billTo: {
+            name: 'Your Company',
+            address: 'Your Company Address'
+          },
+          lineItems: [{
+            lineNumber: 1,
+            description: 'Enter description',
+            quantity: 1,
+            unitPrice: 0,
+            amount: 0,
+            productCode: null,
+            taxRate: 0.13,
+            taxAmount: 0,
+            confidence: 0.5
+          }],
+          taxes: [{
+            type: 'Sales Tax',
+            rate: 0.13,
+            baseAmount: 0,
+            taxAmount: 0,
+            jurisdiction: 'Unknown',
+            confidence: 0.5
+          }],
+          totals: {
+            subtotal: 0,
+            totalTax: 0,
+            grandTotal: 0,
+            currency: 'USD',
+            confidence: 0.5
+          },
+          overallConfidence: 0.5,
+          documentQuality: 'unknown'
+        };
+
+        const extractionService = new InvoiceExtractionService({
+          companyDefaultCurrency: 'USD',
+          enableTaxValidation: true,
+          strictModeEnabled: false,
+          confidenceThreshold: 0.6
+        });
+
+        extractionService.extractInvoiceFromOCR(
+          basicOcrData,
+          processingTime,
+          'manual-entry'
+        ).then(invoiceStruct => {
+          setInvoiceStructure(invoiceStruct);
+        }).catch(error => {
+          console.error('Failed to create manual invoice structure:', error);
+        });
+
         toast({
           title: "AI Processing Failed",
           description: "Please enter expense details manually.",
           variant: "default"
         });
+
+        // Proceed to step 2 for manual entry
+        setTimeout(() => {
+          setCurrentStep(2);
+        }, 1000); // Small delay to let user see the message
       }
     } catch (error) {
       console.error('Document processing error:', error);
@@ -232,52 +396,16 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
         description: "Ingrid couldn't process your document. Please enter details manually.",
         variant: "destructive"
       });
+
+      // Proceed to step 2 even on error for manual entry
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 1000); // Small delay to let user see the error message
     } finally {
       setIsProcessing(false);
     }
   }, [toast]);
 
-  // Handle skip to manual entry
-  const handleSkipToManual = useCallback(() => {
-    // Create empty form data for manual entry
-    const currentTime = new Date().toISOString();
-    const emptyData: ProcessedExpenseData = {
-      description: '',
-      amount: 0,
-      vendor_name: '',
-      expense_date: new Date().toISOString().split('T')[0],
-      category: '',
-      currency_code: 'USD',
-      confidence_score: 0.5,
-      ingrid_suggestions: ['Manual entry mode - please fill in all required fields'],
-      field_confidences: {
-        description: 0.5,
-        amount: 0.5,
-        vendor_name: 0.5,
-        expense_date: 0.5,
-        category: 0.5,
-        gl_account_code: 0.5,
-        tax_amount: 0.5,
-        currency_code: 0.8
-      },
-      document_name: 'Manual Entry',
-      document_type: 'manual',
-      processing_time_ms: 0, // No processing time for manual entry
-      processing_started_at: currentTime,
-      processing_completed_at: currentTime
-    };
-
-    setProcessedData(emptyData);
-    setFormData(emptyData);
-    setCanProceed(true);
-    setCurrentStep(2); // Skip directly to Step 2
-
-    toast({
-      title: "Manual Entry Mode",
-      description: "Please fill in the expense details manually.",
-      variant: "default"
-    });
-  }, [toast]);
 
   // Step 2: Form data updated
   const handleFormDataChange = useCallback((updatedData: ProcessedExpenseData) => {
@@ -291,6 +419,67 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
 
     setCanProceed(isValid);
   }, []);
+
+  // Add new line item handler
+  const handleAddLineItem = useCallback(() => {
+    if (!invoiceStructure) return;
+
+    const newLineItem: InvoiceLineItem = {
+      id: `line-${Date.now()}`, // Temporary ID
+      description: '',
+      quantity: 1,
+      unit_price: 0,
+      line_amount: 0,
+      currency_code: invoiceStructure.summary.currency,
+      lineNumber: invoiceStructure.lineItems.length + 1,
+      productCode: null,
+      taxRate: null,
+      taxAmount: null,
+      discountRate: null,
+      discountAmount: null,
+      netAmount: 0,
+      grossAmount: 0,
+      taxJurisdiction: null,
+      taxType: null,
+      confidence: 0.0, // Manual entry has no AI confidence
+    };
+
+    setInvoiceStructure({
+      ...invoiceStructure,
+      lineItems: [...invoiceStructure.lineItems, newLineItem],
+      // Update summary to reflect new line item
+      summary: {
+        ...invoiceStructure.summary,
+        subtotal: invoiceStructure.summary.subtotal + newLineItem.line_amount,
+        grandTotal: invoiceStructure.summary.grandTotal + newLineItem.line_amount,
+      }
+    });
+  }, [invoiceStructure, setInvoiceStructure]);
+
+  // Remove line item handler
+  const handleRemoveLineItem = useCallback((lineIndex: number) => {
+    if (!invoiceStructure) return;
+
+    const removedItem = invoiceStructure.lineItems[lineIndex];
+    const updatedLineItems = invoiceStructure.lineItems.filter((_, index) => index !== lineIndex);
+
+    // Renumber remaining line items
+    const renumberedLineItems = updatedLineItems.map((item, index) => ({
+      ...item,
+      lineNumber: index + 1
+    }));
+
+    setInvoiceStructure({
+      ...invoiceStructure,
+      lineItems: renumberedLineItems,
+      // Update summary to reflect removed line item
+      summary: {
+        ...invoiceStructure.summary,
+        subtotal: invoiceStructure.summary.subtotal - removedItem.line_amount,
+        grandTotal: invoiceStructure.summary.grandTotal - removedItem.line_amount,
+      }
+    });
+  }, [invoiceStructure, setInvoiceStructure]);
 
   // Step 3: Final submission
   const handleExpenseSubmit = useCallback(async (finalData: ProcessedExpenseData) => {
@@ -341,6 +530,7 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
       setCanProceed(currentStep === 2 ? true : false); // Step 3 always allows proceed
     }
   }, [currentStep, canProceed]);
+
 
   const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
@@ -408,7 +598,6 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
           {currentStep === 1 && (
             <Step1DocumentUpload
               onDocumentProcessed={handleDocumentProcessed}
-              onSkipToManual={handleSkipToManual}
               isProcessing={isProcessing}
               securityContext={securityContext}
               onProcessingStart={() => setProcessingStartTime(Date.now())}
@@ -416,13 +605,46 @@ export const IngridExpenseCreationDialog: React.FC<IngridExpenseCreationDialogPr
             />
           )}
 
-          {currentStep === 2 && processedData && (
-            <Step2SmartForm
-              initialData={processedData}
-              onDataChange={handleFormDataChange}
-              uploadedFile={uploadedFile}
-              isValidating={isValidating}
-            />
+          {currentStep === 2 && processedData && invoiceStructure && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold">Review Invoice Details</h3>
+                <p className="text-sm text-muted-foreground">
+                  Review and edit the extracted information from your document
+                </p>
+              </div>
+              <DualColumnInvoiceView
+                invoiceData={invoiceStructure}
+                documentUrl={documentPreviewUrl}
+                documentFile={uploadedFile}
+                onFieldEdit={(fieldPath: string, newValue: any) => {
+                  // Handle field edits - sync with form data
+                  if (fieldPath === 'header.vendorName' && formData) {
+                    setFormData({ ...formData, vendor_name: newValue });
+                  }
+                  // Add more field syncing as needed
+                }}
+                onLineItemEdit={(lineIndex: number, field: string, value: any) => {
+                  // Handle line item edits
+                  if (field === 'description' && formData) {
+                    setFormData({ ...formData, description: value });
+                  }
+                  if (field === 'line_amount' && formData) {
+                    setFormData({ ...formData, amount: value });
+                  }
+                }}
+                onTaxEdit={(taxIndex: number, field: string, value: any) => {
+                  // Handle tax edits
+                  if (field === 'taxAmount' && formData) {
+                    setFormData({ ...formData, tax_amount: value });
+                  }
+                }}
+                onAddLineItem={handleAddLineItem}
+                onRemoveLineItem={handleRemoveLineItem}
+                editable={true}
+                className="h-[500px]"
+              />
+            </div>
           )}
 
           {currentStep === 3 && formData && (

@@ -1,65 +1,176 @@
 "use client";
 
 import { useCallback, useMemo } from "react"; // Removed useEffect, useState
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useSession } from "@/components/SessionContextProvider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // Removed useToast
-import { Building, Users, Settings, BarChart, Package, DollarSign, Receipt, ClipboardCheck, ListChecks, Landmark, Mail, User, Building2, CreditCard, Workflow, Truck, UsersRound, LayoutDashboard, Bell } from "lucide-react"; // All icons are now used
+import { Building, Users, Settings, BarChart, Package, DollarSign, Receipt, ClipboardCheck, ListChecks, Landmark, Mail, User, Building2, CreditCard, Workflow, Truck, UsersRound, LayoutDashboard, Bell, Key, Bot } from "lucide-react"; // All icons are now used
+import { PermissionKey, CORE_PERMISSIONS, OPERATIONS_PERMISSIONS, ACCOUNTING_PERMISSIONS, ANALYTICS_PERMISSIONS, AI_PERMISSIONS } from "@/types/permissions";
+import usePermissions from "@/hooks/usePermissions";
+import { tablePreferencesService } from "@/services/api/tablePreferences";
 
 export interface MenuItem {
   id: string;
   label: string;
   path?: string; // Optional for parent items
   icon: React.ElementType;
-  roles?: string[];
+  roles?: string[]; // Keep for backward compatibility during transition
+  permissions?: PermissionKey[]; // NEW: Permission-based access control
   companyRequired?: boolean;
   isHidden?: boolean;
-  isLocked?: boolean; // NEW: Add isLocked property
+  isLocked?: boolean;
   children?: MenuItem[];
 }
 
 // Define the default order and properties of menu items with new nested structure
 export const DEFAULT_MENU_ITEMS: MenuItem[] = [
-  { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, isHidden: false, roles: ['admin', 'controller', 'super-admin'], companyRequired: true },
-  { id: "companies", label: "Companies", path: "/companies", icon: Building, roles: ['super-admin'], isHidden: false },
-  { id: "vendors", label: "Vendors", path: "/vendors", icon: Truck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-  { id: "customers", label: "Customers", path: "/customers", icon: UsersRound, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-  { id: "expenses", label: "Expenses", path: "/expenses", icon: Receipt, companyRequired: true, isHidden: false },
-  { id: "expense-review", label: "Expense Review", path: "/expense-review", icon: ClipboardCheck, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-  { id: "notifications-page", label: "Notifications", path: "/notifications", icon: Bell, companyRequired: true, isHidden: false },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    isHidden: false,
+    roles: ['admin', 'controller', 'super-admin'],
+    permissions: [CORE_PERMISSIONS.DASHBOARD_VIEW],
+    companyRequired: true
+  },
+  {
+    id: "users",
+    label: "User Management",
+    icon: Users,
+    roles: ['admin', 'super-admin'],
+    permissions: [CORE_PERMISSIONS.USERS_VIEW],
+    isHidden: false,
+    isLocked: true,
+    children: [
+      {
+        id: "manage-users",
+        label: "Manage Users",
+        path: "/users",
+        icon: Users,
+        roles: ['admin', 'super-admin'],
+        permissions: [CORE_PERMISSIONS.USERS_VIEW],
+        isHidden: false
+      },
+      {
+        id: "provision-company",
+        label: "Provision New Company",
+        path: "/users/provision-company",
+        icon: Building,
+        roles: ['super-admin'],
+        isHidden: false
+      },
+    ]
+  },
+  {
+    id: "vendors",
+    label: "Vendors",
+    path: "/vendors",
+    icon: Truck,
+    roles: ['admin', 'controller', 'super-admin'],
+    permissions: [OPERATIONS_PERMISSIONS.VENDORS_VIEW],
+    companyRequired: true,
+    isHidden: false
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    path: "/customers",
+    icon: UsersRound,
+    roles: ['admin', 'controller', 'super-admin'],
+    permissions: [OPERATIONS_PERMISSIONS.CUSTOMERS_VIEW],
+    companyRequired: true,
+    isHidden: false
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    path: "/expenses",
+    icon: Receipt,
+    permissions: [OPERATIONS_PERMISSIONS.EXPENSES_VIEW],
+    companyRequired: true,
+    isHidden: false
+  },
+  {
+    id: "ingrid-ai",
+    label: "Ingrid AI Assistant",
+    path: "/ingrid-ai",
+    icon: Bot,
+    permissions: [AI_PERMISSIONS.INGRID_VIEW],
+    companyRequired: true,
+    isHidden: false
+  },
+  {
+    id: "notifications-page",
+    label: "Notifications",
+    path: "/notifications",
+    icon: Bell,
+    permissions: [CORE_PERMISSIONS.NOTIFICATIONS_VIEW],
+    companyRequired: true,
+    isHidden: false
+  },
   {
     id: "accounting",
     label: "Accounting",
     icon: Landmark,
     roles: ['admin', 'controller', 'super-admin'],
+    permissions: [ACCOUNTING_PERMISSIONS.GL_ACCOUNTS_VIEW, ACCOUNTING_PERMISSIONS.EXPENSE_CATEGORIES_VIEW],
     companyRequired: true,
     isHidden: false,
     children: [
-      { id: "expense-categories", label: "Expense Categories", path: "/expense-categories", icon: ListChecks, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-      { id: "gl-accounts", label: "GL Accounts", path: "/gl-accounts", icon: Landmark, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
+      {
+        id: "expense-categories",
+        label: "Expense Categories",
+        path: "/expense-categories",
+        icon: ListChecks,
+        roles: ['admin', 'controller', 'super-admin'],
+        permissions: [ACCOUNTING_PERMISSIONS.EXPENSE_CATEGORIES_VIEW],
+        companyRequired: true,
+        isHidden: false
+      },
+      {
+        id: "gl-accounts",
+        label: "GL Accounts",
+        path: "/gl-accounts",
+        icon: Landmark,
+        roles: ['admin', 'controller', 'super-admin'],
+        permissions: [ACCOUNTING_PERMISSIONS.GL_ACCOUNTS_VIEW],
+        companyRequired: true,
+        isHidden: false
+      },
     ]
   },
   {
-    id: "process-automation",
-    label: "Process Automation",
-    icon: Workflow,
-    roles: ['admin', 'controller', 'super-admin'],
-    companyRequired: true,
-    isHidden: false,
-    children: [
-      { id: "automations", label: "Automations", path: "/process-automation", icon: Workflow, roles: ['admin', 'controller', 'super-admin'], companyRequired: true, isHidden: false },
-    ]
+    id: "billing",
+    label: "Billing",
+    path: "/billing",
+    icon: DollarSign,
+    roles: ['super-admin'],
+    isHidden: false
   },
-  { id: "billing", label: "Billing", path: "/billing", icon: DollarSign, roles: ['super-admin'], isHidden: false },
-  { id: "analytics", label: "Analytics", path: "/analytics", icon: BarChart, isHidden: false },
   {
-    id: "system-notification-settings", // New unified route for system notifications
+    id: "api-key-manager",
+    label: "API Key Manager",
+    path: "/api-key-manager",
+    icon: Key,
+    roles: ['super-admin'],
+    isHidden: false
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    path: "/analytics",
+    icon: BarChart,
+    permissions: [ANALYTICS_PERMISSIONS.ANALYTICS_VIEW],
+    isHidden: false
+  },
+  {
+    id: "system-notification-settings",
     label: "System Notifications",
-    path: "/system-notification-settings", // Point to the new unified page
+    path: "/system-notification-settings",
     icon: Mail,
     roles: ['super-admin'],
     isHidden: false,
-    // Removed children as it's now a single page with tabs
   },
   {
     id: "settings",
@@ -67,10 +178,31 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
     icon: Settings,
     isHidden: false,
     children: [
-      { id: "profile-settings", label: "Profile", path: "/settings", icon: User, isHidden: false },
-      { id: "company-settings", label: "Company", path: "/company-settings", icon: Building2, roles: ['admin', 'super-admin'], companyRequired: true, isHidden: false },
-      { id: "users", label: "User Management", path: "/users", icon: Users, roles: ['admin', 'super-admin'], isHidden: false, isLocked: true }, // Enhanced user management system
-      { id: "system-billing-settings", label: "System Billing", path: "/system-billing-settings", icon: CreditCard, roles: ['super-admin'], isHidden: false },
+      {
+        id: "profile-settings",
+        label: "Profile",
+        path: "/settings",
+        icon: User,
+        isHidden: false
+      },
+      {
+        id: "company-settings",
+        label: "Company",
+        path: "/company-settings",
+        icon: Building2,
+        roles: ['admin', 'super-admin'],
+        permissions: [CORE_PERMISSIONS.COMPANY_SETTINGS_VIEW],
+        companyRequired: true,
+        isHidden: false
+      },
+      {
+        id: "system-billing-settings",
+        label: "System Billing",
+        path: "/system-billing-settings",
+        icon: CreditCard,
+        roles: ['super-admin'],
+        isHidden: false
+      },
     ]
   },
 ];
@@ -113,90 +245,131 @@ interface SystemModule { // New interface for system modules
 export function useUserMenuPreferences() {
   const queryClient = useQueryClient();
   const { user, profile, isLoading: isLoadingSession, impersonatedProfile } = useSession();
+  const { hasPermission, hasAnyPermission } = usePermissions();
 
   // Use the active user's ID for preferences and module access
   const activeUserId = impersonatedProfile?.user_id ?? user?.id;
   const activeProfile = impersonatedProfile ?? profile;
 
+  // FIXED: Re-enable user preferences with better error handling
   const { data: userPreferences, isLoading: isLoadingPreferences } = useQuery<UserMenuPreferences | null>({
-    queryKey: ["userMenuPreferences", activeUserId], // Query key includes user.id for specific profile
+    queryKey: ["userMenuPreferences", activeUserId],
     queryFn: async () => {
       if (!activeUserId) return null;
-      // Select all columns, let Supabase client handle JSONB parsing
-      const { data, error } = await supabase
-        .from("user_menu_preferences")
-        .select("*") // Select all to avoid 406 if schema changes
-        .eq("user_id", activeUserId)
-        .single();
-      if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found"
-        console.error("Error fetching user menu preferences:", error);
-        throw error; // Let react-query handle the error state
-      }
-      
-      if (data) {
-        let processedMenuItemsOrder: UserMenuItemPreference[] = [];
-        // Ensure menu_items_order is treated as an array of objects
-        if (Array.isArray(data.menu_items_order)) {
-          // Check if it's the old string array format (array of strings) or the new object array format
-          if (data.menu_items_order.length > 0 && typeof data.menu_items_order[0] === 'string') {
-            processedMenuItemsOrder = (data.menu_items_order as string[]).map(id => ({ id, isHidden: false }));
-          } else {
-            // Assume it's already the correct object array format
-            processedMenuItemsOrder = data.menu_items_order as UserMenuItemPreference[];
-          }
-        } else if (data.menu_items_order === null || data.menu_items_order === undefined) {
-            processedMenuItemsOrder = []; // Default to empty array if null/undefined
-        } else {
-            console.warn("menu_items_order is not an array:", data.menu_items_order);
-            processedMenuItemsOrder = []; // Fallback to empty array
+
+      try {
+        console.log("Attempting to fetch user preferences for:", activeUserId);
+
+        // Use our localStorage-based table preferences service
+        const { data, error } = await tablePreferencesService.getTablePreferences("menu_preferences");
+
+        if (error) {
+          console.warn("Error fetching user preferences:", error.message);
+          return null; // Gracefully fallback to defaults
         }
-        return { ...data, menu_items_order: processedMenuItemsOrder };
+
+        if (data && data.preferences) {
+          // Extract menu_items_order from preferences
+          const prefs = data.preferences as any;
+          return {
+            id: data.id,
+            user_id: data.user_id,
+            menu_items_order: prefs.menu_items_order || [],
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          };
+        }
+
+        return null; // No preferences found, use defaults
+      } catch (fetchError: any) {
+        console.warn("Failed to fetch user preferences, using defaults:", fetchError.message);
+        return null;
       }
-      return null;
     },
     enabled: !!activeUserId && !isLoadingSession,
-    staleTime: 1000 * 60 * 5, // Profile data is relatively stable, re-fetch every 5 minutes
-    refetchOnWindowFocus: true, // Re-fetch when window regains focus
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false, // Reduce queries
+    retry: 1, // Only retry once on failure
   });
 
   // UPDATED: Use UserModule[] for userModules query
-  const { data: userModules, isLoading: isLoadingUserModules } = useQuery<UserModule[]>({
+  const { data: userModules = [], isLoading: isLoadingUserModules } = useQuery<UserModule[]>({
     queryKey: ["userModulesForMenu", activeUserId],
     queryFn: async () => {
       if (!activeUserId) return [];
-      // Select all fields required by the UserModule interface
-      const { data, error } = await supabase
-        .from("user_modules")
-        .select("id, user_id, company_id, module_id, is_enabled")
-        .eq("user_id", activeUserId);
-      if (error) throw error;
-      return data;
+      try {
+        // Select all fields required by the UserModule interface
+        const response = await apiClient
+          .from("user_modules")
+          .select("id, user_id, company_id, module_id, is_enabled")
+          .eq("user_id", activeUserId);
+        return response.data || [];
+      } catch (error) {
+        console.error("Error fetching user modules:", error);
+        return [];
+      }
     },
     enabled: !!activeUserId && !isLoadingSession,
   });
 
   // NEW: Fetch company-level module settings
-  const { data: companyModules, isLoading: isLoadingCompanyModules } = useQuery<CompanyModule[]>({
+  const { data: companyModules = [], isLoading: isLoadingCompanyModules } = useQuery<CompanyModule[]>({
     queryKey: ["companyModulesForMenu", activeProfile?.company_id],
     queryFn: async () => {
       if (!activeProfile?.company_id) return [];
-      const { data, error } = await supabase
-        .from("company_modules")
-        .select("id, company_id, module_id, is_enabled, is_locked_by_system") // Select all fields required by CompanyModule interface
-        .eq("company_id", activeProfile.company_id);
-      if (error) throw error;
-      return data;
+      try {
+        const response = await apiClient
+          .from("company_modules")
+          .select("id, company_id, module_id, is_enabled, is_locked_by_system") // Select all fields required by CompanyModule interface
+          .eq("company_id", activeProfile.company_id);
+        return response.data || [];
+      } catch (error) {
+        console.error("Error fetching company modules:", error);
+        return [];
+      }
     },
     enabled: !!activeProfile?.company_id && !isLoadingSession,
   });
 
-  // NEW: Fetch all system modules (id, name, module_type, roles)
+  // NEW: Fetch all system modules via our backend API
   const { data: systemModules, isLoading: isLoadingSystemModules } = useQuery<SystemModule[]>({
     queryKey: ["allSystemModulesForMenu"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("modules").select("id, name, module_type, roles"); // Select module_type and roles
-      if (error) throw error;
-      return data;
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          console.warn('No access token available for modules fetch');
+          return [];
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/modules`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch modules:', response.status, response.statusText);
+          return [];
+        }
+
+        const data = await response.json();
+        if (data.success && data.data?.modules && Array.isArray(data.data.modules)) {
+          return data.data.modules.map((module: any) => ({
+            id: module.id,
+            name: module.name,
+            module_type: module.module_type || 'add-on',
+            roles: module.roles
+          }));
+        }
+
+        console.warn('Invalid modules response:', data);
+        return [];
+      } catch (error) {
+        console.error('Error fetching system modules:', error);
+        return []; // Return empty array instead of undefined
+      }
     },
     enabled: !isLoadingSession, // Always fetch if session is not loading
     staleTime: Infinity, // System modules are static
@@ -205,10 +378,14 @@ export function useUserMenuPreferences() {
   const savePreferencesMutation = useMutation({
     mutationFn: async (newOrder: UserMenuItemPreference[]) => {
       if (!activeUserId) throw new Error("User not authenticated.");
-      const { data, error } = await supabase
-        .from("user_menu_preferences")
-        .upsert({ user_id: activeUserId, menu_items_order: newOrder }, { onConflict: "user_id" });
-      if (error) throw error;
+
+      // Use our localStorage table preferences service
+      const { data, error } = await tablePreferencesService.saveTablePreferences({
+        table_name: "menu_preferences",
+        preferences: { menu_items_order: newOrder }
+      });
+
+      if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
@@ -228,22 +405,23 @@ export function useUserMenuPreferences() {
     // Ensure these names match the 'name' column in your 'modules' table
     switch (menuItemId) {
       case "dashboard": return moduleNameToIdMap.get("Dashboard");
-      case "companies": return moduleNameToIdMap.get("Companies");
       case "vendors": return moduleNameToIdMap.get("Vendors");
       case "customers": return moduleNameToIdMap.get("Customers");
       case "expenses": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
       case "enhanced-expenses": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
-      case "expense-review": return moduleNameToIdMap.get("Expense Management"); // Maps to Expense Management module
       case "notifications-page": return moduleNameToIdMap.get("Notifications");
       case "expense-categories": return moduleNameToIdMap.get("Expense Categories");
       case "gl-accounts": return moduleNameToIdMap.get("GL Accounts");
-      case "automations": return moduleNameToIdMap.get("Process Automation"); // Maps to Process Automation module
       case "billing": return moduleNameToIdMap.get("Billing");
-      case "analytics": return moduleNameToIdMap.get("Analytics");
+      case "api-key-manager": return moduleNameToIdMap.get("API Key Manager");
+      case "analytics": return moduleNameToIdMap.get("Advanced Analytics");
+      case "ingrid-ai": return moduleNameToIdMap.get("Ingrid AI");
       case "system-notification-settings": return moduleNameToIdMap.get("System Notification Settings"); // New unified module
       case "profile-settings": return moduleNameToIdMap.get("Profile Settings");
       case "company-settings": return moduleNameToIdMap.get("Company Settings");
       case "users": return moduleNameToIdMap.get("User Management");
+      case "manage-users": return moduleNameToIdMap.get("User Management");
+      case "provision-company": return moduleNameToIdMap.get("User Management");
       case "system-billing-settings": return moduleNameToIdMap.get("System Billing Settings");
       case "company-notification-settings": return moduleNameToIdMap.get("Company Notification Settings"); // Assuming this is a module
       // Parent items like "accounting", "process-automation", "system-notification-settings", "settings" don't have a direct module_id
@@ -347,7 +525,8 @@ export function useUserMenuPreferences() {
     userModuleSettings: UserModule[], // Corrected to UserModule[]
     companyModuleSettings: CompanyModule[], // Still needed for module enablement check
     systemModules: SystemModule[] | undefined,
-    ignoreIsHidden: boolean = false // New parameter to control if isHidden is ignored
+    ignoreIsHidden: boolean = false, // New parameter to control if isHidden is ignored
+    permissionChecker?: { hasAnyPermission: (permissions: PermissionKey[]) => boolean } // NEW: Permission checker
   ): MenuItem[] => {
     const userModuleMap = new Map<string, boolean>();
     userModuleSettings.forEach(um => userModuleMap.set(um.module_id, um.is_enabled));
@@ -356,8 +535,8 @@ export function useUserMenuPreferences() {
     companyModuleSettings.forEach(cm => companyModuleMap.set(cm.module_id, { is_enabled: cm.is_enabled, is_locked_by_system: cm.is_locked_by_system }));
 
     return items.map(item => {
-      const systemModuleInfo = systemModules?.find(mod => mod.name === item.label); // Find system module by label
-      const actualModuleId = systemModuleInfo?.id;
+      const actualModuleId = getModuleIdForMenuItem(item.id);
+      const systemModuleInfo = systemModules?.find(mod => mod.id === actualModuleId);
 
       // 1. Check if item is a module and if it's enabled at the company level
       //    Only apply this if the item has a 'path' (indicating it's a leaf navigation item/module)
@@ -390,10 +569,20 @@ export function useUserMenuPreferences() {
       if (!ignoreIsHidden && item.isHidden && !isLockedAndNotSuperAdmin) return null; // Only hide if not locked and not ignoring isHidden
 
       if (item.companyRequired && !companyId) return null;
-      if (item.roles && (!role || !item.roles.includes(role))) return null; // This is for DEFAULT_MENU_ITEMS roles, not system module roles
+
+      // Permission-based access control (NEW)
+      if (item.permissions && item.permissions.length > 0 && permissionChecker) {
+        // Check if user has any of the required permissions for this menu item
+        if (!permissionChecker.hasAnyPermission(item.permissions)) {
+          return null; // Hide if user doesn't have any required permissions
+        }
+      }
+
+      // Legacy role-based access control (for backward compatibility)
+      if (item.roles && (!role || !item.roles.includes(role))) return null;
       
       if (item.children) {
-        const visibleChildren = filterItems(item.children, role, companyId, userModuleSettings, companyModuleSettings, systemModules, ignoreIsHidden);
+        const visibleChildren = filterItems(item.children, role, companyId, userModuleSettings, companyModuleSettings, systemModules, ignoreIsHidden, permissionChecker);
         if (visibleChildren.length > 0) {
           return { ...item, children: visibleChildren };
         }
@@ -405,16 +594,16 @@ export function useUserMenuPreferences() {
 
   const filteredMenuItems = useMemo(() => {
     if (!activeProfile || isLoadingSystemModules) return [];
-    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, false); // Use false for ignoreIsHidden
-  }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules]);
+    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, false, { hasAnyPermission }); // Use false for ignoreIsHidden
+  }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules, hasAnyPermission]);
 
   const editableMenuItems = useMemo(() => {
     if (!activeProfile || isLoadingSystemModules) return [];
     // For the editable menu, we want to show all items the user *could* potentially see,
     // regardless of their current 'isHidden' status, so we pass `true` for `ignoreIsHidden`.
     // This allows them to toggle visibility for items they have permission to access.
-    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, true);
-  }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules]);
+    return filterItems(orderedMenuItems, activeProfile.role, activeProfile.company_id, userModules ?? [], companyModules ?? [], systemModules, true, { hasAnyPermission });
+  }, [orderedMenuItems, activeProfile, userModules, companyModules, filterItems, isLoadingSystemModules, systemModules, hasAnyPermission]);
 
   return {
     menuItems: filteredMenuItems,

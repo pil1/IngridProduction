@@ -24,6 +24,120 @@ export interface ExpenseLineItem {
   extracted_from_receipt_id?: string | null; // For traceability
 }
 
+// Tax breakdown for invoice-style display
+export interface TaxLineItem {
+  id: string;
+  taxType: string; // 'HST', 'GST', 'PST', 'Sales Tax', 'VAT', etc.
+  rate: number; // Tax rate as decimal (0.13 = 13%)
+  baseAmount: number; // Amount this tax applies to
+  taxAmount: number; // Calculated tax amount
+  jurisdiction: string; // 'Canada', 'US', 'UK', etc.
+  confidence: number; // AI confidence in this tax calculation
+  isCalculated: boolean; // True if calculated, false if extracted from document
+}
+
+// Invoice summary for display
+export interface InvoiceSummary {
+  subtotal: number; // Sum of all line items before tax
+  taxLines: TaxLineItem[]; // Individual tax breakdowns
+  totalTax: number; // Sum of all tax amounts
+  grandTotal: number; // Final total including all taxes
+  currency: string;
+  currencyConfidence: number; // Confidence in currency detection
+  currencyReason: string; // Explanation for currency choice
+  hasCompanyMismatch: boolean; // True if detected currency differs from company default
+}
+
+// Enhanced currency detection result for UI display
+export interface CurrencyDetectionInfo {
+  detectedCurrency: string;
+  confidence: number;
+  reason: string;
+  companyDefaultCurrency: string;
+  hasMismatch: boolean;
+  suggestedAction: 'accept' | 'verify' | 'override';
+  warnings: string[];
+}
+
+// Invoice header information extracted from documents
+export interface InvoiceHeader {
+  invoiceNumber: string | null;
+  purchaseOrderNumber: string | null;
+  issueDate: Date | null;
+  dueDate: Date | null;
+  paymentTerms: string | null;
+  reference: string | null;
+  // Vendor information
+  vendorName: string;
+  vendorAddress: string | null;
+  vendorPhone: string | null;
+  vendorEmail: string | null;
+  vendorWebsite: string | null;
+  vendorTaxNumber: string | null;
+  // Bill-to information (the company receiving the invoice)
+  billToName: string | null;
+  billToAddress: string | null;
+  // Confidence scores for extracted fields
+  confidence: InvoiceFieldConfidences;
+}
+
+// Confidence scores for individual invoice fields
+export interface InvoiceFieldConfidences {
+  invoiceNumber: number;
+  purchaseOrderNumber: number;
+  issueDate: number;
+  dueDate: number;
+  vendorName: number;
+  vendorAddress: number;
+  vendorContact: number;
+  billToInfo: number;
+  overallConfidence: number;
+}
+
+// Enhanced line item with invoice-style structure
+export interface InvoiceLineItem extends ExpenseLineItem {
+  lineNumber: number;
+  productCode: string | null;
+  taxRate: number | null;
+  taxAmount: number | null;
+  discountRate: number | null;
+  discountAmount: number | null;
+  netAmount: number; // Amount after discount, before tax
+  grossAmount: number; // Final amount including tax
+  taxJurisdiction: string | null; // 'Federal', 'Provincial', 'State', etc.
+  taxType: string | null; // 'GST', 'PST', 'HST', 'VAT', 'Sales Tax'
+  confidence: number;
+}
+
+// Comprehensive tax breakdown for invoice
+export interface EnhancedTaxLineItem extends TaxLineItem {
+  lineItemIds: string[]; // Which line items this tax applies to
+  extractedFromDocument: boolean; // True if found in document, false if calculated
+  verificationStatus: 'verified' | 'needs_review' | 'incorrect';
+  complianceNotes: string | null; // Notes about tax compliance or issues
+}
+
+// Complete invoice structure combining all elements
+export interface InvoiceStructure {
+  header: InvoiceHeader;
+  lineItems: InvoiceLineItem[];
+  taxBreakdown: EnhancedTaxLineItem[];
+  summary: InvoiceSummary;
+  metadata: InvoiceMetadata;
+}
+
+// Invoice processing metadata
+export interface InvoiceMetadata {
+  processingMethod: 'ai_extracted' | 'manual_entry' | 'hybrid';
+  documentQuality: 'excellent' | 'good' | 'fair' | 'poor';
+  processingTime: number; // milliseconds
+  aiModelUsed: string;
+  extractionWarnings: string[];
+  manualOverrides: string[]; // Fields that were manually corrected
+  reviewRequired: boolean;
+  processingDate: Date;
+}
+
 // Enhanced AI and UI Types
 export type FieldSource = 'ai' | 'manual' | 'mixed' | 'override';
 export type UrgencyLevel = 'low' | 'medium' | 'high';
@@ -159,6 +273,21 @@ export interface Expense {
   tags: string[];
   urgency_level: UrgencyLevel;
   has_receipt: boolean;
+
+  // Invoice-style enhancements
+  invoice_structure?: InvoiceStructure; // Complete invoice data structure
+  invoice_summary?: InvoiceSummary; // Calculated invoice breakdown
+  tax_line_items?: EnhancedTaxLineItem[]; // Individual tax lines from AI extraction
+  currency_detection_info?: CurrencyDetectionInfo; // Currency detection metadata
+  original_document_currency?: string; // Currency as it appeared in the document
+  exchange_rate_applied?: number; // If currency conversion was applied
+  foreign_currency_detected?: boolean; // True if invoice currency differs from company default
+
+  // Enhanced AI processing metadata
+  document_quality_score?: number; // Overall document quality assessment
+  processing_method?: 'ai_extracted' | 'manual_entry' | 'hybrid';
+  extraction_warnings?: string[]; // Warnings from AI processing
+  field_edit_history?: Record<string, { original: any; modified: any; timestamp: string; userId: string }>;
 }
 
 export interface ExpenseComment {

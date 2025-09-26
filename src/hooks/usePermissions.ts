@@ -1,82 +1,74 @@
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "@/components/SessionContextProvider";
+import CustomRoleService from "@/services/customRoleService";
+import { PermissionKey, EffectivePermission } from "@/types/permissions";
+
 /**
- * Permissions Hook
- *
- * React hook for checking user permissions and accessing security context.
- * Provides easy permission checking throughout the application.
+ * Hook to check user permissions using the new custom role system
  */
+export const usePermissions = () => {
+  const { profile } = useSession();
 
-import { useMemo } from 'react';
-import { useSession } from '@/components/SessionContextProvider';
-import { PermissionService, UserPermissions, SecurityContext } from '@/services/permissions/PermissionService';
+  // Fetch user's effective permissions
+  const { data: effectivePermissions, isLoading } = useQuery<EffectivePermission[]>({
+    queryKey: ["userEffectivePermissions", profile?.id, profile?.company_id],
+    queryFn: () => {
+      if (!profile?.id || !profile?.company_id) return [];
+      return CustomRoleService.getUserEffectivePermissions(profile.id, profile.company_id);
+    },
+    enabled: !!profile?.id && !!profile?.company_id,
+  });
 
-export interface UsePermissionsReturn {
-  permissions: UserPermissions;
-  securityContext: SecurityContext | null;
-  hasPermission: (action: keyof UserPermissions) => boolean;
-  canAccessGLData: boolean;
-  canAccessFinancialData: boolean;
-  canConfigureIngrid: boolean;
-  canManageUsers: boolean;
-  canViewSecurityLogs: boolean;
-  isAdmin: boolean;
-  isSuperAdmin: boolean;
-  filterSensitiveData: <T extends Record<string, any>>(data: T, sensitiveFields?: string[]) => Partial<T>;
-}
+  const permissionMap = new Map<PermissionKey, boolean>();
+  effectivePermissions?.forEach(permission => {
+    permissionMap.set(permission.permission_key as PermissionKey, permission.is_granted);
+  });
 
-export function usePermissions(): UsePermissionsReturn {
-  const { profile, impersonatedProfile, session } = useSession();
+  /**
+   * Check if user has a specific permission
+   */
+  const hasPermission = (permissionKey: PermissionKey): boolean => {
+    // Super admins have all permissions
+    if (profile?.role === 'super-admin') return true;
 
-  // Use impersonated profile if available, otherwise use actual profile
-  const activeProfile = impersonatedProfile || profile;
-
-  const { permissions, securityContext } = useMemo(() => {
-    if (!activeProfile || !session) {
-      return {
-        permissions: PermissionService.getUserPermissions('user', null),
-        securityContext: null
-      };
-    }
-
-    const context = PermissionService.createSecurityContext(
-      activeProfile,
-      session.access_token,
-      impersonatedProfile
-    );
-
-    const perms = PermissionService.getUserPermissions(
-      activeProfile.role,
-      activeProfile.company_id
-    );
-
-    return {
-      permissions: perms,
-      securityContext: context
-    };
-  }, [activeProfile, session, impersonatedProfile]);
-
-  const hasPermission = (action: keyof UserPermissions): boolean => {
-    return permissions[action];
+    return permissionMap.get(permissionKey) === true;
   };
 
-  const filterSensitiveData = <T extends Record<string, any>>(
-    data: T,
-    sensitiveFields?: string[]
-  ): Partial<T> => {
-    if (!securityContext) return data;
-    return PermissionService.filterSensitiveData(data, securityContext, sensitiveFields);
+  /**
+   * Check if user has any of the provided permissions
+   */
+  const hasAnyPermission = (permissionKeys: PermissionKey[]): boolean => {
+    if (profile?.role === 'super-admin') return true;
+
+    return permissionKeys.some(key => hasPermission(key));
+  };
+
+  /**
+   * Check if user has all of the provided permissions
+   */
+  const hasAllPermissions = (permissionKeys: PermissionKey[]): boolean => {
+    if (profile?.role === 'super-admin') return true;
+
+    return permissionKeys.every(key => hasPermission(key));
+  };
+
+  /**
+   * Get all permissions the user has
+   */
+  const getUserPermissions = (): PermissionKey[] => {
+    return Array.from(permissionMap.entries())
+      .filter(([_, isGranted]) => isGranted)
+      .map(([permission, _]) => permission);
   };
 
   return {
-    permissions,
-    securityContext,
+    effectivePermissions,
+    isLoading,
     hasPermission,
-    canAccessGLData: permissions.canViewGLAccounts,
-    canAccessFinancialData: permissions.canViewFinancialReports,
-    canConfigureIngrid: permissions.canConfigureIngridAI,
-    canManageUsers: permissions.canEditUsers,
-    canViewSecurityLogs: permissions.canViewSecurityLogs,
-    isAdmin: activeProfile?.role === 'admin',
-    isSuperAdmin: activeProfile?.role === 'super-admin',
-    filterSensitiveData
+    hasAnyPermission,
+    hasAllPermissions,
+    getUserPermissions,
   };
-}
+};
+
+export default usePermissions;

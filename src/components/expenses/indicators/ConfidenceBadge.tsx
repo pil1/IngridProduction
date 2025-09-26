@@ -19,6 +19,7 @@ export interface ConfidenceBadgeProps {
   showIcon?: boolean;
   showTooltip?: boolean;
   className?: string;
+  isManual?: boolean; // Indicates this is a manual entry, not AI
 }
 
 // Calculate confidence level from score
@@ -86,8 +87,64 @@ export const ConfidenceBadge: React.FC<ConfidenceBadgeProps> = ({
   size = 'sm',
   showIcon = true,
   showTooltip = true,
-  className
+  className,
+  isManual = false
 }) => {
+  // For manual entries, show a different badge style
+  if (isManual) {
+    const baseStyles = {
+      xs: 'text-[10px] px-1.5 py-0.5 h-4',
+      sm: 'text-xs px-2 py-0.5 h-5',
+      md: 'text-sm px-2.5 py-1 h-6',
+      lg: 'text-base px-3 py-1.5 h-8'
+    };
+
+    const manualBadge = (
+      <Badge
+        variant="outline"
+        className={cn(
+          baseStyles[size],
+          'bg-gray-100 text-gray-700 border-gray-300 font-medium flex items-center gap-1 cursor-default',
+          className
+        )}
+      >
+        {showIcon && <CheckCircle className={cn(
+          size === 'xs' ? 'h-2 w-2' :
+          size === 'sm' ? 'h-2.5 w-2.5' :
+          size === 'md' ? 'h-3 w-3' : 'h-4 w-4',
+          'text-gray-600'
+        )} />}
+        <span>Manual</span>
+      </Badge>
+    );
+
+    if (!showTooltip) {
+      return manualBadge;
+    }
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {manualBadge}
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-gray-600" />
+                <span className="font-medium">Manual Entry</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This expense was entered manually without AI processing
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // Original AI confidence badge logic
   const level = getConfidenceLevel(confidence);
   const percentage = Math.round(confidence * 100);
 

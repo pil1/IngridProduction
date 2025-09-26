@@ -1,6 +1,7 @@
 // Enhanced Permissions Service
 // This service provides all permission-related functionality for the application
 
+import { apiClient } from "@/integrations/api/client";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Permission,
@@ -34,17 +35,51 @@ export class PermissionsService {
     options: PermissionCheckOptions = {}
   ): Promise<PermissionCheck> {
     try {
-      const { data, error } = await supabase.rpc('user_has_permission', {
-        check_user_id: userId,
-        permission_key_param: permissionKey,
-        check_company_id: options.company_id || null,
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('No access token available for permission check');
+        return {
+          permission_key: permissionKey,
+          has_permission: false,
+          source: 'denied',
+        };
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/rpc/user_has_permission`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id_param: userId,
+          permission_key_param: permissionKey,
+          company_id_param: options.company_id || null,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        console.error('Failed to check user permission:', response.status, response.statusText);
+        return {
+          permission_key: permissionKey,
+          has_permission: false,
+          source: 'denied',
+        };
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        console.warn('Invalid permission check response:', data);
+        return {
+          permission_key: permissionKey,
+          has_permission: false,
+          source: 'denied',
+        };
+      }
 
       return {
         permission_key: permissionKey,
-        has_permission: data || false,
+        has_permission: data.data?.has_permission || false,
         source: 'system', // The RPC function handles the logic internally
       };
     } catch (error) {
@@ -73,13 +108,36 @@ export class PermissionsService {
     moduleName: string
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc('company_has_module', {
-        check_company_id: companyId,
-        module_name_param: moduleName,
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('No access token available for company module check');
+        return false;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/rpc/company_has_module`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id_param: companyId,
+          module_name_param: moduleName,
+        }),
       });
 
-      if (error) throw error;
-      return data || false;
+      if (!response.ok) {
+        console.error('Failed to check company module access:', response.status, response.statusText);
+        return false;
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        console.warn('Invalid company module check response:', data);
+        return false;
+      }
+
+      return data.data?.has_module || false;
     } catch (error) {
       console.error('Error checking company module access:', error);
       return false;
@@ -95,13 +153,13 @@ export class PermissionsService {
     options: ModuleAccessOptions = {}
   ): Promise<UserModuleAccess[]> {
     try {
-      const { data, error } = await supabase.rpc('get_user_modules', {
-        check_user_id: userId,
-      });
+      const response = await apiClient.get('/modules/user/accessible');
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch user modules');
+      }
 
-      let modules = data || [];
+      let modules = response.data?.modules || [];
 
       // Apply filters
       if (options.filter_by_category?.length) {
@@ -231,21 +289,20 @@ export class PermissionsService {
     enabledBy: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('company_modules')
-        .upsert({
-          company_id: request.company_id,
-          module_id: request.module_id,
-          is_enabled: request.is_enabled,
-          enabled_by: enabledBy,
-          configuration: request.configuration || {},
-          usage_limits: request.usage_limits || {},
-          billing_tier: request.billing_tier || 'standard',
-        }, {
-          onConflict: 'company_id,module_id'
-        });
+      const endpoint = request.is_enabled
+        ? `/modules/company/${request.company_id}/enable/${request.module_id}`
+        : `/modules/company/${request.company_id}/disable/${request.module_id}`;
 
-      if (error) throw error;
+      const response = await apiClient.post(endpoint, {
+        configuration: request.configuration || {},
+        usage_limits: request.usage_limits || {},
+        billing_tier: request.billing_tier || 'standard',
+      });
+
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to update company module');
+      }
+
       return true;
     } catch (error) {
       console.error('Error enabling company module:', error);
@@ -259,15 +316,31 @@ export class PermissionsService {
 
   static async getAllSystemModules(): Promise<SystemModule[]> {
     try {
-      const { data, error } = await supabase
-        .from('modules')
-        .select('*')
-        .eq('is_active', true)
-        .order('module_type')
-        .order('name');
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('No access token available for modules fetch');
+        return [];
+      }
 
-      if (error) throw error;
-      return data || [];
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/modules`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch modules:', response.status, response.statusText);
+        return [];
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.data?.modules) {
+        console.warn('Invalid modules response:', data);
+        return [];
+      }
+
+      return data.data.modules || [];
     } catch (error) {
       console.error('Error getting system modules:', error);
       return [];
@@ -276,15 +349,10 @@ export class PermissionsService {
 
   static async getSystemModulesByType(type: ModuleType): Promise<SystemModule[]> {
     try {
-      const { data, error } = await supabase
-        .from('modules')
-        .select('*')
-        .eq('module_type', type)
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      return data || [];
+      // Fetch all modules and filter by type client-side
+      // This reduces API calls and leverages the cached modules
+      const allModules = await this.getAllSystemModules();
+      return allModules.filter(module => module.module_type === type);
     } catch (error) {
       console.error('Error getting system modules by type:', error);
       return [];

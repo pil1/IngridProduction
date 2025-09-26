@@ -25,7 +25,10 @@ import { // All AlertDialog imports are now used
 } from "@/components/ui/alert-dialog";
 import FormattedCurrencyDisplay from "@/components/FormattedCurrencyDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"; // For receipt viewer
-import { Expense, ExpenseComment, ExpenseAuditLog, Receipt, ExpenseLineItem } from "@/types/expenses"; // Imported Receipt, ExpenseLineItem
+import { Expense, ExpenseComment, ExpenseAuditLog, Receipt, ExpenseLineItem, InvoiceStructure } from "@/types/expenses"; // Imported Receipt, ExpenseLineItem, InvoiceStructure
+import InvoiceView from "@/components/InvoiceView"; // Import InvoiceView component
+import { InvoiceExtractionService } from "@/services/ingrid/InvoiceExtractionService"; // Import extraction service
+import { InvoiceOCRData } from "@/services/ingrid/OCRService"; // Import OCR data type
 import { LazyPdfViewer } from "@/components/LazyPdfViewer";
 
 // Define the structure for field settings
@@ -69,6 +72,9 @@ const ExpenseDetailPage = () => {
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [currentReceiptMimeType, setCurrentReceiptMimeType] = useState<string | null>(null);
   const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
+  const [invoiceStructure, setInvoiceStructure] = useState<InvoiceStructure | null>(null);
+  const [showInvoiceView, setShowInvoiceView] = useState(false);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
 
   const currentUserId = profile?.user_id;
   const userRole = profile?.role;
@@ -221,6 +227,48 @@ const ExpenseDetailPage = () => {
     } as Expense;
   }, [expenseData, submitterProfile, reviewerProfile, controllerProfile]);
 
+  // Try to extract invoice structure from expense AI data
+  const extractInvoiceStructure = async (expense: Expense) => {
+    if (!expense.receipts?.[0]?.ai_raw_json) return;
+
+    try {
+      setIsLoadingInvoice(true);
+      const aiData = expense.receipts[0].ai_raw_json;
+
+      // Check if the AI data has structured invoice information
+      if (aiData.invoiceData && typeof aiData.invoiceData === 'object') {
+        const ocrData = aiData.invoiceData as InvoiceOCRData;
+
+        const extractionService = new InvoiceExtractionService({
+          companyDefaultCurrency: companyBaseCurrencyCode || 'USD',
+          enableTaxValidation: true,
+          strictModeEnabled: false,
+          confidenceThreshold: 0.6
+        });
+
+        const invoiceData = await extractionService.extractInvoiceFromOCR(
+          ocrData,
+          aiData.processing_time_ms as number || 0,
+          'openai-vision-preview'
+        );
+
+        setInvoiceStructure(invoiceData);
+        setShowInvoiceView(true);
+      }
+    } catch (error) {
+      console.error('Failed to extract invoice structure:', error);
+    } finally {
+      setIsLoadingInvoice(false);
+    }
+  };
+
+  // Extract invoice structure when expense data is available
+  useMemo(() => {
+    if (expense && !invoiceStructure && !isLoadingInvoice) {
+      extractInvoiceStructure(expense);
+    }
+  }, [expense, companyBaseCurrencyCode]);
+
 
   const { data: comments, isLoading: isLoadingComments } = useQuery<ExpenseComment[]>({
     queryKey: ["expense_comments", id],
@@ -316,9 +364,9 @@ const ExpenseDetailPage = () => {
       setIsReviewDialogOpen(false);
       setReviewNotes("");
       setReviewAction(null);
-      // Redirect to expense-review page if action was 'request_info'
+      // Redirect to expenses page with review-inbox tab if action was 'request_info'
       if (reviewAction === "request_info") {
-        navigate('/expense-review', { replace: true });
+        navigate('/expenses', { replace: true });
       }
     },
     onError: (error: any) => {
@@ -545,6 +593,57 @@ const ExpenseDetailPage = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Description</p>
                 <p>{expense.description}</p>
+              </div>
+            </>
+          )}
+
+          {/* Invoice View Section (when available) */}
+          {showInvoiceView && invoiceStructure && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Invoice Details</p>
+                    <p className="text-xs text-muted-foreground mt-1">AI-extracted invoice structure from uploaded receipt</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowInvoiceView(false)}
+                  >
+                    Hide Invoice View
+                  </Button>
+                </div>
+                <InvoiceView
+                  invoiceData={invoiceStructure}
+                  onFieldEdit={() => {}} // Read-only for controller view
+                  onLineItemEdit={() => {}} // Read-only for controller view
+                  onTaxEdit={() => {}} // Read-only for controller view
+                  editable={false} // Controller view is read-only
+                  showConfidence={true}
+                  compact={true}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Show Invoice View Button (when invoice data is available but not shown) */}
+          {!showInvoiceView && invoiceStructure && (
+            <>
+              <Separator />
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowInvoiceView(true)}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  View Invoice Structure
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  This expense has AI-extracted invoice data available for review.
+                </p>
               </div>
             </>
           )}

@@ -1,11 +1,117 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: infotrac_postgres
+    environment:
+      POSTGRES_DB: infotrac
+      POSTGRES_USER: infotrac_user
+      POSTGRES_PASSWORD: infotrac_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infotrac_user -d infotrac"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for session storage and caching
+  redis:
+    image: redis:7-alpine
+    container_name: infotrac_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: infotrac_backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://infotrac_user:infotrac_password@postgres:5432/infotrac
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secure-jwt-secret-key-here
+      BCRYPT_ROUNDS: 10
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:8080
+      # AI API Keys (to be set in .env)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Email settings
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Frontend React Application
   frontend:
     build:
-      context: . # Build context is the current directory (where Dockerfile is)
-      dockerfile: Dockerfile
-      args: # Pass these environment variables as build arguments to the Dockerfile
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL} # Explicitly reference from .env
-        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY} # Explicitly reference from .env
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: infotrac_frontend
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+      VITE_APP_VERSION: ${APP_VERSION:-1.0.0}
     ports:
-      - "4211:80" # Maps host port 4211 to container port 80
-    restart: unless-stopped # Always restart the container unless it's explicitly stopped
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (for production)
+  nginx:
+    image: nginx:alpine
+    container_name: infotrac_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./uploads:/var/www/uploads:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: infotrac_network

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,24 @@ export const AnalyticsDashboard = () => {
   const { data: expenseAnalytics, isLoading: isLoadingExpenses } = useQuery({
     queryKey: ['expense-analytics', filters],
     queryFn: async () => {
+      // Super-admins can see all expenses across all companies
+      if (profile?.role === 'super-admin') {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select(`
+            id, amount, status, expense_date, created_at,
+            category_id, submitted_by, is_reimbursable,
+            expense_categories(name),
+            profiles!submitted_by(first_name, last_name, role)
+          `)
+          .gte('expense_date', filters.dateRange.from?.toISOString().split('T')[0] ?? '')
+          .lte('expense_date', filters.dateRange.to?.toISOString().split('T')[0] ?? '');
+
+        if (error) throw error;
+        return data;
+      }
+
+      // Regular users only see their company's data
       if (!profile?.company_id) return null;
 
       const { data, error } = await supabase
@@ -55,13 +73,25 @@ export const AnalyticsDashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.company_id,
+    enabled: !!profile && (profile.role === 'super-admin' || !!profile.company_id),
   });
 
   // Fetch categories for filtering
   const { data: categories = [] } = useQuery({
     queryKey: ['categories-analytics'],
     queryFn: async () => {
+      // Super-admins can see all categories across all companies
+      if (profile?.role === 'super-admin') {
+        const { data, error } = await supabase
+          .from('expense_categories')
+          .select('id, name')
+          .order('name');
+
+        if (error) throw error;
+        return data ?? [];
+      }
+
+      // Regular users only see their company's categories
       if (!profile?.company_id) return [];
 
       const { data, error } = await supabase
@@ -73,7 +103,7 @@ export const AnalyticsDashboard = () => {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!profile?.company_id,
+    enabled: !!profile && (profile.role === 'super-admin' || !!profile.company_id),
   });
 
   // Process analytics data

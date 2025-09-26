@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -53,6 +53,9 @@ import { ALL_PERMISSIONS } from "@/types/permissions";
 import AddEditVendorDialog, { VendorFormValues } from "@/components/AddEditVendorDialog";
 import SmartAddDialog from "@/components/SmartAddDialog";
 import SuggestedVendorsTab from "@/components/SuggestedVendorsTab";
+import VendorGrid from "@/components/vendors/VendorGrid";
+import IngridVendorCreation from "@/components/vendors/IngridVendorCreation";
+import AIEnhancedVendorCreation from "@/components/vendors/AIEnhancedVendorCreation";
 
 // ================================================================
 // INTERFACES
@@ -93,12 +96,15 @@ const SimpleVendorForm: React.FC<{
   onOpenChange: (open: boolean) => void;
   editingVendor?: Vendor | null;
   onSuccess: () => void;
-}> = ({ isOpen, onOpenChange, editingVendor, onSuccess }) => {
+  companyId: string;
+}> = ({ isOpen, onOpenChange, editingVendor, onSuccess, companyId }) => {
   return (
     <AddEditVendorDialog
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       editingVendor={editingVendor}
+      companyId={companyId}
+      initialMode={editingVendor ? "view" : "create"}
       onSuccess={onSuccess}
     />
   );
@@ -213,14 +219,8 @@ const EnhancedVendorsPage: React.FC = () => {
     queryFn: async () => {
       if (!profile?.company_id) return [];
 
-      const { data, error } = await supabase
-        .from("vendors")
-        .select("*")
-        .eq("company_id", profile.company_id)
-        .order("name");
-
-      if (error) throw error;
-      return data;
+      const response = await apiClient.get('/vendors');
+      return response.data?.vendors || [];
     },
     enabled: !!profile?.company_id,
   });
@@ -231,11 +231,7 @@ const EnhancedVendorsPage: React.FC = () => {
 
   const deleteVendorMutation = useMutation({
     mutationFn: async (vendorId: string) => {
-      const { error } = await supabase
-        .from("vendors")
-        .delete()
-        .eq("id", vendorId);
-      if (error) throw error;
+      await apiClient.delete(`/vendors/${vendorId}`);
     },
     onSuccess: () => {
       toast({ title: "Vendor deleted successfully" });
@@ -356,10 +352,17 @@ const EnhancedVendorsPage: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="vendors" className="mt-6">
-                  {/* Vendor table will go here */}
-                  <div className="text-center py-8 text-muted-foreground">
-                    Enhanced vendor table with AI features coming next...
-                  </div>
+                  <VendorGrid
+                    vendors={vendors}
+                    loading={isLoading}
+                    onEdit={handleEditVendor}
+                    onView={handleEditVendor}
+                    onDelete={handleDeleteVendor}
+                    canEdit={canEditVendors}
+                    canDelete={canDeleteVendors}
+                    canSync={profile?.role === 'super-admin'}
+                    showAiBadges={canAccessIngrid}
+                  />
                 </TabsContent>
 
                 <TabsContent value="suggestions" className="mt-6">
@@ -370,37 +373,50 @@ const EnhancedVendorsPage: React.FC = () => {
               </Tabs>
             }
             whenFalse={
-              <div className="space-y-4">
-                {/* Simple vendor table without AI features */}
-                <div className="text-center py-8 text-muted-foreground">
-                  Basic vendor table (without AI features) coming next...
-                </div>
-              </div>
+              <VendorGrid
+                vendors={vendors}
+                loading={isLoading}
+                onEdit={handleEditVendor}
+                onView={handleEditVendor}
+                onDelete={handleDeleteVendor}
+                canEdit={canEditVendors}
+                canDelete={canDeleteVendors}
+                canSync={false}
+                showAiBadges={false}
+              />
             }
           />
         </CardContent>
       </Card>
 
       {/* Conditional Vendor Dialog */}
-      <ConditionalFeature
-        condition={canAccessIngrid}
-        whenTrue={
-          <AIEnhancedVendorForm
+      {isAddEditDialogOpen && (
+        editingVendor ? (
+          <AddEditVendorDialog
             isOpen={isAddEditDialogOpen}
             onOpenChange={setIsAddEditDialogOpen}
             editingVendor={editingVendor}
+            companyId={profile?.company_id || ''}
+            initialMode="view"
             onSuccess={handleSuccess}
           />
-        }
-        whenFalse={
+        ) : canAccessIngrid ? (
+          <AIEnhancedVendorCreation
+            isOpen={isAddEditDialogOpen}
+            onOpenChange={setIsAddEditDialogOpen}
+            onSuccess={handleSuccess}
+            companyId={profile?.company_id || ''}
+          />
+        ) : (
           <SimpleVendorForm
             isOpen={isAddEditDialogOpen}
             onOpenChange={setIsAddEditDialogOpen}
             editingVendor={editingVendor}
+            companyId={profile?.company_id || ''}
             onSuccess={handleSuccess}
           />
-        }
-      />
+        )
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!vendorToDelete} onOpenChange={() => setVendorToDelete(null)}>

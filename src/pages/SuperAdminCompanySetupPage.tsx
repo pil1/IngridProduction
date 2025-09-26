@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, ChevronRight, ChevronLeft, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/SessionContextProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -101,9 +102,8 @@ const SuperAdminCompanySetupPage = () => {
   const { data: currencies, isLoading: isLoadingCurrencies } = useQuery<Currency[]>({
     queryKey: ["currencies"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("currencies").select("id, code, name, symbol").eq("is_active", true).order("code");
-      if (error) throw error;
-      return data;
+      const response = await apiClient.get('/currencies?is_active[eq]=true&order=code.asc');
+      return response.data;
     },
   });
 
@@ -111,9 +111,8 @@ const SuperAdminCompanySetupPage = () => {
   const { data: allSystemModules, isLoading: isLoadingAllSystemModules } = useQuery<SystemModule[]>({
     queryKey: ["allSystemModulesForCompanySetup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("modules").select("id, name, description, is_active, default_monthly_price, default_per_user_price, module_type"); // Select module_type
-      if (error) throw error;
-      return data ?? []; // Ensure it returns an array
+      const response = await apiClient.get('/modules');
+      return response.data?.modules ?? []; // Extract modules from response data
     },
     enabled: profile?.role === 'super-admin',
   });
@@ -160,75 +159,41 @@ const SuperAdminCompanySetupPage = () => {
       }
 
       // 1. Create the company
-      const { data: companyData, error: companyError } = await supabase
-        .from("companies")
-        .insert({
-          name: values.companyName,
-          domain: values.companyDomain,
-          default_currency: values.defaultCurrency,
-        })
-        .select()
-        .single();
+      const response = await apiClient.post('/companies', {
+        name: values.companyName,
+        domain: values.companyDomain,
+        default_currency: values.defaultCurrency,
+      });
 
-      if (companyError) {
-        console.error("Supabase company insert error:", companyError);
-        throw companyError;
-      }
+      const companyData = response.data;
       if (!companyData) throw new Error("Failed to create company.");
 
-      // 2. Enable and lock default modules for the new company based on form selections
-      const modulesToInsert = values.modules
-        .filter(moduleSetting => moduleSetting.is_enabled) // Only insert enabled modules
-        .map(moduleSetting => ({
-          company_id: companyData.id,
-          module_id: moduleSetting.module_id,
-          is_enabled: true, // Always true for inserted modules
-          is_locked_by_system: moduleSetting.is_locked_by_system,
-          monthly_price: moduleSetting.monthly_price,
-          per_user_price: moduleSetting.per_user_price,
-        }));
+      // 2. Enable modules for the new company (core modules are automatically enabled by backend)
+      // Additional module enablement can be handled via separate API calls if needed
+      const additionalModules = values.modules.filter(moduleSetting =>
+        moduleSetting.is_enabled && moduleSetting.module_type !== 'core'
+      );
 
-      if (modulesToInsert && modulesToInsert.length > 0) {
-        const { error: insertModulesError } = await supabase
-          .from("company_modules")
-          .insert(modulesToInsert);
-        if (insertModulesError) {
-          console.error("Error inserting default company modules:", insertModulesError);
+      for (const module of additionalModules) {
+        try {
+          await apiClient.post(`/modules/company/${companyData.id}/enable/${module.module_id}`);
+        } catch (error) {
+          console.error(`Error enabling module ${module.name}:`, error);
           // Don't throw, allow company creation to proceed but log the module error
         }
       }
 
-      // Get current session token to explicitly pass it
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-
-      if (!accessToken) {
-        throw new Error("Authentication token missing. Please log in again.");
-      }
-
       // 3. Create the initial admin for this new company directly
-      const { data: adminCreationResponse, error: adminCreationError } = await supabase.functions.invoke('create-user-by-admin', {
-        body: {
-          email: values.adminEmail,
-          password: values.adminPassword, // NEW: Pass the manually set password
-          first_name: values.adminFirstName,
-          last_name: values.adminLastName,
-          role: values.adminRole,
-          company_id: companyData.id,
-          // Removed selectedTemplateName as it's not an invitation
-        },
-        // Explicitly pass the Authorization header
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+      const adminCreationResponse = await apiClient.post('/auth/create-user', {
+        email: values.adminEmail,
+        password: values.adminPassword,
+        first_name: values.adminFirstName,
+        last_name: values.adminLastName,
+        role: values.adminRole,
+        company_id: companyData.id,
       });
 
-      if (adminCreationError) {
-        console.error("Supabase create-user-by-admin Edge Function error:", adminCreationError);
-        throw adminCreationError;
-      }
-
-      return { company: companyData, adminUserId: adminCreationResponse.userId };
+      return { company: companyData, adminUserId: adminCreationResponse.data.userId };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
@@ -241,7 +206,7 @@ const SuperAdminCompanySetupPage = () => {
         title: "Company & Admin Created",
         description: `Company "${data.company.name}" created and admin user "${form.getValues("adminEmail")}" set up.`,
       });
-      navigate("/companies", { replace: true });
+      navigate("/users", { replace: true });
     },
     onError: (error: any) => {
       console.error("SuperAdminCompanySetupPage: Error during company setup mutation:", error);
@@ -299,15 +264,25 @@ const SuperAdminCompanySetupPage = () => {
             const isInputDisabled = isSaving || !form.watch(`modules.${formModuleIndex}.is_enabled`) || isLocked;
 
             return (
-              <TableRow key={moduleSetting.module_id}>
-                <TableCell className="font-medium">{moduleSetting.name}</TableCell>
+              <TableRow key={moduleSetting.module_id} className={isLocked ? "bg-blue-50" : ""}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {moduleSetting.name}
+                    {isLocked && <Badge variant="secondary" className="text-xs">Core</Badge>}
+                  </div>
+                </TableCell>
                 <TableCell>{moduleSetting.description ?? "N/A"}</TableCell>
                 <TableCell>
-                  <Checkbox
-                    checked={form.watch(`modules.${formModuleIndex}.is_enabled`)}
-                    onCheckedChange={(checked) => form.setValue(`modules.${formModuleIndex}.is_enabled`, checked as boolean)}
-                    disabled={isSaving || isLocked}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={form.watch(`modules.${formModuleIndex}.is_enabled`)}
+                      onCheckedChange={(checked) => form.setValue(`modules.${formModuleIndex}.is_enabled`, checked as boolean)}
+                      disabled={isSaving || isLocked}
+                    />
+                    {isLocked && (
+                      <span className="text-xs text-muted-foreground">(Core - Auto-enabled)</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <FormattedCurrencyInput

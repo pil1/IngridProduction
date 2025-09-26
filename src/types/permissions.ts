@@ -2,6 +2,7 @@
 // This file defines all TypeScript interfaces for the new granular permissions system
 
 export type UserRole = 'user' | 'admin' | 'super-admin';
+export type SystemRole = UserRole; // For backward compatibility
 
 export type ModuleType = 'core' | 'super' | 'add-on';
 
@@ -18,6 +19,7 @@ export interface SystemModule {
   name: string;
   description: string | null;
   module_type: ModuleType;
+  module_classification: 'core' | 'addon';
   category: ModuleCategory;
   is_core_required: boolean;
   is_active: boolean;
@@ -27,6 +29,8 @@ export interface SystemModule {
   feature_flags: Record<string, any>;
   api_endpoints: string[];
   ui_components: string[];
+  classification_changed_at?: string;
+  classification_changed_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,11 +40,79 @@ export interface Permission {
   permission_key: string;
   permission_name: string;
   description: string | null;
+  human_description?: string;
   category: PermissionCategory;
+  permission_group?: string;
+  ui_display_order?: number;
+  requires_permissions?: string[];
   module_id: string | null;
   is_system_permission: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// ================================================================
+// CUSTOM ROLE SYSTEM INTERFACES
+// ================================================================
+
+export interface CustomRole {
+  id: string;
+  company_id: string;
+  role_name: string;
+  role_display_name: string;
+  description?: string;
+  based_on_role?: SystemRole;
+  is_active: boolean;
+  is_system_role: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  user_id: string;
+  role_id?: string;
+  system_role?: SystemRole;
+  company_id: string;
+  assigned_by: string;
+  assigned_at: string;
+  expires_at?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  custom_role?: CustomRole;
+}
+
+export interface RoleTemplate {
+  id: string;
+  template_name: string;
+  display_name: string;
+  description?: string;
+  target_use_cases: string[];
+  base_permissions: PermissionKey[];
+  required_modules: string[];
+  is_system_template: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomRolePermission {
+  id: string;
+  custom_role_id: string;
+  permission_id: string;
+  is_granted: boolean;
+  granted_by: string;
+  granted_at: string;
+  created_at: string;
+  updated_at: string;
+  permission?: Permission;
+}
+
+export interface EffectivePermission {
+  permission_key: string;
+  source: 'individual' | 'custom_role' | 'system_role';
+  is_granted: boolean;
 }
 
 export interface UserPermission {
@@ -96,7 +168,8 @@ export interface CompanyModule {
   enabled_at: string;
   configuration: Record<string, any>;
   usage_limits: Record<string, any>;
-  billing_tier: string;
+  monthly_price?: number;
+  per_user_price?: number;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -168,7 +241,6 @@ export interface EnableCompanyModuleRequest {
   is_enabled: boolean;
   configuration?: Record<string, any>;
   usage_limits?: Record<string, any>;
-  billing_tier?: string;
 }
 
 // ================================================================
@@ -382,6 +454,147 @@ export const CORE_MODULES = [
 export const ADD_ON_MODULES = [
   'Ingrid AI',
   'Expense Management',
-  'Process Automation',
   'Advanced Analytics',
 ] as const;
+
+// ================================================================
+// MODULE MANAGEMENT INTERFACES
+// ================================================================
+
+export interface ModuleManagementView {
+  id: string;
+  name: string;
+  description: string | null;
+  module_type: ModuleType;
+  module_classification: 'core' | 'addon';
+  category: ModuleCategory;
+  is_core_required: boolean;
+  is_active: boolean;
+  default_monthly_price: number;
+  default_per_user_price: number;
+  classification_changed_at?: string;
+  classification_changed_by?: string;
+  classification_changed_by_name?: string;
+  companies_using: number;
+  users_with_access: number;
+}
+
+export interface ModuleClassificationAudit {
+  id: string;
+  module_id: string;
+  module_name?: string;
+  old_classification: 'core' | 'addon';
+  new_classification: 'core' | 'addon';
+  changed_by: string;
+  changed_by_name?: string;
+  changed_at: string;
+  reason?: string;
+  affected_companies: number;
+  affected_users: number;
+}
+
+export interface UpdateModuleClassificationRequest {
+  classification: 'core' | 'addon';
+  reason?: string;
+}
+
+export interface UpdateCompanyModulePricingRequest {
+  base_module_price?: number;
+  per_user_price?: number;
+}
+
+export interface EnhancedUserModuleAccess {
+  id: string;
+  name: string;
+  description: string | null;
+  module_type: ModuleType;
+  module_classification: 'core' | 'addon';
+  category: ModuleCategory;
+  is_core_required: boolean;
+  is_active: boolean;
+  has_access: boolean;
+  is_enabled: boolean;
+  company_enabled: boolean;
+  access_source: 'core_module' | 'super_admin' | 'user_specific' | 'company_default' | 'no_access';
+}
+
+export interface PermissionHierarchy {
+  permission_key: string;
+  human_description: string;
+  permission_group: string;
+  has_permission: boolean;
+  dependency_met: boolean;
+  required_permissions: string[];
+}
+
+export interface PermissionValidation {
+  permission_key: string;
+  is_valid: boolean;
+  missing_dependencies: string[];
+  error_message: string;
+}
+
+export interface PermissionTemplate {
+  id: string;
+  template_name: string;
+  display_name: string;
+  description?: string;
+  target_role: UserRole;
+  permissions: string[];
+  is_system_template: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ================================================================
+// MODULE MANAGEMENT UI INTERFACES
+// ================================================================
+
+export interface ModuleCard {
+  module: SystemModule;
+  isEnabled: boolean;
+  hasAccess: boolean;
+  canToggle: boolean;
+  isCore: boolean;
+  companiesUsing: number;
+  usersWithAccess: number;
+  pricing?: {
+    base_module_price: number;
+    per_user_price: number;
+  };
+  classificationHistory?: ModuleClassificationAudit[];
+}
+
+export interface ModulePricingCard {
+  company: {
+    id: string;
+    name: string;
+  };
+  module: SystemModule;
+  pricing: {
+    base_module_price: number;
+    per_user_price: number;
+    is_enabled: boolean;
+  };
+  usage: {
+    user_count: number;
+    monthly_cost: number;
+  };
+}
+
+export interface UserPermissionGroup {
+  group_name: string;
+  group_display_name: string;
+  permissions: Array<{
+    permission_key: string;
+    human_description: string;
+    has_permission: boolean;
+    can_modify: boolean;
+    is_required: boolean;
+    dependencies: string[];
+  }>;
+}
+
+// Helper types for forms
+export type ModuleClassification = 'core' | 'addon';

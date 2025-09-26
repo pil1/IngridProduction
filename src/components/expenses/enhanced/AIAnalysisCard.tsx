@@ -85,6 +85,25 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
   const fieldStats = getFieldStats(expense.ingrid_field_confidences || {});
   const quality = getQualityAssessment(overallConfidence, fieldStats);
   const totalFields = Object.keys(expense.ingrid_field_confidences || {}).length;
+  const isManual = processingMethod === 'manual';
+
+  // For manual entries, show a simple manual entry card
+  if (isManual) {
+    return (
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle className="h-4 w-4 text-gray-600" />
+            <span className="font-medium text-sm">Manual Entry</span>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            This expense was entered manually without AI processing. All information was provided directly by the user.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (compact) {
     return (
@@ -93,7 +112,7 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
           <div className="flex items-center gap-2 mb-3">
             <Brain className="h-4 w-4 text-blue-500" />
             <span className="font-medium text-sm">AI Analysis</span>
-            <ConfidenceBadge confidence={overallConfidence} size="xs" />
+            <ConfidenceBadge confidence={overallConfidence} size="xs" isManual={isManual} />
           </div>
 
           <div className="space-y-2 text-sm">
@@ -131,25 +150,27 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Overall Quality Assessment */}
-        <div className={cn("p-3 rounded-lg", quality.bgColor)}>
-          <div className="flex items-center gap-2 mb-2">
-            <quality.icon className={cn("h-4 w-4", quality.color)} />
-            <span className={cn("font-medium text-sm", quality.color)}>
-              {quality.message}
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Overall Confidence:</span>
-              <span className="font-medium">
-                {Math.round(overallConfidence * 100)}%
+        {/* Overall Quality Assessment - Only show for AI-processed expenses */}
+        {!isManual && (
+          <div className={cn("p-3 rounded-lg", quality.bgColor)}>
+            <div className="flex items-center gap-2 mb-2">
+              <quality.icon className={cn("h-4 w-4", quality.color)} />
+              <span className={cn("font-medium text-sm", quality.color)}>
+                {quality.message}
               </span>
             </div>
-            <Progress value={overallConfidence * 100} className="h-2" />
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Overall Confidence:</span>
+                <span className="font-medium">
+                  {Math.round(overallConfidence * 100)}%
+                </span>
+              </div>
+              <Progress value={overallConfidence * 100} className="h-2" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Processing Details */}
         <div className="space-y-3">

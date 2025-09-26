@@ -17,6 +17,15 @@ export { ConfigurationService } from './ConfigurationService';
 export { WebEnrichmentService } from './WebEnrichmentService';
 export { SmartCategorizationService } from './SmartCategorizationService';
 
+// Vendor and category services
+export * from './VendorMappingService';
+export * from './SuggestedVendorService';
+export * from './CategoryMappingService';
+export * from './SuggestedCategoryService';
+export * from './ExpenseVendorMatcher';
+export * from './VendorDocumentProcessor';
+export * from './CustomerDocumentProcessor';
+
 // Legacy compatibility
 export { analyzeExpense, analyzeDocumentWithIngrid, migrateFromSupabaseFunction } from './LegacyCompatibility';
 

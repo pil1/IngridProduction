@@ -1,0 +1,932 @@
+{
+  "profiles": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "554fdea8-03cd-425e-a14c-70a9ac532627"
+      },
+      {
+        "name": "company_id",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "email",
+        "type": "string",
+        "sampleValue": "admin@infotrac.com"
+      },
+      {
+        "name": "first_name",
+        "type": "string",
+        "sampleValue": "SUPER"
+      },
+      {
+        "name": "last_name",
+        "type": "string",
+        "sampleValue": "ADMIN"
+      },
+      {
+        "name": "full_name",
+        "type": "string",
+        "sampleValue": "SUPER ADMIN"
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "sampleValue": "super-admin"
+      },
+      {
+        "name": "permissions",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "avatar_url",
+        "type": "string",
+        "sampleValue": "https://teyivlpjxmpitqaqmucx.supabase.co/storage/v1/object/public/avatars/554fdea8-03cd-425e-a14c-70a9ac532627/avatar.png?t=1758219020531"
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "sampleValue": "active"
+      },
+      {
+        "name": "last_login",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-16T19:04:04.948661+00:00"
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-18T18:55:44.702477+00:00"
+      },
+      {
+        "name": "user_id",
+        "type": "string",
+        "sampleValue": "554fdea8-03cd-425e-a14c-70a9ac532627"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "phone",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "last_login_at",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "preferences",
+        "type": "object",
+        "sampleValue": {}
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "554fdea8-03cd-425e-a14c-70a9ac532627",
+        "company_id": null,
+        "email": "admin@infotrac.com",
+        "first_name": "SUPER",
+        "last_name": "ADMIN",
+        "full_name": "SUPER ADMIN",
+        "role": "super-admin",
+        "permissions": {},
+        "avatar_url": "https://teyivlpjxmpitqaqmucx.supabase.co/storage/v1/object/public/avatars/554fdea8-03cd-425e-a14c-70a9ac532627/avatar.png?t=1758219020531",
+        "status": "active",
+        "last_login": null,
+        "created_at": "2025-09-16T19:04:04.948661+00:00",
+        "updated_at": "2025-09-18T18:55:44.702477+00:00",
+        "user_id": "554fdea8-03cd-425e-a14c-70a9ac532627",
+        "is_active": true,
+        "phone": null,
+        "last_login_at": null,
+        "preferences": {}
+      },
+      {
+        "id": "37110760-b30d-43c7-a6d6-ccdbf3a5c3c9",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "email": "sheldon@phantom.glass",
+        "first_name": "Sheldon",
+        "last_name": "Waters",
+        "full_name": "Sheldon Waters",
+        "role": "user",
+        "permissions": {},
+        "avatar_url": "https://teyivlpjxmpitqaqmucx.supabase.co/storage/v1/object/public/avatars/37110760-b30d-43c7-a6d6-ccdbf3a5c3c9/avatar.png?t=1758229738867",
+        "status": "active",
+        "last_login": null,
+        "created_at": "2025-09-18T18:52:30.75779+00:00",
+        "updated_at": "2025-09-18T21:08:58.977875+00:00",
+        "user_id": "37110760-b30d-43c7-a6d6-ccdbf3a5c3c9",
+        "is_active": true,
+        "phone": null,
+        "last_login_at": null,
+        "preferences": {}
+      },
+      {
+        "id": "5ff70f21-d623-4250-9065-63945ee48b47",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "email": "richard@phantom.glass",
+        "first_name": "Richard",
+        "last_name": "Waters",
+        "full_name": "Richard Waters",
+        "role": "admin",
+        "permissions": {},
+        "avatar_url": "https://teyivlpjxmpitqaqmucx.supabase.co/storage/v1/object/public/avatars/5ff70f21-d623-4250-9065-63945ee48b47/avatar.png?t=1758289805558",
+        "status": "active",
+        "last_login": null,
+        "created_at": "2025-09-18T18:51:09.226732+00:00",
+        "updated_at": "2025-09-19T13:50:05.720764+00:00",
+        "user_id": "5ff70f21-d623-4250-9065-63945ee48b47",
+        "is_active": true,
+        "phone": null,
+        "last_login_at": null,
+        "preferences": {}
+      }
+    ]
+  },
+  "companies": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "00000000-0000-0000-0000-000000000001"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "sampleValue": "INFOtrac"
+      },
+      {
+        "name": "domain",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "sampleValue": "active"
+      },
+      {
+        "name": "settings",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "spire_config",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-23T13:31:27.072479+00:00"
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-23T14:30:35.120706+00:00"
+      },
+      {
+        "name": "default_currency",
+        "type": "string",
+        "sampleValue": "USD"
+      },
+      {
+        "name": "logo_url",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "legal_name",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "tax_id",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "phone_number",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "website",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "industry",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "address_line_1",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "address_line_2",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "city",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "state_province",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "postal_code",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "country",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "fiscal_year_end_month",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "fiscal_year_end_date",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "subscription_plan",
+        "type": "string",
+        "sampleValue": "basic"
+      },
+      {
+        "name": "slug",
+        "type": "string",
+        "sampleValue": "infotrac"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "address_line1",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "address_line2",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "state",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "billing_cycle",
+        "type": "string",
+        "sampleValue": "monthly"
+      },
+      {
+        "name": "base_currency",
+        "type": "string",
+        "sampleValue": "USD"
+      },
+      {
+        "name": "description",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "phone",
+        "type": "object",
+        "sampleValue": null
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "name": "INFOtrac",
+        "domain": null,
+        "status": "active",
+        "settings": {},
+        "spire_config": {},
+        "created_at": "2025-09-23T13:31:27.072479+00:00",
+        "updated_at": "2025-09-23T14:30:35.120706+00:00",
+        "default_currency": "USD",
+        "logo_url": null,
+        "legal_name": null,
+        "tax_id": null,
+        "phone_number": null,
+        "website": null,
+        "industry": null,
+        "address_line_1": null,
+        "address_line_2": null,
+        "city": null,
+        "state_province": null,
+        "postal_code": null,
+        "country": null,
+        "fiscal_year_end_month": null,
+        "fiscal_year_end_date": null,
+        "subscription_plan": "basic",
+        "slug": "infotrac",
+        "is_active": true,
+        "address_line1": null,
+        "address_line2": null,
+        "state": null,
+        "billing_cycle": "monthly",
+        "base_currency": "USD",
+        "description": null,
+        "phone": null
+      },
+      {
+        "id": "d1e83a1e-8d19-4126-afcf-0c1953854ade",
+        "name": "INFOtrac",
+        "domain": "test.com",
+        "status": "active",
+        "settings": {},
+        "spire_config": {},
+        "created_at": "2025-09-12T14:15:18.237577+00:00",
+        "updated_at": "2025-09-23T14:30:35.120706+00:00",
+        "default_currency": "USD",
+        "logo_url": null,
+        "legal_name": null,
+        "tax_id": null,
+        "phone_number": null,
+        "website": null,
+        "industry": null,
+        "address_line_1": null,
+        "address_line_2": null,
+        "city": null,
+        "state_province": null,
+        "postal_code": null,
+        "country": null,
+        "fiscal_year_end_month": null,
+        "fiscal_year_end_date": null,
+        "subscription_plan": "basic",
+        "slug": "test.com",
+        "is_active": true,
+        "address_line1": null,
+        "address_line2": null,
+        "state": null,
+        "billing_cycle": "monthly",
+        "base_currency": "USD",
+        "description": null,
+        "phone": null
+      },
+      {
+        "id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "name": "Phantom Glass",
+        "domain": "phantom.glass",
+        "status": "active",
+        "settings": {},
+        "spire_config": {},
+        "created_at": "2025-09-18T18:51:08.050322+00:00",
+        "updated_at": "2025-09-23T14:30:35.120706+00:00",
+        "default_currency": "CAD",
+        "logo_url": null,
+        "legal_name": null,
+        "tax_id": null,
+        "phone_number": null,
+        "website": null,
+        "industry": null,
+        "address_line_1": null,
+        "address_line_2": null,
+        "city": null,
+        "state_province": null,
+        "postal_code": null,
+        "country": null,
+        "fiscal_year_end_month": null,
+        "fiscal_year_end_date": null,
+        "subscription_plan": "basic",
+        "slug": "phantom.glass",
+        "is_active": true,
+        "address_line1": null,
+        "address_line2": null,
+        "state": null,
+        "billing_cycle": "monthly",
+        "base_currency": "USD",
+        "description": null,
+        "phone": null
+      }
+    ]
+  },
+  "expenses": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "vendors": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "customers": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "expense_categories": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "gl_accounts": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "notifications": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "modules": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "5b7fc0f5-abe9-45bd-a979-3307ae1da409"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "sampleValue": "Settings"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "sampleValue": "Parent module for various application settings."
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-17T20:00:49.359408+00:00"
+      },
+      {
+        "name": "default_monthly_price",
+        "type": "number",
+        "sampleValue": 0
+      },
+      {
+        "name": "default_per_user_price",
+        "type": "number",
+        "sampleValue": 0
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-18T17:30:30.08462+00:00"
+      },
+      {
+        "name": "module_type",
+        "type": "string",
+        "sampleValue": "core"
+      },
+      {
+        "name": "roles",
+        "type": "object",
+        "sampleValue": null
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "5b7fc0f5-abe9-45bd-a979-3307ae1da409",
+        "name": "Settings",
+        "description": "Parent module for various application settings.",
+        "is_active": true,
+        "created_at": "2025-09-17T20:00:49.359408+00:00",
+        "default_monthly_price": 0,
+        "default_per_user_price": 0,
+        "updated_at": "2025-09-18T17:30:30.08462+00:00",
+        "module_type": "core",
+        "roles": null
+      },
+      {
+        "id": "44d31b66-2a43-4536-9ec7-8b7c64161f80",
+        "name": "Process Automation",
+        "description": "Workflow automation and triggers",
+        "is_active": true,
+        "created_at": "2025-09-08T15:24:24.293403+00:00",
+        "default_monthly_price": 0,
+        "default_per_user_price": 0,
+        "updated_at": "2025-09-18T17:30:37.415544+00:00",
+        "module_type": "add-on",
+        "roles": null
+      },
+      {
+        "id": "d52d3604-2f34-42e2-8d05-f7122aa9e279",
+        "name": "Expense Management",
+        "description": "Allows users to submit, track, and review expenses, manage categories, and GL accounts.",
+        "is_active": true,
+        "created_at": "2025-09-12T14:25:19.755487+00:00",
+        "default_monthly_price": 0,
+        "default_per_user_price": 0,
+        "updated_at": "2025-09-15T16:23:47.910471+00:00",
+        "module_type": "add-on",
+        "roles": null
+      }
+    ]
+  },
+  "company_modules": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "b5a9842d-e5ce-4985-9bff-87106702b25f"
+      },
+      {
+        "name": "company_id",
+        "type": "string",
+        "sampleValue": "1e9b9a85-66a1-44e8-83d0-135d419f0394"
+      },
+      {
+        "name": "module_id",
+        "type": "string",
+        "sampleValue": "5b7fc0f5-abe9-45bd-a979-3307ae1da409"
+      },
+      {
+        "name": "is_enabled",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "settings",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-18T18:51:08.14223+00:00"
+      },
+      {
+        "name": "monthly_price",
+        "type": "number",
+        "sampleValue": 0
+      },
+      {
+        "name": "per_user_price",
+        "type": "number",
+        "sampleValue": 0
+      },
+      {
+        "name": "is_locked_by_system",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "billing_tier",
+        "type": "string",
+        "sampleValue": "standard"
+      },
+      {
+        "name": "enabled_by",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "enabled_at",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "configuration",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "usage_limits",
+        "type": "object",
+        "sampleValue": {}
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-23T14:34:09.096691+00:00"
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "b5a9842d-e5ce-4985-9bff-87106702b25f",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "module_id": "5b7fc0f5-abe9-45bd-a979-3307ae1da409",
+        "is_enabled": true,
+        "settings": {},
+        "created_at": "2025-09-18T18:51:08.14223+00:00",
+        "monthly_price": 0,
+        "per_user_price": 0,
+        "is_locked_by_system": true,
+        "billing_tier": "standard",
+        "enabled_by": null,
+        "enabled_at": null,
+        "configuration": {},
+        "usage_limits": {},
+        "updated_at": "2025-09-23T14:34:09.096691+00:00"
+      },
+      {
+        "id": "3a3c7842-15e9-4034-a5c8-2c3f829c57fc",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "module_id": "44d31b66-2a43-4536-9ec7-8b7c64161f80",
+        "is_enabled": true,
+        "settings": {},
+        "created_at": "2025-09-18T18:51:08.14223+00:00",
+        "monthly_price": 0,
+        "per_user_price": 0,
+        "is_locked_by_system": false,
+        "billing_tier": "standard",
+        "enabled_by": null,
+        "enabled_at": null,
+        "configuration": {},
+        "usage_limits": {},
+        "updated_at": "2025-09-23T14:34:09.096691+00:00"
+      },
+      {
+        "id": "7a229a7d-79ac-407d-96c3-c9c9309e19d7",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "module_id": "d52d3604-2f34-42e2-8d05-f7122aa9e279",
+        "is_enabled": true,
+        "settings": {},
+        "created_at": "2025-09-18T18:51:08.14223+00:00",
+        "monthly_price": 0,
+        "per_user_price": 0,
+        "is_locked_by_system": false,
+        "billing_tier": "standard",
+        "enabled_by": null,
+        "enabled_at": null,
+        "configuration": {},
+        "usage_limits": {},
+        "updated_at": "2025-09-23T14:34:09.096691+00:00"
+      }
+    ]
+  },
+  "user_modules": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "911d1536-2ef4-43c9-a5d5-10b287fa648c"
+      },
+      {
+        "name": "user_id",
+        "type": "string",
+        "sampleValue": "67e91450-b087-431f-a534-cbe3081e08f1"
+      },
+      {
+        "name": "module_id",
+        "type": "string",
+        "sampleValue": "d52d3604-2f34-42e2-8d05-f7122aa9e279"
+      },
+      {
+        "name": "company_id",
+        "type": "string",
+        "sampleValue": "1e9b9a85-66a1-44e8-83d0-135d419f0394"
+      },
+      {
+        "name": "is_enabled",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-18T19:44:30.444952+00:00"
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-18T19:44:34.965488+00:00"
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "911d1536-2ef4-43c9-a5d5-10b287fa648c",
+        "user_id": "67e91450-b087-431f-a534-cbe3081e08f1",
+        "module_id": "d52d3604-2f34-42e2-8d05-f7122aa9e279",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "is_enabled": true,
+        "created_at": "2025-09-18T19:44:30.444952+00:00",
+        "updated_at": "2025-09-18T19:44:34.965488+00:00"
+      },
+      {
+        "id": "40976ba9-89e6-47bb-87c1-2a23f5068e02",
+        "user_id": "67e91450-b087-431f-a534-cbe3081e08f1",
+        "module_id": "6da3eea7-c711-447b-9a68-13458b28f0d3",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "is_enabled": true,
+        "created_at": "2025-09-18T20:00:59.092214+00:00",
+        "updated_at": "2025-09-18T20:00:59.092214+00:00"
+      },
+      {
+        "id": "9728327d-a9a1-4a2c-a18b-f6cc38d811ea",
+        "user_id": "37110760-b30d-43c7-a6d6-ccdbf3a5c3c9",
+        "module_id": "6da3eea7-c711-447b-9a68-13458b28f0d3",
+        "company_id": "1e9b9a85-66a1-44e8-83d0-135d419f0394",
+        "is_enabled": true,
+        "created_at": "2025-09-19T13:11:38.131606+00:00",
+        "updated_at": "2025-09-19T13:11:38.131606+00:00"
+      }
+    ]
+  },
+  "permissions": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "07d6c0e6-11c4-4c26-a3b2-92a1f81d7dbe"
+      },
+      {
+        "name": "permission_key",
+        "type": "string",
+        "sampleValue": "dashboard.view"
+      },
+      {
+        "name": "permission_name",
+        "type": "string",
+        "sampleValue": "View Dashboard"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "sampleValue": "Access to main dashboard"
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "sampleValue": "core"
+      },
+      {
+        "name": "module_id",
+        "type": "object",
+        "sampleValue": null
+      },
+      {
+        "name": "is_system_permission",
+        "type": "boolean",
+        "sampleValue": true
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-22T17:04:29.181594+00:00"
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-22T17:04:29.181594+00:00"
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "07d6c0e6-11c4-4c26-a3b2-92a1f81d7dbe",
+        "permission_key": "dashboard.view",
+        "permission_name": "View Dashboard",
+        "description": "Access to main dashboard",
+        "category": "core",
+        "module_id": null,
+        "is_system_permission": true,
+        "created_at": "2025-09-22T17:04:29.181594+00:00",
+        "updated_at": "2025-09-22T17:04:29.181594+00:00"
+      },
+      {
+        "id": "6837f967-fcc3-49a0-9392-323f5ba8ce80",
+        "permission_key": "users.view",
+        "permission_name": "View Users",
+        "description": "View user list and details",
+        "category": "admin",
+        "module_id": null,
+        "is_system_permission": false,
+        "created_at": "2025-09-22T17:04:29.181594+00:00",
+        "updated_at": "2025-09-22T17:04:29.181594+00:00"
+      },
+      {
+        "id": "ef3a04da-2ba8-4ac6-b78f-5696db0d1b7b",
+        "permission_key": "users.create",
+        "permission_name": "Create Users",
+        "description": "Create new users and send invitations",
+        "category": "admin",
+        "module_id": null,
+        "is_system_permission": false,
+        "created_at": "2025-09-22T17:04:29.181594+00:00",
+        "updated_at": "2025-09-22T17:04:29.181594+00:00"
+      }
+    ]
+  },
+  "user_permissions": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "company_users": {
+    "error": "Could not find the table 'public.company_users' in the schema cache",
+    "exists": false
+  },
+  "ingrid_suggested_categories": {
+    "error": "Could not find the table 'public.ingrid_suggested_categories' in the schema cache",
+    "exists": false
+  },
+  "ingrid_suggested_vendors": {
+    "error": "Could not find the table 'public.ingrid_suggested_vendors' in the schema cache",
+    "exists": false
+  },
+  "api_keys": {
+    "error": "Could not find the table 'public.api_keys' in the schema cache",
+    "exists": false
+  },
+  "custom_roles": {
+    "exists": true,
+    "empty": true,
+    "fields": []
+  },
+  "role_permissions": {
+    "exists": true,
+    "recordCount": 3,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "sampleValue": "fde3c70d-4ca9-41a0-8e1e-61a03a7ccd94"
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "sampleValue": "admin"
+      },
+      {
+        "name": "permission_name",
+        "type": "string",
+        "sampleValue": "expenses:view"
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "sampleValue": "2025-09-24T12:32:22.497911+00:00"
+      },
+      {
+        "name": "updated_at",
+        "type": "string",
+        "sampleValue": "2025-09-24T12:32:22.497911+00:00"
+      }
+    ],
+    "sampleData": [
+      {
+        "id": "fde3c70d-4ca9-41a0-8e1e-61a03a7ccd94",
+        "role": "admin",
+        "permission_name": "expenses:view",
+        "created_at": "2025-09-24T12:32:22.497911+00:00",
+        "updated_at": "2025-09-24T12:32:22.497911+00:00"
+      },
+      {
+        "id": "f1a3fe18-8d3d-4931-875b-ef4032333487",
+        "role": "admin",
+        "permission_name": "expenses:create",
+        "created_at": "2025-09-24T12:32:22.497911+00:00",
+        "updated_at": "2025-09-24T12:32:22.497911+00:00"
+      },
+      {
+        "id": "4810f720-fcdc-4568-b362-210c9e6ba547",
+        "role": "admin",
+        "permission_name": "expenses:edit",
+        "created_at": "2025-09-24T12:32:22.497911+00:00",
+        "updated_at": "2025-09-24T12:32:22.497911+00:00"
+      }
+    ]
+  }
+}

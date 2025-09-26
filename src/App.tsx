@@ -11,23 +11,20 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import CompleteProfilePage from "./pages/CompleteProfilePage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
+// New Authentication Components
+import AuthPage from "./pages/AuthPage";
+import NewCompleteProfilePage from "./pages/NewCompleteProfilePage";
+import AuthGuard, { AdminGuard, SuperAdminGuard } from "./components/AuthGuard";
 
 // Lazy loaded components (loaded on demand)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const IngridAIPage = lazy(() => import("./pages/IngridAIPage"));
 
-const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
 const EnhancedExpensesPage = lazy(() => import("./pages/EnhancedExpensesPage"));
 const ExpenseDetailPage = lazy(() => import("./pages/ExpenseDetailPage"));
-const ExpenseReviewPage = lazy(() => import("./pages/ExpenseReviewPage"));
-const CompaniesPage = lazy(() => import("./pages/Companies"));
-const UsersPage = lazy(() => import("./pages/Users"));
-const EnhancedUsersPage = lazy(() => import("./pages/EnhancedUsersPage"));
-const VendorsPage = lazy(() => import("./pages/VendorsPage"));
 const EnhancedVendorsPage = lazy(() => import("./pages/EnhancedVendorsPage"));
-const CustomersPage = lazy(() => import("./pages/CustomersPage"));
+const EnhancedCustomersPage = lazy(() => import("./pages/EnhancedCustomersPage"));
 const ExpenseCategoriesPage = lazy(() => import("./pages/ExpenseCategoriesPage"));
 const GLAccountsPage = lazy(() => import("./pages/GLAccountsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
@@ -38,14 +35,14 @@ const SuperAdminCompanySetupPage = lazy(() => import("./pages/SuperAdminCompanyS
 const CompanyNotificationSettingsPage = lazy(() => import("./pages/CompanyNotificationSettingsPage"));
 const CompanySettingsPage = lazy(() => import("./pages/CompanySettingsPage"));
 const SystemBillingSettingsPage = lazy(() => import("./pages/SystemBillingSettingsPage"));
-const ProcessAutomationPage = lazy(() => import("./pages/ProcessAutomationPage"));
 const SystemNotificationSettingsPage = lazy(() => import("./pages/SystemNotificationSettingsPage"));
 const CompanyModuleManager = lazy(() => import("./components/CompanyModuleManager"));
 const FirstLoginOnboardingDialog = lazy(() => import("./components/FirstLoginOnboardingDialog"));
 const AIAnalyticsPage = lazy(() => import("./pages/AIAnalyticsPage"));
-const PermissionsManagementPage = lazy(() => import("./pages/PermissionsManagementPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const CompanyProvisioningPage = lazy(() => import("./pages/CompanyProvisioningPage"));
+const SuperAdminApiKeys = lazy(() => import("./pages/SuperAdminApiKeys"));
 
-import { supabase } from "@/integrations/supabase/client";
 import AsyncErrorBoundary from "./components/AsyncErrorBoundary";
 
 // Helper function to wrap lazy components with Suspense and Error Boundary
@@ -99,6 +96,20 @@ const ProtectedRoute = ({
   // State to control showing the FirstLoginOnboardingDialog
   const [showFirstLoginOnboarding, setShowFirstLoginOnboarding] = useState(false);
 
+  // SUPERADMIN COMPLETE BYPASS - Check after hooks
+  const isSuperAdmin = session?.user?.email === 'admin@infotrac.com';
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      // If on any profile completion page, go to dashboard
+      if (location.pathname === "/complete-profile" ||
+          location.pathname === "/auth/complete-profile" ||
+          location.pathname === "/onboarding") {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [isSuperAdmin, location.pathname, navigate]);
+
 
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
@@ -111,6 +122,21 @@ const ProtectedRoute = ({
       let currentShouldShowAwaitingCompany = false;
       let currentShouldShowFirstLoginOnboarding = false;
 
+      // SUPERADMIN BYPASS - Check email directly
+      if (session?.user?.email === 'admin@infotrac.com') {
+        // Superadmin should NEVER be on profile completion or login pages
+        if (location.pathname === "/complete-profile" ||
+            location.pathname === "/onboarding" ||
+            location.pathname === "/auth/complete-profile" ||
+            location.pathname === "/" ||
+            location.pathname === "/login") {
+          navigate("/dashboard", { replace: true });
+          return;
+        }
+        // Superadmin can stay on any other page
+        return;
+      }
+
       // 2. User is NOT authenticated
       if (!session) {
         if (location.pathname !== "/login" && location.pathname !== "/accept-invite") {
@@ -119,9 +145,7 @@ const ProtectedRoute = ({
       }
       // 3. User IS authenticated
       else {
-        // If session exists but activeProfile is null, it means the profile data is still being fetched
-        // or failed to fetch. In this case, we should redirect to /complete-profile as a fallback
-        // for all users, and let CompleteProfilePage handle further role-based redirects.
+        // Check if user has a profile
         if (!activeProfile) {
           // If we are already on /complete-profile or /onboarding, don't redirect again.
           // This prevents infinite loops if profile fetching is genuinely failing.
@@ -131,8 +155,21 @@ const ProtectedRoute = ({
         }
         // 4. Active profile is available, proceed with role/profile completeness checks
         else {
-          // Priority A: Profile incomplete (missing first_name/last_name)
-          if (!activeProfile.first_name || !activeProfile.last_name) {
+          // Priority A: Super-admin specific logic - they bypass profile completion
+          if (activeProfile.role === "super-admin") {
+            // Super admins bypass all profile completion requirements
+            // If on the root path, login, or profile completion pages, redirect to dashboard
+            if (location.pathname === "/" ||
+                location.pathname === "/login" ||
+                location.pathname === "/complete-profile" ||
+                location.pathname === "/onboarding" ||
+                location.pathname === "/auth/complete-profile") {
+              finalTargetPath = "/dashboard";
+            }
+            // Super admins can access any page - no additional restrictions
+          }
+          // Priority B: Profile incomplete (missing first_name/last_name or full_name)
+          else if ((!activeProfile.first_name || !activeProfile.last_name) && !activeProfile.full_name) {
             if (activeProfile.role === 'admin' && activeProfile.company_id) {
               // Admin with incomplete profile and company_id should go to /onboarding
               if (location.pathname !== "/onboarding") {
@@ -146,26 +183,6 @@ const ProtectedRoute = ({
               }
             }
           }
-          // Priority B: Super-admin specific logic for company setup
-          else if (activeProfile.role === "super-admin") {
-            const { count, error } = await supabase.from("companies").select("id", { count: "exact", head: true });
-            if (error) {
-              console.error("ProtectedRoute: Error checking companies for super-admin:", error);
-              finalTargetPath = "/company-setup"; // Default to setup on error
-            } else if ((count ?? 0) === 0) {
-              // No companies exist, force to company setup page
-              if (location.pathname !== "/company-setup") {
-                finalTargetPath = "/company-setup";
-              }
-            } else {
-              // Companies exist.
-              // If on the root path or login, redirect to super-admin dashboard.
-              if (location.pathname === "/" || location.pathname === "/login") {
-                finalTargetPath = "/super-admin-dashboard";
-              }
-              // If on any other valid super-admin page, allow access (don't set finalTargetPath)
-            }
-          }
           // Priority C: Regular user without a company assigned
           else if (!activeProfile.company_id && activeProfile.role !== "super-admin") {
             if (location.pathname !== "/") {
@@ -176,11 +193,7 @@ const ProtectedRoute = ({
           // Priority D: All other authenticated users with complete profiles and a company
           // If they are on login, accept-invite, or root, redirect to their appropriate dashboard
           else if (location.pathname === "/login" || location.pathname === "/accept-invite" || location.pathname === "/") {
-            if (activeProfile.role === 'super-admin') {
-              finalTargetPath = "/super-admin-dashboard";
-            } else {
-              finalTargetPath = "/dashboard";
-            }
+            finalTargetPath = "/dashboard";
           }
           // Else, user is on a valid page, no redirect needed.
         }
@@ -206,10 +219,14 @@ const ProtectedRoute = ({
     );
   }
 
+  // If superadmin, always render children (skip profile checks)
+  if (isSuperAdmin) {
+    return <>{children}</>;
+  }
+
   // If session exists but activeProfile is still null (and not loading),
   // it means profile creation might have failed or is delayed.
   // Force redirect to /complete-profile to ensure profile is created/updated.
-  // This block is now redundant due to the useEffect logic, but kept as a final safeguard.
   if (session && !activeProfile && !isLoading) {
     if (location.pathname !== "/complete-profile" && location.pathname !== "/onboarding") {
       navigate("/complete-profile", { replace: true });
@@ -244,6 +261,16 @@ const ProtectedRoute = ({
 
 // Define routes as an array of objects
 const routes: RouteObject[] = [
+  // New Authentication Routes
+  {
+    path: "/auth",
+    element: <Login />,
+  },
+  {
+    path: "/auth/complete-profile",
+    element: <NewCompleteProfilePage />,
+  },
+  // Legacy Routes (kept for compatibility)
   {
     path: "/login",
     element: <Login />,
@@ -254,7 +281,7 @@ const routes: RouteObject[] = [
   },
   {
     path: "/complete-profile",
-    element: <CompleteProfilePage />,
+    element: <NewCompleteProfilePage />,
   },
   {
     path: "/onboarding", // New route for admin first-login onboarding
@@ -297,23 +324,13 @@ const routes: RouteObject[] = [
         handle: { pageTitle: "INFOtrac - Company Setup" },
       },
       {
-        path: "/companies",
-        element: withSuspense(CompaniesPage, "Loading companies...", "CompaniesPage"),
-        handle: { pageTitle: "INFOtrac - Companies" },
-      },
-      {
         path: "/vendors",
         element: withSuspense(EnhancedVendorsPage, "Loading vendors...", "EnhancedVendorsPage"),
         handle: { pageTitle: "INFOtrac - Vendors" },
       },
       {
-        path: "/legacy-vendors",
-        element: withSuspense(VendorsPage, "Loading legacy vendors...", "VendorsPage"),
-        handle: { pageTitle: "INFOtrac - Legacy Vendors" },
-      },
-      {
         path: "/customers",
-        element: withSuspense(CustomersPage, "Loading customers...", "CustomersPage"),
+        element: withSuspense(EnhancedCustomersPage, "Loading customers...", "EnhancedCustomersPage"),
         handle: { pageTitle: "INFOtrac - Customers" },
       },
       {
@@ -322,24 +339,9 @@ const routes: RouteObject[] = [
         handle: { pageTitle: "INFOtrac - Expenses" },
       },
       {
-        path: "/legacy-expenses",
-        element: withSuspense(ExpensesPage, "Loading legacy expenses...", "ExpensesPage"),
-        handle: { pageTitle: "INFOtrac - Legacy Expenses" },
-      },
-      {
-        path: "/enhanced-expenses",
-        element: withSuspense(EnhancedExpensesPage, "Loading enhanced expenses...", "EnhancedExpensesPage"),
-        handle: { pageTitle: "INFOtrac - Enhanced Expenses" },
-      },
-      {
         path: "/expenses/:id",
         element: withSuspense(ExpenseDetailPage, "Loading expense details...", "ExpenseDetailPage"),
         handle: { pageTitle: "INFOtrac - Expense Details" },
-      },
-      {
-        path: "/expense-review",
-        element: withSuspense(ExpenseReviewPage, "Loading expense review...", "ExpenseReviewPage"),
-        handle: { pageTitle: "INFOtrac - Expense Review" },
       },
       {
         path: "/expense-categories",
@@ -386,6 +388,15 @@ const routes: RouteObject[] = [
         handle: { pageTitle: "INFOtrac - Company Module Management" },
       },
       {
+        path: "/api-key-manager",
+        element: (
+          <ProtectedRoute allowedRoles={['super-admin']}>
+            {withSuspense(SuperAdminApiKeys, "Loading API key manager...", "SuperAdminApiKeys")}
+          </ProtectedRoute>
+        ),
+        handle: { pageTitle: "INFOtrac - API Key Manager" },
+      },
+      {
         path: "/company-notification-settings",
         element: withSuspense(CompanyNotificationSettingsPage, "Loading notification settings...", "CompanyNotificationSettingsPage"),
         handle: { pageTitle: "INFOtrac - Company Notification Settings" },
@@ -394,11 +405,6 @@ const routes: RouteObject[] = [
         path: "/system-billing-settings",
         element: withSuspense(SystemBillingSettingsPage, "Loading billing settings...", "SystemBillingSettingsPage"),
         handle: { pageTitle: "INFOtrac - System Billing" },
-      },
-      {
-        path: "/process-automation",
-        element: withSuspense(ProcessAutomationPage, "Loading process automation...", "ProcessAutomationPage"),
-        handle: { pageTitle: "INFOtrac - Process Automation" },
       },
       {
         path: "/analytics",
@@ -411,23 +417,17 @@ const routes: RouteObject[] = [
       },
       {
         path: "/users",
-        element: withSuspense(PermissionsManagementPage, "Loading user management...", "PermissionsManagementPage"),
+        element: withSuspense(UserManagementPage, "Loading user management...", "UserManagementPage"),
         handle: { pageTitle: "INFOtrac - User Management" },
       },
       {
-        path: "/legacy-users",
-        element: withSuspense(UsersPage, "Loading legacy users...", "UsersPage"),
-        handle: { pageTitle: "INFOtrac - Legacy Users" },
-      },
-      {
-        path: "/enhanced-users",
-        element: withSuspense(EnhancedUsersPage, "Loading enhanced users...", "EnhancedUsersPage"),
-        handle: { pageTitle: "INFOtrac - Enhanced Users" },
-      },
-      {
-        path: "/permissions",
-        element: withSuspense(PermissionsManagementPage, "Loading permissions management...", "PermissionsManagementPage"),
-        handle: { pageTitle: "INFOtrac - Permissions Management" },
+        path: "/users/provision-company",
+        element: (
+          <ProtectedRoute allowedRoles={['super-admin']}>
+            {withSuspense(CompanyProvisioningPage, "Loading company provisioning...", "CompanyProvisioningPage")}
+          </ProtectedRoute>
+        ),
+        handle: { pageTitle: "INFOtrac - Provision New Company" },
       },
       {
         path: "*",

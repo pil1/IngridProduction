@@ -28,7 +28,6 @@ import type { IngridResponse, SecurityContext } from '@/types/ingrid';
 
 interface Step1DocumentUploadProps {
   onDocumentProcessed: (file: File, response: IngridResponse) => void;
-  onSkipToManual?: () => void;
   isProcessing: boolean;
   securityContext: SecurityContext | null;
   onProcessingStart?: () => void;
@@ -43,7 +42,6 @@ interface UploadProgress {
 
 export const Step1DocumentUpload: React.FC<Step1DocumentUploadProps> = ({
   onDocumentProcessed,
-  onSkipToManual,
   isProcessing,
   securityContext,
   onProcessingStart,
@@ -242,17 +240,6 @@ export const Step1DocumentUpload: React.FC<Step1DocumentUploadProps> = ({
                   >
                     Choose File
                   </Button>
-
-                  {onSkipToManual && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={isProcessing || !!uploadProgress}
-                      onClick={onSkipToManual}
-                    >
-                      Skip to Manual Entry
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>

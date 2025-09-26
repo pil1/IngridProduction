@@ -1,337 +1,286 @@
 /**
- * Ingrid AI Demo Page
+ * Ingrid AI Assistant Page
  *
- * Showcase page for the new Ingrid AI assistant that demonstrates
- * the revolutionary upgrade from legacy analyze-expense function.
+ * Professional two-column layout featuring:
+ * - Left: Professional chat interface with Ingrid
+ * - Right: Action cards for reviewing and approving AI suggestions
+ *
+ * Only accessible to users with proper Ingrid AI permissions and module access.
  */
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
+  Bot,
   Sparkles,
-  FileText,
-  MessageSquare,
+  Shield,
+  AlertTriangle,
   Zap,
-  Brain,
-  Users,
-  Building,
-  DollarSign,
-  ArrowRight,
+  MessageSquare,
+  FileText,
+  Clock,
   CheckCircle2
 } from 'lucide-react';
-import { IngridChatInterface } from '@/components/ingrid/IngridChatInterface';
+import { ProfessionalIngridChat } from '@/components/ingrid/ProfessionalIngridChat';
+import { IngridActionCards } from '@/components/ingrid/IngridActionCards';
 import { IngridAvatar } from '@/components/ingrid/IngridAvatar';
-import { IngridResponse } from '@/types/ingrid';
+import { useSession } from '@/components/SessionContextProvider';
+import { useCanAccessIngrid } from '@/hooks/useEnhancedPermissions';
+import { cn } from '@/lib/utils';
+
+// Action Card interface (shared with components)
+interface ActionCard {
+  id: string;
+  type: 'expense' | 'vendor' | 'customer' | 'category';
+  title: string;
+  description: string;
+  data: any;
+  confidence?: number;
+  status: 'suggested' | 'approved' | 'rejected';
+  createdAt: Date;
+}
 
 export default function IngridAIPage() {
-  const [demoStats, setDemoStats] = useState({
+  const { profile } = useSession();
+  const canAccessIngrid = useCanAccessIngrid();
+
+  const [actionCards, setActionCards] = useState<ActionCard[]>([]);
+  const [sessionStats, setSessionStats] = useState({
+    messagesExchanged: 0,
     documentsProcessed: 0,
-    actionsGenerated: 0,
-    timesSaved: 0
+    actionCardsGenerated: 0,
+    actionCardsApproved: 0
   });
 
-  const handleDocumentProcessed = (response: IngridResponse) => {
-    setDemoStats(prev => ({
-      documentsProcessed: prev.documentsProcessed + 1,
-      actionsGenerated: prev.actionsGenerated + response.actionCards.length,
-      timesSaved: prev.timesSaved + Math.floor(Math.random() * 5) + 2 // 2-7 minutes saved
+  // Handle permission checks
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <Bot className="h-12 w-12 mx-auto text-muted-foreground" />
+          <div>
+            <h2 className="text-xl font-semibold">Authentication Required</h2>
+            <p className="text-muted-foreground">Please log in to access Ingrid AI Assistant</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessIngrid) {
+    return (
+      <div className="max-w-2xl mx-auto p-8">
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription className="ml-2">
+            <strong>Access Restricted:</strong> You don't have permission to access Ingrid AI Assistant.
+            Please contact your administrator to request access to the Ingrid AI module and appropriate permissions.
+          </AlertDescription>
+        </Alert>
+
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              About Ingrid AI Assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Ingrid AI Assistant is your comprehensive business process automation tool that can:
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <FileText className="h-4 w-4 text-blue-500" />
+                  Document Processing
+                </div>
+                <ul className="text-sm text-muted-foreground ml-6 space-y-1">
+                  <li>• Receipt & invoice analysis</li>
+                  <li>• Business card extraction</li>
+                  <li>• Contract processing</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Zap className="h-4 w-4 text-green-500" />
+                  Smart Automation
+                </div>
+                <ul className="text-sm text-muted-foreground ml-6 space-y-1">
+                  <li>• Expense categorization</li>
+                  <li>• Vendor enrichment</li>
+                  <li>• Approval workflows</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle new action card generation
+  const handleActionCardGenerated = (actionCard: ActionCard) => {
+    setActionCards(prev => [actionCard, ...prev]);
+    setSessionStats(prev => ({
+      ...prev,
+      actionCardsGenerated: prev.actionCardsGenerated + 1
     }));
   };
 
-  const features = [
-    {
-      icon: <Brain className="h-6 w-6" />,
-      title: "Universal Document Intelligence",
-      description: "Processes receipts, invoices, business cards, quotes, and contracts with AI-powered analysis"
-    },
-    {
-      icon: <MessageSquare className="h-6 w-6" />,
-      title: "Conversational Interface",
-      description: "Natural language interactions with context-aware responses and personality"
-    },
-    {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Smart Action Cards",
-      description: "Intelligent workflow suggestions with approval mechanisms and automation"
-    },
-    {
-      icon: <Building className="h-6 w-6" />,
-      title: "SPIRE Integration",
-      description: "Seamless integration with existing systems for vendor lookup and GL accounts"
-    }
-  ];
+  // Handle action card approval
+  const handleActionCardApprove = (cardId: string, editedData?: any) => {
+    setActionCards(prev => prev.map(card =>
+      card.id === cardId
+        ? {
+            ...card,
+            status: 'approved' as const,
+            data: editedData || card.data
+          }
+        : card
+    ));
+    setSessionStats(prev => ({
+      ...prev,
+      actionCardsApproved: prev.actionCardsApproved + 1
+    }));
+  };
 
-  const capabilities = [
-    {
-      category: "Expense Management",
-      items: ["Receipt processing", "Invoice analysis", "Auto-categorization", "GL account suggestions", "Approval routing"]
-    },
-    {
-      category: "Contact Management",
-      items: ["Business card extraction", "Contact enrichment", "Vendor creation", "Duplicate detection", "CRM integration"]
-    },
-    {
-      category: "Document Processing",
-      items: ["Multi-format support", "OCR extraction", "Data validation", "Web enrichment", "Batch processing"]
-    },
-    {
-      category: "Workflow Automation",
-      items: ["Smart suggestions", "Approval workflows", "Error handling", "Integration hooks", "Audit trails"]
-    }
-  ];
+  // Handle action card rejection
+  const handleActionCardReject = (cardId: string, reason?: string) => {
+    setActionCards(prev => prev.map(card =>
+      card.id === cardId
+        ? { ...card, status: 'rejected' as const }
+        : card
+    ));
+  };
+
+  // Handle action card editing
+  const handleActionCardEdit = (cardId: string, newData: any) => {
+    setActionCards(prev => prev.map(card =>
+      card.id === cardId
+        ? { ...card, data: newData }
+        : card
+    ));
+  };
+
+  // Handle message sent
+  const handleMessageSent = (message: string) => {
+    setSessionStats(prev => ({
+      ...prev,
+      messagesExchanged: prev.messagesExchanged + 1
+    }));
+  };
 
   return (
-    <div className="flex-1 space-y-8 p-8">
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+      <div className="flex-shrink-0 mb-8">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
             <IngridAvatar size="lg" showStatus status="online" />
-            Meet Ingrid AI
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Your new universal AI assistant that replaces simple document processing with intelligent conversations
-          </p>
+            <div>
+              <h1 className="text-3xl font-semibold">Ingrid AI Assistant</h1>
+              <p className="text-muted-foreground mt-1">
+                Your intelligent business process automation assistant
+              </p>
+            </div>
+          </div>
+
+          {/* Session Stats */}
+          <div className="hidden lg:flex items-center gap-6 bg-muted/50 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2 text-sm">
+              <MessageSquare className="h-4 w-4 text-blue-500" />
+              <span className="font-medium">{sessionStats.messagesExchanged}</span>
+              <span className="text-muted-foreground">messages</span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4 text-green-500" />
+              <span className="font-medium">{sessionStats.documentsProcessed}</span>
+              <span className="text-muted-foreground">docs</span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-2 text-sm">
+              <Zap className="h-4 w-4 text-purple-500" />
+              <span className="font-medium">{sessionStats.actionCardsGenerated}</span>
+              <span className="text-muted-foreground">suggestions</span>
+            </div>
+          </div>
         </div>
-        <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
-          <Sparkles className="h-4 w-4 mr-1" />
-          Phase 4 Live!
-        </Badge>
       </div>
 
-      {/* Migration Success Banner */}
-      <Card className="border-green-200 bg-green-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <CheckCircle2 className="h-5 w-5" />
-            Migration Complete: Legacy AI → Ingrid Universal Assistant
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">{demoStats.documentsProcessed}</div>
-              <div className="text-sm text-green-600">Documents Processed</div>
+      {/* Main Two-Column Layout */}
+      <div className="flex-1">
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* Left Panel - Chat Interface */}
+          <Panel
+            defaultSize={50}
+            minSize={30}
+            className="flex flex-col"
+          >
+            <div className="h-full">
+              <ProfessionalIngridChat
+                onActionCardGenerated={handleActionCardGenerated}
+                onMessageSent={handleMessageSent}
+                className="h-full"
+              />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">{demoStats.actionsGenerated}</div>
-              <div className="text-sm text-green-600">Actions Generated</div>
+          </Panel>
+
+          {/* Resizable Handle */}
+          <PanelResizeHandle className="w-2 bg-border hover:bg-primary/20 transition-colors" />
+
+          {/* Right Panel - Action Cards */}
+          <Panel
+            defaultSize={50}
+            minSize={30}
+            className="flex flex-col"
+          >
+            <IngridActionCards
+              actionCards={actionCards}
+              onApprove={handleActionCardApprove}
+              onReject={handleActionCardReject}
+              onEdit={handleActionCardEdit}
+              className="h-full border rounded-lg bg-card"
+            />
+          </Panel>
+        </PanelGroup>
+      </div>
+
+      {/* Footer Status */}
+      <div className="flex-shrink-0 mt-8 pt-4 border-t">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-muted-foreground">AI Assistant Active</span>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">{demoStats.timesSaved}m</div>
-              <div className="text-sm text-green-600">Time Saved</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="demo" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="demo">Live Demo</TabsTrigger>
-          <TabsTrigger value="features">Features</TabsTrigger>
-          <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
-          <TabsTrigger value="migration">Migration</TabsTrigger>
-        </TabsList>
-
-        {/* Live Demo Tab */}
-        <TabsContent value="demo" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Chat Interface */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Interactive Demo</CardTitle>
-                  <CardDescription>
-                    Try uploading a document or asking Ingrid questions. She can process receipts,
-                    business cards, invoices, and more!
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <IngridChatInterface
-                    context="general_assistant"
-                    onDocumentProcessed={handleDocumentProcessed}
-                    className="border-0"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Demo Instructions */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Try These Examples</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="p-3 border rounded-lg">
-                      <h4 className="font-medium text-sm">Upload a Receipt</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Upload any receipt image and watch Ingrid extract vendor, amount, and create an expense
-                      </p>
-                    </div>
-
-                    <div className="p-3 border rounded-lg">
-                      <h4 className="font-medium text-sm">Ask for Help</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Type "help me create an expense" or "what can you do?"
-                      </p>
-                    </div>
-
-                    <div className="p-3 border rounded-lg">
-                      <h4 className="font-medium text-sm">Business Card</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Upload a business card to see contact extraction and vendor suggestions
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">What's New</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-green-600" />
-                      <span>Conversational interface</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-green-600" />
-                      <span>Multiple document types</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-green-600" />
-                      <span>Smart action suggestions</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-green-600" />
-                      <span>Web enrichment</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-green-600" />
-                      <span>SPIRE integration ready</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Features Tab */}
-        <TabsContent value="features" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.map((feature, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                      {feature.icon}
-                    </div>
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Capabilities Tab */}
-        <TabsContent value="capabilities" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {capabilities.map((capability, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle>{capability.category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {capability.items.map((item, itemIndex) => (
-                      <li key={itemIndex} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Migration Tab */}
-        <TabsContent value="migration" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Migration Summary: Legacy AI → Ingrid Universal</CardTitle>
-              <CardDescription>
-                Complete replacement of the single-purpose analyze-expense function with Ingrid's universal AI engine
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-red-600 mb-3">❌ Legacy System (Replaced)</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li>• Single-purpose expense analysis</li>
-                    <li>• Receipt-only processing</li>
-                    <li>• No conversational interface</li>
-                    <li>• Limited error handling</li>
-                    <li>• Basic OCR extraction</li>
-                    <li>• No intelligent suggestions</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-green-600 mb-3">✅ Ingrid Universal (New)</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li>• Universal document processing</li>
-                    <li>• Multiple document types</li>
-                    <li>• Conversational AI interface</li>
-                    <li>• Advanced error handling</li>
-                    <li>• AI-powered extraction</li>
-                    <li>• Smart action workflows</li>
-                  </ul>
-                </div>
+            {actionCards.filter(card => card.status === 'suggested').length > 0 && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-500" />
+                <span className="text-muted-foreground">
+                  {actionCards.filter(card => card.status === 'suggested').length} pending review
+                </span>
               </div>
+            )}
+          </div>
 
-              <Separator />
-
-              <div>
-                <h3 className="font-semibold mb-3">Technical Architecture</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <Card className="p-3">
-                    <div className="font-medium">Core Engine</div>
-                    <div className="text-muted-foreground">IngridCore.ts</div>
-                  </Card>
-                  <Card className="p-3">
-                    <div className="font-medium">Document Processor</div>
-                    <div className="text-muted-foreground">Universal analysis</div>
-                  </Card>
-                  <Card className="p-3">
-                    <div className="font-medium">Action Cards</div>
-                    <div className="text-muted-foreground">Smart workflows</div>
-                  </Card>
-                  <Card className="p-3">
-                    <div className="font-medium">Chat Interface</div>
-                    <div className="text-muted-foreground">Conversational UI</div>
-                  </Card>
-                </div>
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <span>Session {new Date().toLocaleTimeString()}</span>
+            {sessionStats.actionCardsApproved > 0 && (
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span>{sessionStats.actionCardsApproved} approved</span>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

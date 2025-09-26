@@ -71,117 +71,46 @@ function NotificationProvider({ children }: NotificationProviderProps) {
     // Don't initialize if session is still loading or no profile
     if (sessionLoading || !profile?.id) return;
 
-    let subscription: RealtimeChannel | null = null;
     let isNotificationsTableAvailable = true;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    // Use startTransition for initialization to prevent suspense during sync operations
-    startTransition(() => {
-      const initializeNotifications = async () => {
-        try {
-          await fetchNotifications();
-        } catch (error: unknown) {
-          const supabaseError = error as SupabaseError;
-          console.error('Failed to initialize notifications:', error);
-          // If notifications table doesn't exist, don't set up real-time subscription
-          if (supabaseError?.code === 'PGRST205') {
-            isNotificationsTableAvailable = false;
-          }
+    const initializeNotifications = async () => {
+      try {
+        await fetchNotifications();
+      } catch (error: unknown) {
+        const supabaseError = error as SupabaseError;
+        console.error('Failed to initialize notifications:', error);
+        // If notifications table doesn't exist, don't set up real-time subscription
+        if (supabaseError?.code === 'PGRST205') {
+          isNotificationsTableAvailable = false;
         }
-      };
+      }
+    };
 
-      initializeNotifications().then(() => {
-        // Only set up real-time subscription if the table exists
-        if (!isNotificationsTableAvailable) {
-          console.warn('Notifications table not available - skipping real-time subscription');
-          return;
+    // Initialize notifications and set up polling
+    initializeNotifications().then(() => {
+      // Only set up real-time subscription if the table exists
+      if (!isNotificationsTableAvailable) {
+        console.warn('Notifications table not available - skipping real-time subscription');
+        return;
+      }
+
+      // TODO: Implement real-time notifications with PostgreSQL backend
+      // For now, disable real-time subscription during PostgreSQL migration
+      console.log('Real-time notifications temporarily disabled during PostgreSQL migration');
+
+      // Set up periodic polling as a temporary workaround
+      pollInterval = setInterval(() => {
+        if (profile?.id) {
+          fetchNotifications().catch(console.error);
         }
-
-        // Subscribe to real-time notifications
-        subscription = supabase
-          .channel('notifications')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${profile.id}`,
-            },
-            (payload) => {
-              const newNotification = payload.new as Notification;
-              startTransition(() => {
-                setNotifications(prev => [newNotification, ...prev]);
-              });
-
-              // Show toast notification for new notifications
-              startTransition(() => {
-                switch (newNotification.type) {
-                  case 'success':
-                    toast.success(newNotification.title, {
-                      description: newNotification.message,
-                      duration: 5000,
-                    });
-                    break;
-                  case 'warning':
-                    toast.warning(newNotification.title, {
-                      description: newNotification.message,
-                      duration: 7000,
-                    });
-                    break;
-                  case 'error':
-                    toast.error(newNotification.title, {
-                      description: newNotification.message,
-                      duration: 10000,
-                    });
-                    break;
-                  default:
-                    toast.info(newNotification.title, {
-                      description: newNotification.message,
-                      duration: 5000,
-                    });
-                }
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${profile.id}`,
-            },
-            (payload) => {
-              const updatedNotification = payload.new as Notification;
-              startTransition(() => {
-                setNotifications(prev =>
-                  prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-                );
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'DELETE',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${profile.id}`,
-            },
-            (payload) => {
-              const deletedNotification = payload.old as Notification;
-              startTransition(() => {
-                setNotifications(prev => prev.filter(n => n.id !== deletedNotification.id));
-              });
-            }
-          )
-          .subscribe();
-      });
+      }, 30000); // Poll every 30 seconds
     });
 
+    // Cleanup function
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
+      if (pollInterval) {
+        clearInterval(pollInterval);
       }
     };
   }, [sessionLoading, profile?.id, fetchNotifications]);

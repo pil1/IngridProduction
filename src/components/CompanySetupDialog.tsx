@@ -19,7 +19,6 @@ import { useSession } from "@/components/SessionContextProvider";
 const companySetupSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   companyDomain: z.string().optional(),
-  subscriptionTier: z.string().default("basic"),
   defaultCurrency: z.string().default("USD"),
   adminEmail: z.string().email("Invalid email address for admin"),
   adminFullName: z.string().optional(),
@@ -43,7 +42,6 @@ const CompanySetupDialog = ({ isOpen, onOpenChange }: CompanySetupDialogProps) =
     defaultValues: {
       companyName: "",
       companyDomain: "",
-      subscriptionTier: "basic",
       defaultCurrency: "USD",
       adminEmail: "",
       adminFullName: "",
@@ -66,7 +64,6 @@ const CompanySetupDialog = ({ isOpen, onOpenChange }: CompanySetupDialogProps) =
         .insert({
           name: values.companyName,
           domain: values.companyDomain,
-          subscription_tier: values.subscriptionTier,
           default_currency: values.defaultCurrency,
         })
         .select()
@@ -154,27 +151,6 @@ const CompanySetupDialog = ({ isOpen, onOpenChange }: CompanySetupDialogProps) =
                 {form.formState.errors.companyDomain && (
                   <p className="text-sm text-destructive">
                     {form.formState.errors.companyDomain.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="subscriptionTier">Subscription Tier</Label>
-                <Select
-                  onValueChange={(value) => form.setValue("subscriptionTier", value)}
-                  defaultValue={form.watch("subscriptionTier")}
-                >
-                  <SelectTrigger id="subscriptionTier">
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="enterprise">Enterprise</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.subscriptionTier && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.subscriptionTier.message}
                   </p>
                 )}
               </div>

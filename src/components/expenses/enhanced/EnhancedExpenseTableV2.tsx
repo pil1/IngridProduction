@@ -237,7 +237,7 @@ const EnhancedExpenseTableV2Component: React.FC<EnhancedExpenseTableV2Props> = (
                 onCheckedChange={handleSelectAll}
               />
             </TableHead>
-            <TableHead className="w-8"></TableHead> {/* Expand icon */}
+            <TableHead className="w-8"></TableHead>
             {showAIIndicators && (
               <TableHead className="w-16 text-center">
                 <Brain className="h-4 w-4 mx-auto text-blue-500" />
@@ -307,12 +307,11 @@ const EnhancedExpenseTableV2Component: React.FC<EnhancedExpenseTableV2Props> = (
                     <TableCell className="text-center">
                       <div className="flex flex-col items-center gap-1">
                         <ProcessingMethodBadge method={expense.processingMethod} size="sm" />
-                        {expense.ingrid_processed && (
-                          <ConfidenceBadge
-                            confidence={expense.overallConfidence}
-                            size="xs"
-                          />
-                        )}
+                        <ConfidenceBadge
+                          confidence={expense.overallConfidence}
+                          size="xs"
+                          isManual={expense.processingMethod === 'manual'}
+                        />
                       </div>
                     </TableCell>
                   )}

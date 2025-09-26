@@ -25,8 +25,9 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyModulesTab from "@/components/CompanyModulesTab";
 import CompanyNotificationSettingsPage from "./CompanyNotificationSettingsPage"; // Import the notification settings page
-import IngridSettingsTab from "@/components/IngridSettingsTab";
+import { IngridPermissionsTab } from "@/components/IngridPermissionsTab";
 import SecurityAlertsUI from "@/components/SecurityAlertsUI";
+import CustomRoleManager from "@/components/CustomRoleManager";
 
 const companySettingsSchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -287,12 +288,13 @@ const CompanySettingsPage = () => {
 
   return (
     <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-6"> {/* Increased grid-cols to 6 */}
+      <TabsList className="grid w-full grid-cols-7"> {/* Increased grid-cols to 7 */}
         <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="locations">Locations</TabsTrigger>
         <TabsTrigger value="modules" disabled={!isSuperAdmin && targetCompanyId !== profile?.company_id}>Modules</TabsTrigger>
+        <TabsTrigger value="roles" disabled={!isCompanyAdmin && !isSuperAdmin}>Roles</TabsTrigger> {/* New Roles Tab */}
         <TabsTrigger value="ingrid" disabled={!isCompanyAdmin && !isSuperAdmin}>Ingrid AI</TabsTrigger>
-        <TabsTrigger value="security" disabled={!isCompanyAdmin && !isSuperAdmin}>Security</TabsTrigger> {/* New Security Tab */}
+        <TabsTrigger value="security" disabled={!isCompanyAdmin && !isSuperAdmin}>Security</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
       </TabsList>
       <TabsContent value="details">
@@ -472,9 +474,18 @@ const CompanySettingsPage = () => {
           </div>
         )}
       </TabsContent>
+      <TabsContent value="roles">
+        {targetCompanyId ? (
+          <CustomRoleManager companyId={targetCompanyId} />
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground py-8">
+            Select a company to manage custom roles.
+          </div>
+        )}
+      </TabsContent>
       <TabsContent value="ingrid"> {/* Ingrid AI Tab Content */}
         {targetCompanyId ? (
-          <IngridSettingsTab />
+          <IngridPermissionsTab />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground py-8">
             Select a company to configure Ingrid AI settings.

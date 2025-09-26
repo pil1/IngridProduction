@@ -16,9 +16,14 @@ const __dirname = dirname(__filename);
 
 // Local Supabase configuration
 const SUPABASE_URL = 'http://127.0.0.1:54321';
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YPP81IU';
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 console.log('🌱 INFOtrac Database Seeding');
 console.log('============================\n');
@@ -58,27 +63,47 @@ const seedData = {
   users: [
     {
       email: 'super@phantomglass.com',
+      password: 'SuperAdmin123!',
       full_name: 'Super Administrator',
+      first_name: 'Super',
+      last_name: 'Administrator',
+      phone: '(555) 000-0001',
       role: 'super-admin'
     },
     {
       email: 'admin@phantomglass.com',
+      password: 'Admin123!',
       full_name: 'Company Administrator',
+      first_name: 'Company',
+      last_name: 'Administrator',
+      phone: '(555) 000-0002',
       role: 'admin'
     },
     {
       email: 'user@phantomglass.com',
+      password: 'User123!',
       full_name: 'Regular User',
+      first_name: 'Regular',
+      last_name: 'User',
+      phone: '(555) 000-0003',
       role: 'user'
     },
     {
       email: 'manager@techinnovations.com',
+      password: 'Manager123!',
       full_name: 'Tech Manager',
+      first_name: 'Tech',
+      last_name: 'Manager',
+      phone: '(555) 000-0004',
       role: 'admin'
     },
     {
       email: 'dev@techinnovations.com',
+      password: 'Dev123!',
       full_name: 'Senior Developer',
+      first_name: 'Senior',
+      last_name: 'Developer',
+      phone: '(555) 000-0005',
       role: 'user'
     }
   ],
@@ -116,7 +141,7 @@ async function seedCompanies() {
 
   const { data, error } = await supabase
     .from('companies')
-    .upsert(seedData.companies, { onConflict: 'name' })
+    .insert(seedData.companies)
     .select();
 
   if (error) {
@@ -128,29 +153,65 @@ async function seedCompanies() {
   return data;
 }
 
-async function seedUsers(companies) {
-  console.log('👥 Seeding users...');
+async function createAuthUsers(companies) {
+  console.log('🔐 Creating authentication users...');
 
-  // For demo purposes, we'll create the user profiles directly
-  // In a real app, users would be created through Supabase Auth
-  const usersWithCompanies = seedData.users.map((user, index) => ({
-    ...user,
-    user_id: `demo-user-${index + 1}`, // Placeholder user IDs
-    company_id: companies[index % companies.length]?.id
-  }));
+  const createdUsers = [];
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .upsert(usersWithCompanies, { onConflict: 'user_id' })
-    .select();
+  for (let i = 0; i < seedData.users.length; i++) {
+    const user = seedData.users[i];
+    // Super-admins should not be assigned to any company
+    const company = user.role === 'super-admin' ? null : companies[i % companies.length];
 
-  if (error) {
-    console.error('Error seeding users:', error.message);
-    return null;
+    try {
+      // Create the auth user
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: user.email,
+        password: user.password,
+        email_confirm: true
+      });
+
+      if (authError) {
+        console.error(`Error creating auth user ${user.email}:`, authError.message);
+        continue;
+      }
+
+      // Create the profile with the real user ID
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: authUser.user.id,
+          full_name: user.full_name,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          company_id: company?.id, // Will be null for super-admins
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error(`Error creating profile for ${user.email}:`, profileError.message);
+        continue;
+      }
+
+      createdUsers.push({
+        auth: authUser,
+        profile: profile
+      });
+
+      console.log(`✅ Created user: ${user.email} (${user.role})`);
+
+    } catch (error) {
+      console.error(`Failed to create user ${user.email}:`, error.message);
+    }
   }
 
-  console.log(`✅ Created ${data.length} user profiles`);
-  return data;
+  console.log(`✅ Created ${createdUsers.length} complete users`);
+  return createdUsers;
 }
 
 async function seedVendors(companies) {
@@ -168,7 +229,7 @@ async function seedVendors(companies) {
 
   const { data, error } = await supabase
     .from('vendors')
-    .upsert(vendorsWithCompanies, { onConflict: 'company_id,name' })
+    .insert(vendorsWithCompanies)
     .select();
 
   if (error) {
@@ -195,7 +256,7 @@ async function seedExpenseCategories(companies) {
 
   const { data, error } = await supabase
     .from('expense_categories')
-    .upsert(categoriesWithCompanies, { onConflict: 'company_id,name' })
+    .insert(categoriesWithCompanies)
     .select();
 
   if (error) {
@@ -222,7 +283,7 @@ async function seedCustomers(companies) {
 
   const { data, error } = await supabase
     .from('customers')
-    .upsert(customersWithCompanies, { onConflict: 'company_id,name' })
+    .insert(customersWithCompanies)
     .select();
 
   if (error) {
@@ -270,7 +331,7 @@ async function enableModulesForCompanies(companies) {
 
   const { data, error } = await supabase
     .from('company_modules')
-    .upsert(companyModules, { onConflict: 'company_id,module_id' })
+    .insert(companyModules)
     .select();
 
   if (error) {
@@ -292,7 +353,7 @@ async function main() {
     const companies = await seedCompanies();
     if (!companies) return;
 
-    await seedUsers(companies);
+    const users = await createAuthUsers(companies);
     await seedVendors(companies);
     await seedExpenseCategories(companies);
     await seedCustomers(companies);
@@ -301,11 +362,18 @@ async function main() {
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n🚀 Ready for development with test data:');
     console.log(`   • ${seedData.companies.length} companies`);
-    console.log(`   • ${seedData.users.length} user profiles`);
+    console.log(`   • ${users.length} authenticated users`);
     console.log(`   • ${seedData.vendors.length * seedData.companies.length} vendors`);
     console.log(`   • ${seedData.expenseCategories.length * seedData.companies.length} expense categories`);
     console.log(`   • ${seedData.customers.length * seedData.companies.length} customers`);
-    console.log('\n💡 View your data at: http://127.0.0.1:54323\n');
+
+    console.log('\n🔐 Test Login Credentials:');
+    console.log('   • Superadmin: super@phantomglass.com / SuperAdmin123!');
+    console.log('   • Admin: admin@phantomglass.com / Admin123!');
+    console.log('   • User: user@phantomglass.com / User123!');
+
+    console.log('\n💡 View your data at: http://127.0.0.1:54323');
+    console.log('💡 Login to app at: http://localhost:8081\n');
 
   } catch (error) {
     console.error('💥 Seeding failed:', error.message);

@@ -15,11 +15,11 @@ export default defineConfig(({ mode }) => ({
       port: 8080,
     },
     // Proxy configuration for development
-    proxy: mode === 'local' ? {
+    proxy: mode === 'development' ? {
       '/api': {
-        target: 'http://127.0.0.1:54321',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,
       },
     } : {},
   },
@@ -55,7 +55,6 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react-router-dom',
-      '@supabase/supabase-js',
       '@tanstack/react-query',
       'lucide-react',
       'clsx',
@@ -94,7 +93,6 @@ export default defineConfig(({ mode }) => ({
 
           // Heavy libraries
           'query-vendor': ['@tanstack/react-query'],
-          'supabase-vendor': ['@supabase/supabase-js'],
           'charts-vendor': ['recharts'],
           'pdf-vendor': ['pdfjs-dist'],
           'dnd-vendor': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useSession } from "@/components/SessionContextProvider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -46,23 +46,31 @@ const ImpersonationDropdown = ({ isSidebarCollapsed }: ImpersonationDropdownProp
   const isSuperAdmin = currentActiveProfile?.role === 'super-admin';
 
   // Fetch all companies
-  const { data: companies, isLoading: isLoadingCompanies } = useQuery<Company[]>({
+  const { data: companies = [], isLoading: isLoadingCompanies } = useQuery<Company[]>({
     queryKey: ["allCompaniesForImpersonation"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("id, name").order("name", { ascending: true });
-      if (error) throw error;
-      return data;
+      try {
+        const response = await apiClient.from("companies").select("id, name").order("name", { ascending: true });
+        return response.data || [];
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+        return [];
+      }
     },
     enabled: isSuperAdmin,
   });
 
   // Fetch all profiles (users) with all required fields
-  const { data: profiles, isLoading: isLoadingProfiles } = useQuery<Profile[]>({
+  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery<Profile[]>({
     queryKey: ["allProfilesForImpersonation"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, user_id, company_id, email, full_name, first_name, last_name, role, avatar_url, status, created_at, updated_at").order("email", { ascending: true });
-      if (error) throw error;
-      return data;
+      try {
+        const response = await apiClient.from("profiles").select("id, user_id, company_id, email, full_name, first_name, last_name, role, avatar_url, status, created_at, updated_at").order("email", { ascending: true });
+        return response.data || [];
+      } catch (error) {
+        console.error("Error fetching profiles:", error);
+        return [];
+      }
     },
     enabled: isSuperAdmin,
   });

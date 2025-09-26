@@ -1,10 +1,29 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { userService } from "@/services/api";
+import { apiClient } from "@/integrations/api/client";
+
+// Updated types for our new backend
+interface AuthUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  role?: string;
+  companyId?: string;
+  lastSignIn?: string;
+}
+
+interface AuthSession {
+  user: AuthUser;
+  tokens: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresIn?: string;
+  };
+}
 
 interface Profile {
   id: string;
@@ -22,8 +41,8 @@ interface Profile {
 }
 
 interface SessionContextType {
-  session: Session | null;
-  user: User | null;
+  session: AuthSession | null;
+  user: AuthUser | null;
   profile: Profile | null;
   impersonatedProfile: Profile | null;
   setImpersonatedProfile: (profile: Profile | null) => void;
@@ -34,8 +53,8 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionContextProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [impersonatedProfile, setImpersonatedProfile] = useState<Profile | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,68 +67,86 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
   const { data: fetchedProfile, isLoading: isProfileLoading } = useQuery<Profile | null>({
     queryKey: ["profiles", user?.id],
     queryFn: async () => {
-      if (!user?.id) {
+      if (!user?.id || !user?.email) {
         return null;
       }
 
-      const response = await userService.getCurrentProfile();
-      if (!response.success) {
-        // Handle specific "no profile found" case gracefully
-        if (response.error?.message.includes('no rows found') || response.error?.code === 'PGRST116') {
-          console.warn("No profile found for current user:", response.error?.message);
-          return null;
-        }
-        console.error("Error fetching profile with UserService:", response.error);
-        throw response.error; // Let react-query handle the error state
+      // For super-admin users, return profile with INFOtrac company
+      const isSuperAdmin = user?.email === 'admin@infotrac.com';
+
+      if (isSuperAdmin) {
+        return {
+          id: user.id,
+          user_id: user.id,
+          company_id: '00000000-0000-0000-0000-000000000001', // INFOtrac Solutions Inc.
+          email: user.email,
+          full_name: 'Super Admin',
+          first_name: 'Super',
+          last_name: 'Admin',
+          role: 'super-admin',
+          avatar_url: null,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as Profile;
       }
 
-      return response.data;
-    },
-    enabled: !!user?.id, // Only run query if user ID is available
-    staleTime: 1000 * 60 * 5, // Profile data is relatively stable, re-fetch every 5 minutes
-    refetchOnWindowFocus: true, // Re-fetch when window regains focus
-    retry: (failureCount, error) => {
-      // Don't retry if it's a "no profile found" error
-      if (error?.message?.includes('no rows found') || error?.code === 'PGRST116') {
-        return false;
+      try {
+        // Call our new backend API to get user profile
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch profile:', response.status, response.statusText);
+          return null;
+        }
+
+        const data = await response.json();
+        if (data.success && data.data?.user) {
+          const userData = data.data.user;
+          return {
+            id: userData.id,
+            user_id: userData.id,
+            company_id: userData.companyId || null,
+            email: userData.email,
+            full_name: userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+            first_name: userData.firstName || null,
+            last_name: userData.lastName || null,
+            role: userData.role || 'user',
+            avatar_url: userData.avatarUrl || null,
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as Profile;
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        return null;
       }
-      return failureCount < 3;
-    }
+    },
+    enabled: !!user?.id && !!user?.email,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   useEffect(() => {
-    const handleAuthStateChange = async (event: string, currentSession: Session | null) => { // Added event parameter
-      setIsAuthLoading(true);
+    const handleAuthStateChange = async (event: string, currentSession: AuthSession | null) => {
+      console.log("Auth state changed:", event, currentSession);
       setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      // Clear any existing refresh timeout to prevent multiple refreshes
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-        refreshTimeoutRef.current = null;
-      }
+      const currentUser = currentSession?.user ?? null;
+      setUser(currentUser);
 
-      if (currentSession?.user?.id) {
-        // Only invalidate/refetch profile for events that indicate a new user state
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
-          queryClient.invalidateQueries({ queryKey: ["profiles", currentSession.user.id] });
-          // No need to await refetchQueries here, useQuery handles it.
-        }
-
-        // Only attempt to refresh session for specific events to avoid loops
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          // Debounce the refresh call to prevent rate limiting
-          refreshTimeoutRef.current = setTimeout(async () => {
-            const response = await userService.refreshSession();
-            if (!response.success) {
-              console.error("Error refreshing session:", response.error);
-            } else if (response.data?.session) {
-              // Session refreshed, new JWT should be available.
-              setSession(response.data.session);
-            }
-            refreshTimeoutRef.current = null; // Clear timeout ref after execution
-          }, 500); // 500ms debounce
-        }
+      if (currentUser) {
+        // If we have a user, the profile query will automatically run
+        // due to the enabled condition above
+        console.log("User authenticated:", currentUser.email);
       } else {
         // If no user, ensure profile data is cleared from cache
         queryClient.removeQueries({ queryKey: ["profiles"] });
@@ -118,35 +155,73 @@ export const SessionContextProvider = ({ children }: { children: React.ReactNode
       setIsAuthLoading(false);
     };
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => { // Passed event
-      handleAuthStateChange(event, currentSession); // Passed event
-    });
+    // Check for existing token on startup
+    const checkExistingAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      const refreshToken = localStorage.getItem('refreshToken');
 
-    // Fetch initial session and process it
-    userService.getSession()
-      .then((response) => {
-        if (response.success) {
-          handleAuthStateChange('INITIAL_SESSION', response.data?.session ?? null);
-        } else {
-          console.error("Error fetching initial session:", response.error);
-          setSession(null);
-          setUser(null);
-          setIsAuthLoading(false);
+      if (token) {
+        try {
+          // Set token in API client for future requests
+          apiClient.setAuthToken(token);
+
+          // Validate token by fetching user profile
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.user) {
+              const userData = data.data.user;
+              const mockSession: AuthSession = {
+                user: {
+                  id: userData.id,
+                  email: userData.email,
+                  firstName: userData.firstName,
+                  lastName: userData.lastName,
+                  fullName: userData.fullName,
+                  role: userData.role,
+                  companyId: userData.companyId,
+                  lastSignIn: userData.lastSignIn,
+                },
+                tokens: {
+                  accessToken: token,
+                  refreshToken: refreshToken || undefined,
+                }
+              };
+              handleAuthStateChange('INITIAL_SESSION', mockSession);
+              return;
+            }
+          }
+
+          // Token is invalid, clear it
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          apiClient.setAuthToken(null);
+        } catch (error) {
+          console.error('Error validating token:', error);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          apiClient.setAuthToken(null);
         }
-      })
-      .catch(error => {
-        console.error("Error fetching initial session:", error);
-        setSession(null);
-        setUser(null);
-        setIsAuthLoading(false);
-      });
+      }
 
+      handleAuthStateChange('INITIAL_SESSION', null);
+    };
+
+    // Since we're using local PostgreSQL with JWT, we don't have Supabase auth state changes
+    // Instead, we'll check the session on startup
+    checkExistingAuth();
+
+    // For cleanup, return empty function
     return () => {
-      if (refreshTimeoutRef.current) { // Clean up timeout on unmount
+      if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
-      subscription.unsubscribe();
     };
   }, [queryClient]);
 

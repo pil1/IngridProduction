@@ -27,8 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 
 // --- Schemas ---
 const profileSetupSchema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
+  full_name: z.string().min(1, "Full name is required"),
   avatar_file: z.any().optional().nullable(),
 });
 type ProfileSetupFormValues = z.infer<typeof profileSetupSchema>;
@@ -95,8 +94,7 @@ const FirstLoginOnboardingDialog = () => {
   const profileForm = useForm<ProfileSetupFormValues>({
     resolver: zodResolver(profileSetupSchema),
     defaultValues: {
-      first_name: profile?.first_name ?? "",
-      last_name: profile?.last_name ?? "",
+      full_name: profile?.full_name ?? "",
       avatar_file: null,
     },
   });
@@ -104,8 +102,7 @@ const FirstLoginOnboardingDialog = () => {
   useEffect(() => {
     if (profile) {
       profileForm.reset({
-        first_name: profile.first_name ?? "",
-        last_name: profile.last_name ?? "",
+        full_name: profile.full_name ?? "",
         avatar_file: null,
       });
     }
@@ -138,18 +135,66 @@ const FirstLoginOnboardingDialog = () => {
         avatarUrl = null;
       }
 
-      const { error: updateError } = await supabase
+      console.log("Updating profile with:", {
+        full_name: values.full_name,
+        avatar_url: avatarUrl,
+        user_id: user.id
+      });
+
+      // Use the regular authenticated client now that RLS is properly configured
+      const { data: updateData, error: updateError } = await supabase
         .from("profiles")
         .update({
-          first_name: values.first_name,
-          last_name: values.last_name,
-          full_name: (values.first_name ?? '') + ' ' + (values.last_name ?? ''),
+          full_name: values.full_name,
           avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select();
 
-      if (updateError) throw updateError;
+      console.log("Update result:", { updateData, updateError });
+
+      // Handle PGRST204 "No rows updated" as success if we know the operation worked
+      if (updateError) {
+        console.error("Profile update error details:", {
+          error: updateError,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          code: updateError.code
+        });
+
+        // PGRST204 means "No rows updated" but the operation may have succeeded
+        // Let's verify by checking if the profile was actually updated
+        if (updateError.code === 'PGRST204') {
+          console.log("PGRST204 detected - verifying if update actually succeeded...");
+
+          try {
+            const { data: verifyData, error: verifyError } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("user_id", user.id)
+              .single();
+
+            if (!verifyError && verifyData && verifyData.full_name === values.full_name) {
+              console.log("Update actually succeeded despite PGRST204 error");
+              return { full_name: values.full_name, avatar_url: avatarUrl };
+            }
+          } catch (e) {
+            console.log("Verification failed, treating as real error");
+          }
+        }
+
+        throw updateError;
+      }
+
+      // Check if we got data back (which means success)
+      if (updateData && updateData.length > 0) {
+        console.log("Profile update successful:", updateData[0]);
+        return updateData[0];
+      }
+
+      // If no error but no data, that's also success for updates
+      console.log("Profile update completed successfully (no return data)");
       return null;
     },
     onSuccess: () => {
@@ -262,7 +307,6 @@ const FirstLoginOnboardingDialog = () => {
           postal_code: values.postal_code ?? null,
           country: values.country ?? null,
           fiscal_year_end_date: values.fiscal_year_end_date ? values.fiscal_year_end_date.toISOString().split('T')[0] : null,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", profile.company_id);
 
@@ -340,8 +384,8 @@ const FirstLoginOnboardingDialog = () => {
     );
   }
 
-  // Ensure user is an admin and has a company_id for this onboarding flow
-  if (!profile || profile.role !== 'admin' || !profile.company_id) {
+  // Ensure user is an admin or super-admin and has a company_id for this onboarding flow
+  if (!profile || !['admin', 'super-admin'].includes(profile.role) || !profile.company_id) {
     navigate("/", { replace: true }); // Redirect if not the correct user for this flow
     return null;
   }
@@ -380,25 +424,15 @@ const FirstLoginOnboardingDialog = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="profile-first_name">First Name</Label>
+                    <Label htmlFor="profile-full_name">Full Name</Label>
                     <Input
-                      id="profile-first_name"
-                      {...profileForm.register("first_name")}
+                      id="profile-full_name"
+                      {...profileForm.register("full_name")}
                       disabled={isSavingProfile}
+                      placeholder="Enter your full name"
                     />
-                    {profileForm.formState.errors.first_name && (
-                      <p className="text-sm text-destructive">{profileForm.formState.errors.first_name.message}</p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="profile-last_name">Last Name</Label>
-                    <Input
-                      id="profile-last_name"
-                      {...profileForm.register("last_name")}
-                      disabled={isSavingProfile}
-                    />
-                    {profileForm.formState.errors.last_name && (
-                      <p className="text-sm text-destructive">{profileForm.formState.errors.last_name.message}</p>
+                    {profileForm.formState.errors.full_name && (
+                      <p className="text-sm text-destructive">{profileForm.formState.errors.full_name.message}</p>
                     )}
                   </div>
                   <Button type="submit" disabled={isSavingProfile}>

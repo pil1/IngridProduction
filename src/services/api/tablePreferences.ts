@@ -1,5 +1,5 @@
 import { BaseApiService, ApiResponse } from './base';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export interface TablePreferences {
   id: string;
@@ -31,28 +31,29 @@ export class TablePreferencesService extends BaseApiService {
   async getTablePreferences(tableName: string): Promise<ApiResponse<TablePreferences | null>> {
     return this.handleRequest(async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_table_preferences')
-          .select('*')
-          .eq('table_name', tableName)
-          .single();
+        // Temporary localStorage implementation while backend endpoint is being developed
+        const storageKey = `table_preferences_${tableName}`;
+        const stored = localStorage.getItem(storageKey);
 
-        // Return null if no preferences found (not an error)
-        if (error && error.code === 'PGRST116') {
+        if (!stored) {
           return { data: null, error: null };
         }
 
-        return { data, error };
+        const preferences = JSON.parse(stored);
+        return {
+          data: {
+            id: tableName,
+            user_id: 'local_user',
+            table_name: tableName,
+            preferences: preferences,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          error: null
+        };
       } catch (error) {
-        // Gracefully handle if table doesn't exist
-        if (error && typeof error === 'object' && 'message' in error) {
-          const errorMessage = (error as { message: string }).message;
-          if (errorMessage.includes('relation "user_table_preferences" does not exist')) {
-            console.warn('User table preferences table not yet created. Returning null.');
-            return { data: null, error: null };
-          }
-        }
-        throw error;
+        console.warn('Error reading table preferences from localStorage:', error);
+        return { data: null, error: null };
       }
     });
   }
@@ -63,27 +64,23 @@ export class TablePreferencesService extends BaseApiService {
   async saveTablePreferences(data: SaveTablePreferencesData): Promise<ApiResponse<TablePreferences>> {
     return this.handleRequest(async () => {
       try {
-        const { data: result, error } = await supabase
-          .from('user_table_preferences')
-          .upsert({
-            table_name: data.table_name,
-            preferences: data.preferences,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+        // Temporary localStorage implementation while backend endpoint is being developed
+        const storageKey = `table_preferences_${data.table_name}`;
+        localStorage.setItem(storageKey, JSON.stringify(data.preferences));
 
-        return { data: result, error };
+        const result: TablePreferences = {
+          id: data.table_name,
+          user_id: 'local_user',
+          table_name: data.table_name,
+          preferences: data.preferences,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        return { data: result, error: null };
       } catch (error) {
-        // Gracefully handle if table doesn't exist
-        if (error && typeof error === 'object' && 'message' in error) {
-          const errorMessage = (error as { message: string }).message;
-          if (errorMessage.includes('relation "user_table_preferences" does not exist')) {
-            console.warn('User table preferences table not yet created. Preferences not saved.');
-            return { data: null, error: { message: 'Table preferences not available' } };
-          }
-        }
-        throw error;
+        console.warn('Error saving table preferences to localStorage:', error);
+        return { data: null, error: { message: 'Failed to save table preferences' } };
       }
     });
   }
@@ -94,22 +91,12 @@ export class TablePreferencesService extends BaseApiService {
   async deleteTablePreferences(tableName: string): Promise<ApiResponse<void>> {
     return this.handleRequest(async () => {
       try {
-        const { error } = await supabase
-          .from('user_table_preferences')
-          .delete()
-          .eq('table_name', tableName);
-
-        return { data: undefined, error };
+        const storageKey = `table_preferences_${tableName}`;
+        localStorage.removeItem(storageKey);
+        return { data: undefined, error: null };
       } catch (error) {
-        // Gracefully handle if table doesn't exist
-        if (error && typeof error === 'object' && 'message' in error) {
-          const errorMessage = (error as { message: string }).message;
-          if (errorMessage.includes('relation "user_table_preferences" does not exist')) {
-            console.warn('User table preferences table not yet created. Delete ignored.');
-            return { data: undefined, error: null };
-          }
-        }
-        throw error;
+        console.warn('Error deleting table preferences from localStorage:', error);
+        return { data: undefined, error: null };
       }
     });
   }
@@ -120,22 +107,32 @@ export class TablePreferencesService extends BaseApiService {
   async getAllTablePreferences(): Promise<ApiResponse<TablePreferences[]>> {
     return this.handleRequest(async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_table_preferences')
-          .select('*')
-          .order('table_name');
+        const preferences: TablePreferences[] = [];
+        const prefix = 'table_preferences_';
 
-        return { data: data ?? [], error };
-      } catch (error) {
-        // Gracefully handle if table doesn't exist
-        if (error && typeof error === 'object' && 'message' in error) {
-          const errorMessage = (error as { message: string }).message;
-          if (errorMessage.includes('relation "user_table_preferences" does not exist')) {
-            console.warn('User table preferences table not yet created. Returning empty array.');
-            return { data: [], error: null };
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith(prefix)) {
+            const tableName = key.substring(prefix.length);
+            const stored = localStorage.getItem(key);
+            if (stored) {
+              const prefs = JSON.parse(stored);
+              preferences.push({
+                id: tableName,
+                user_id: 'local_user',
+                table_name: tableName,
+                preferences: prefs,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+            }
           }
         }
-        throw error;
+
+        return { data: preferences.sort((a, b) => a.table_name.localeCompare(b.table_name)), error: null };
+      } catch (error) {
+        console.warn('Error reading all table preferences from localStorage:', error);
+        return { data: [], error: null };
       }
     });
   }
@@ -146,25 +143,12 @@ export class TablePreferencesService extends BaseApiService {
   async resetTablePreferences(tableName: string): Promise<ApiResponse<void>> {
     return this.handleRequest(async () => {
       try {
-        const { error } = await supabase
-          .from('user_table_preferences')
-          .upsert({
-            table_name: tableName,
-            preferences: {}, // Empty preferences = defaults
-            updated_at: new Date().toISOString()
-          });
-
-        return { data: undefined, error };
+        const storageKey = `table_preferences_${tableName}`;
+        localStorage.setItem(storageKey, JSON.stringify({})); // Empty preferences = defaults
+        return { data: undefined, error: null };
       } catch (error) {
-        // Gracefully handle if table doesn't exist
-        if (error && typeof error === 'object' && 'message' in error) {
-          const errorMessage = (error as { message: string }).message;
-          if (errorMessage.includes('relation "user_table_preferences" does not exist')) {
-            console.warn('User table preferences table not yet created. Reset ignored.');
-            return { data: undefined, error: null };
-          }
-        }
-        throw error;
+        console.warn('Error resetting table preferences in localStorage:', error);
+        return { data: undefined, error: null };
       }
     });
   }

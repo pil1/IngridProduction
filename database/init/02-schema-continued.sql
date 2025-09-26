@@ -1,0 +1,240 @@
+-- ================================================================
+-- INFOTRAC POSTGRESQL DATABASE INITIALIZATION - PART 2
+-- ================================================================
+-- Continuation of schema creation
+-- ================================================================
+
+-- Expenses table
+CREATE TABLE expenses (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    submitted_by UUID REFERENCES auth_users(id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    description TEXT,
+    amount DECIMAL(15,2) NOT NULL,
+    currency_code VARCHAR(3) DEFAULT 'USD',
+    base_currency_amount DECIMAL(15,2),
+    exchange_rate DECIMAL(10,6),
+    expense_date DATE NOT NULL,
+    vendor_id UUID REFERENCES vendors(id),
+    vendor_name VARCHAR(255),
+    merchant_address TEXT,
+    category_id UUID REFERENCES expense_categories(id),
+    gl_account_id UUID REFERENCES gl_accounts(id),
+    receipt_summary TEXT,
+    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'approved', 'rejected', 'pending_review', 'info_requested', 'paid')),
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    reviewer_id UUID REFERENCES auth_users(id),
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    review_notes TEXT,
+    controller_id UUID REFERENCES auth_users(id),
+    controller_notes TEXT,
+    approved_at TIMESTAMP WITH TIME ZONE,
+    is_reimbursable BOOLEAN DEFAULT true,
+    project_code VARCHAR(100),
+    cost_center VARCHAR(100),
+    payment_method VARCHAR(50),
+    reference_number VARCHAR(100),
+    ai_confidence_score DECIMAL(5,4),
+    ingrid_processed BOOLEAN DEFAULT false,
+    ingrid_confidence_score DECIMAL(5,4),
+    ingrid_field_confidences JSONB DEFAULT '{}',
+    ingrid_suggestions TEXT[],
+    ingrid_response_id VARCHAR(255),
+    field_sources JSONB DEFAULT '{}',
+    manual_overrides TEXT[],
+    processing_time_ms INTEGER,
+    tags TEXT[],
+    notes TEXT,
+    urgency_level VARCHAR(20) DEFAULT 'medium' CHECK (urgency_level IN ('low', 'medium', 'high')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ingrid AI suggestion tables
+CREATE TABLE ingrid_suggested_categories (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    suggested_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    confidence_score DECIMAL(5,4) DEFAULT 0.0000,
+    source_expense_description TEXT,
+    vendor_name VARCHAR(255),
+    amount DECIMAL(15,2),
+    frequency_count INTEGER DEFAULT 1,
+    suggested_gl_account_code VARCHAR(50),
+    suggested_gl_account_name VARCHAR(255),
+    similar_existing_categories TEXT[],
+    ai_reasoning TEXT,
+    source_document_name VARCHAR(255),
+    extraction_context JSONB,
+    suggested_by_user_id UUID REFERENCES auth_users(id),
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'merged')),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    approved_by UUID REFERENCES auth_users(id),
+    review_notes TEXT,
+    created_category_id UUID REFERENCES expense_categories(id),
+    first_suggested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_suggested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE ingrid_suggested_vendors (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    suggested_name VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    contact_person VARCHAR(255),
+    website VARCHAR(255),
+    address_line_1 VARCHAR(255),
+    address_line_2 VARCHAR(255),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    country VARCHAR(100),
+    description TEXT,
+    tax_id VARCHAR(50),
+    confidence_score DECIMAL(5,4) DEFAULT 0.0000,
+    source_expense_descriptions TEXT[],
+    frequency_count INTEGER DEFAULT 1,
+    web_enriched_data JSONB,
+    enrichment_confidence DECIMAL(5,4),
+    enrichment_source VARCHAR(100),
+    similar_existing_vendors TEXT[],
+    merge_candidate_ids UUID[],
+    ai_reasoning TEXT,
+    source_document_name VARCHAR(255),
+    extraction_context JSONB,
+    vendor_match_type VARCHAR(50),
+    existing_vendor_similarity DECIMAL(5,4),
+    similar_vendor_ids UUID[],
+    suggested_by_user_id UUID REFERENCES auth_users(id),
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'merged')),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    approved_by UUID REFERENCES auth_users(id),
+    review_notes TEXT,
+    created_vendor_id UUID REFERENCES vendors(id),
+    first_suggested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_suggested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Notifications
+CREATE TABLE notifications (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth_users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    notification_type VARCHAR(50) DEFAULT 'info' CHECK (notification_type IN ('info', 'success', 'warning', 'error')),
+    category VARCHAR(100),
+    source_module VARCHAR(100),
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMP WITH TIME ZONE,
+    action_url TEXT,
+    action_label VARCHAR(100),
+    metadata JSONB DEFAULT '{}',
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Company settings
+CREATE TABLE company_settings (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE UNIQUE,
+    settings JSONB NOT NULL DEFAULT '{}',
+    smtp_host VARCHAR(255),
+    smtp_port INTEGER,
+    smtp_username VARCHAR(255),
+    smtp_password_encrypted TEXT,
+    smtp_use_tls BOOLEAN DEFAULT true,
+    smtp_from_email VARCHAR(255),
+    smtp_from_name VARCHAR(255),
+    logo_url TEXT,
+    brand_colors JSONB DEFAULT '{}',
+    custom_css TEXT,
+    currency VARCHAR(3) DEFAULT 'USD',
+    timezone VARCHAR(100) DEFAULT 'UTC',
+    date_format VARCHAR(20) DEFAULT 'MM/dd/yyyy',
+    expense_approval_required BOOLEAN DEFAULT false,
+    max_expense_amount DECIMAL(12,2) DEFAULT 10000.00,
+    receipt_required_above DECIMAL(12,2) DEFAULT 100.00,
+    openai_api_key TEXT,
+    ai_provider VARCHAR(20) DEFAULT 'mock',
+    ai_model VARCHAR(50) DEFAULT 'gpt-4',
+    ai_enabled BOOLEAN DEFAULT false,
+    ocr_provider VARCHAR(30) DEFAULT 'mock',
+    google_vision_api_key TEXT,
+    aws_access_key_id TEXT,
+    aws_secret_access_key TEXT,
+    aws_region VARCHAR(20) DEFAULT 'us-east-1',
+    azure_api_key TEXT,
+    azure_endpoint TEXT,
+    enable_web_enrichment BOOLEAN DEFAULT false,
+    enable_spire_integration BOOLEAN DEFAULT false,
+    auto_approval_threshold DECIMAL(3,2) DEFAULT 0.85,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- API Keys
+CREATE TABLE company_api_keys (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    key_name VARCHAR(255) NOT NULL,
+    key_description TEXT,
+    api_key_hash VARCHAR(255) NOT NULL,
+    key_prefix VARCHAR(20),
+    scopes TEXT[] DEFAULT '{}',
+    allowed_ips TEXT[],
+    rate_limit INTEGER DEFAULT 1000,
+    is_active BOOLEAN DEFAULT true,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    usage_count INTEGER DEFAULT 0,
+    provider VARCHAR(50),
+    api_key_encrypted TEXT,
+    api_key_last_four VARCHAR(4),
+    provisioned_by UUID REFERENCES auth_users(id),
+    provisioned_at TIMESTAMP WITH TIME ZONE,
+    monthly_usage_limit INTEGER,
+    notes TEXT,
+    created_by UUID REFERENCES auth_users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(company_id, key_name)
+);
+
+-- Supporting tables
+CREATE TABLE currencies (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    code VARCHAR(3) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    symbol VARCHAR(10),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE user_table_preferences (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth_users(id) ON DELETE CASCADE,
+    table_name VARCHAR(100) NOT NULL,
+    preferences JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, table_name)
+);
+
+CREATE TABLE user_preferences (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth_users(id) ON DELETE CASCADE UNIQUE,
+    preferences JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

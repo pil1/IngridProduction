@@ -136,7 +136,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
   const { data: allModules, isLoading: isLoadingAllModules } = useQuery<Module[]>({
     queryKey: ["allModulesForUserEdit"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("modules").select("id, name, description, roles"); // Fetch roles
+      const { data, error } = await supabase.from("modules").select("id, name, description"); // Fetch basic module info
       if (error) throw error;
       return data;
     },
@@ -319,7 +319,7 @@ const EditUserDialog = ({ isOpen, onOpenChange, editingUser }: EditUserDialogPro
   const isStatusToggleDisabled = isLoading || (currentUserProfile?.user_id === editingUser.user_id);
 
   return (
-    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <DialogContent variant="full-width">
       <DialogHeader>
         <DialogTitle>Edit User: {editingUser.full_name ?? editingUser.email}</DialogTitle>
         <DialogDescription>

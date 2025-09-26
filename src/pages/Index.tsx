@@ -182,6 +182,44 @@ const Index = () => {
         <p className="text-sm text-muted-foreground">
           Select a module from the sidebar or use these quick actions to navigate the platform.
         </p>
+
+        {/* Debug Section - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 bg-gray-50 rounded-lg border">
+            <h3 className="text-sm font-semibold mb-2">🔧 Debug Tools</h3>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const logs = window.claudeLogger?.getLogsAsText() || 'No logs available';
+                  console.log('=== CLAUDE DEBUG LOGS ===');
+                  console.log(logs);
+                  alert('Logs printed to console. Copy them and share with Claude!');
+                }}
+              >
+                Export Debug Logs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  window.claudeLogger?.clearLogs();
+                  alert('Debug logs cleared');
+                }}
+              >
+                Clear Logs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/api-key-manager')}
+              >
+                Test API Keys Page
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,27 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+// INFOtrac API Client - Replaces Supabase
+import { apiClient } from '@/integrations/api/client';
 
-// Get environment variables
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// For backward compatibility, we export the API client as 'supabase'
+export const supabase = apiClient;
 
-// Validate required environment variables
-if (!SUPABASE_URL) {
-  throw new Error('Missing VITE_SUPABASE_URL environment variable');
-}
-
-if (!SUPABASE_ANON_KEY) {
-  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
-}
-
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Expose supabase client globally for console access
+// Expose api client globally for console access
 declare global {
   interface Window {
-    supabase: typeof supabase;
+    supabase: typeof apiClient;
+    apiClient: typeof apiClient;
   }
 }
-window.supabase = supabase;
+window.supabase = apiClient;
+window.apiClient = apiClient;
+
+// Legacy environment variable checks (now optional)
+const API_URL = import.meta.env.VITE_API_URL;
+if (API_URL) {
+  console.log('Using API URL:', API_URL);
+} else {
+  console.log('Using default API URL: http://localhost:3001/api');
+}

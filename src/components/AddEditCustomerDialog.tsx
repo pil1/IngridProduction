@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,74 +11,86 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Edit, Save, XCircle } from "lucide-react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Customer } from "@/pages/CustomersPage";
+import { AddressForm } from "@/components/ui/address-form";
+
+// Helper function to make fields truly optional
+const optionalString = () => z.preprocess(
+  (val) => (val === "" || val === null || val === undefined ? null : val),
+  z.string().nullable().optional()
+);
+
+const optionalEmail = () => z.preprocess(
+  (val) => {
+    if (!val || val === "") return null;
+    return val;
+  },
+  z.string().email("Invalid email address").nullable().optional()
+);
+
+const optionalUrl = () => z.preprocess(
+  (val) => (val === "" || val === null || val === undefined ? null : val),
+  z.string().nullable().optional()
+);
+
+const optionalNumber = () => z.preprocess(
+  (val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  },
+  z.number().nullable().optional()
+);
 
 const customerSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
-  contact_person: z.string().optional().nullable(),
-  email: z.string().email("Invalid email address").optional().nullable(),
-  phone: z.string().optional().nullable(),
-  address_line_1: z.string().optional().nullable(),
-  address_line_2: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state_province: z.string().optional().nullable(),
-  postal_code: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  spire_customer_id: z.string().optional().nullable(),
+  contact_person: optionalString(),
+  email: optionalEmail(),
+  phone: optionalString(),
+  address_line_1: optionalString(),
+  address_line_2: optionalString(),
+  city: optionalString(),
+  state_province: optionalString(),
+  postal_code: optionalString(),
+  country: optionalString(),
+  spire_customer_id: optionalString(),
   is_active: z.boolean().default(true),
-  website: z.string().url("Invalid URL").or(z.literal('')).optional().nullable(), // FIX: Allow empty string
-  tax_id: z.string().optional().nullable(),
-  payment_terms: z.string().optional().nullable(),
-  default_currency_code: z.string().min(1, "Default currency is required").default("USD"),
-  notes: z.string().optional().nullable(),
-  account_number: z.string().optional().nullable(), // Spire's 'code'
+  website: optionalUrl(),
+  tax_id: optionalString(),
+  payment_terms: optionalString(),
+  default_currency_code: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? "USD" : val),
+    z.string().default("USD")
+  ),
+  notes: optionalString(),
+  account_number: optionalString(),
   tax_exempt: z.boolean().default(false),
-  credit_limit: z.preprocess(
-    (val) => (val === "" ? null : Number(val)),
-    z.number().positive("Credit limit must be positive").nullable().optional()
-  ),
-  payment_method: z.string().optional().nullable(),
-  code: z.string().optional().nullable(), // Spire's 'code'
-  receivable_account: z.string().optional().nullable(),
+  credit_limit: optionalNumber(),
+  payment_method: optionalString(),
+  code: optionalString(),
+  receivable_account: optionalString(),
   upload_flag: z.boolean().default(true),
-  discount_code: z.string().optional().nullable(),
-  credit_type: z.preprocess(
-    (val) => (val === "" ? null : Number(val)),
-    z.number().int().nullable().optional()
-  ),
+  discount_code: optionalString(),
+  credit_type: optionalNumber(),
   on_hold: z.boolean().default(false),
-  reference_code: z.string().optional().nullable(),
+  reference_code: optionalString(),
   apply_finance_charges: z.boolean().default(false),
-  user_def_1: z.string().optional().nullable(),
-  background_color_int: z.preprocess(
-    (val) => (val === "" ? null : Number(val)),
-    z.number().int().nullable().optional()
-  ),
-  default_ship_to_code: z.string().optional().nullable(),
-  foreground_color_int: z.preprocess(
-    (val) => (val === "" ? null : Number(val)),
-    z.number().int().nullable().optional()
-  ),
-  user_def_2: z.string().optional().nullable(),
-  udf_data: z.record(z.unknown()).optional().nullable(), // JSONB record type
-  statement_type: z.string().optional().nullable(),
-  payment_provider_id_int: z.preprocess(
-    (val) => (val === "" ? null : Number(val)),
-    z.number().int().nullable().optional()
-  ),
-  special_code: z.string().optional().nullable(),
-  spire_status: z.string().optional().nullable(),
-  shipping_address_line_1: z.string().optional().nullable(),
-  shipping_address_line_2: z.string().optional().nullable(),
-  shipping_city: z.string().optional().nullable(),
-  shipping_state_province: z.string().optional().nullable(),
-  shipping_postal_code: z.string().optional().nullable(),
-  shipping_country: z.string().optional().nullable(),
+  default_ship_to_code: optionalString(),
+  statement_type: optionalString(),
+  payment_provider_id_int: optionalNumber(),
+  special_code: optionalString(),
+  spire_status: optionalString(),
+  shipping_address_line_1: optionalString(),
+  shipping_address_line_2: optionalString(),
+  shipping_city: optionalString(),
+  shipping_state_province: optionalString(),
+  shipping_postal_code: optionalString(),
+  shipping_country: optionalString(),
 });
 
 export type CustomerFormValues = z.infer<typeof customerSchema>; // Explicitly export this type
@@ -90,6 +102,7 @@ interface AddEditCustomerDialogProps {
   companyId: string;
   initialMode: "add" | "view";
   prefillData?: Partial<CustomerFormValues> | null; // New prop for AI pre-fill data
+  onSuccess?: () => void;
 }
 
 interface Currency {
@@ -99,10 +112,11 @@ interface Currency {
   symbol: string;
 }
 
-const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyId, initialMode, prefillData }: AddEditCustomerDialogProps) => {
+const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyId, initialMode, prefillData, onSuccess }: AddEditCustomerDialogProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { profile, isLoading: isLoadingSession } = useSession();
+  const [sameAsBilling, setSameAsBilling] = useState(false);
 
   const userRole = profile?.role;
   const [currentMode, setCurrentMode] = useState<"add" | "view" | "edit">(initialMode);
@@ -139,12 +153,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
       on_hold: false,
       reference_code: "",
       apply_finance_charges: false,
-      user_def_1: "",
-      background_color_int: undefined,
       default_ship_to_code: "",
-      foreground_color_int: undefined,
-      user_def_2: "",
-      udf_data: {},
       statement_type: "",
       payment_provider_id_int: undefined,
       special_code: "",
@@ -158,15 +167,16 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
     },
   });
 
-  // Fetch available currencies
-  const { data: currencies, isLoading: isLoadingCurrencies } = useQuery<Currency[]>({
-    queryKey: ["currencies"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("currencies").select("id, code, name, symbol").eq("is_active", true).order("code");
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Static currency list for now
+  const currencies: Currency[] = [
+    { id: "1", code: "USD", name: "US Dollar", symbol: "$" },
+    { id: "2", code: "EUR", name: "Euro", symbol: "€" },
+    { id: "3", code: "GBP", name: "British Pound", symbol: "£" },
+    { id: "4", code: "CAD", name: "Canadian Dollar", symbol: "C$" },
+    { id: "5", code: "AUD", name: "Australian Dollar", symbol: "A$" },
+    { id: "6", code: "JPY", name: "Japanese Yen", symbol: "¥" },
+  ];
+  const isLoadingCurrencies = false;
 
   useEffect(() => {
     if (isOpen) {
@@ -202,12 +212,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           on_hold: editingCustomer.on_hold ?? false,
           reference_code: editingCustomer.reference_code ?? "",
           apply_finance_charges: editingCustomer.apply_finance_charges ?? false,
-          user_def_1: editingCustomer.user_def_1 ?? "",
-          background_color_int: editingCustomer.background_color_int ?? undefined,
           default_ship_to_code: editingCustomer.default_ship_to_code ?? "",
-          foreground_color_int: editingCustomer.foreground_color_int ?? undefined,
-          user_def_2: editingCustomer.user_def_2 ?? "",
-          udf_data: editingCustomer.udf_data ?? {} as Record<string, unknown>,
           statement_type: editingCustomer.statement_type ?? "",
           payment_provider_id_int: editingCustomer.payment_provider_id_int ?? undefined,
           special_code: editingCustomer.special_code ?? "",
@@ -250,12 +255,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           on_hold: prefillData.on_hold ?? false,
           reference_code: prefillData.reference_code ?? "",
           apply_finance_charges: prefillData.apply_finance_charges ?? false,
-          user_def_1: prefillData.user_def_1 ?? "",
-          background_color_int: prefillData.background_color_int ?? undefined,
           default_ship_to_code: prefillData.default_ship_to_code ?? "",
-          foreground_color_int: prefillData.foreground_color_int ?? undefined,
-          user_def_2: prefillData.user_def_2 ?? "",
-          udf_data: prefillData.udf_data ?? {} as Record<string, unknown>,
           statement_type: prefillData.statement_type ?? "",
           payment_provider_id_int: prefillData.payment_provider_id_int ?? undefined,
           special_code: prefillData.special_code ?? "",
@@ -299,12 +299,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           on_hold: false,
           reference_code: "",
           apply_finance_charges: false,
-          user_def_1: "",
-          background_color_int: undefined,
           default_ship_to_code: "",
-          foreground_color_int: undefined,
-          user_def_2: "",
-          udf_data: {},
           statement_type: "",
           payment_provider_id_int: undefined,
           special_code: "",
@@ -332,20 +327,29 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
       const payload = {
         ...values,
         company_id: companyId,
-        udf_data: values.udf_data ?? {} as Record<string, unknown>, // Ensure JSONB is an object
       };
 
+      console.log('Submitting customer payload:', payload);
+
+      let response;
       if (editingCustomer) {
-        const { error } = await supabase.from("customers").update({
-          ...payload,
-          updated_at: new Date().toISOString(),
-        }).eq("id", editingCustomer.id);
-        if (error) throw error;
+        // Update existing customer
+        response = await apiClient.from('customers')
+          .eq('id', editingCustomer.id)
+          .update(payload);
       } else {
-        const { error } = await supabase.from("customers").insert(payload);
-        if (error) throw error;
+        // Create new customer
+        response = await apiClient.from('customers')
+          .insert(payload);
       }
-      return null;
+
+      console.log('API response:', response);
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save customer');
+      }
+
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -354,8 +358,10 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
         description: "Customer details have been successfully saved.",
       });
       onOpenChange(false);
+      onSuccess?.();
     },
     onError: (error: Error) => {
+      console.error('Customer save error:', error);
       toast({
         title: "Error Saving Customer",
         description: error.message ?? "An unexpected error occurred.",
@@ -368,11 +374,29 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
     upsertCustomerMutation.mutate(values);
   };
 
+  const copyBillingToShipping = () => {
+    const billingValues = form.getValues();
+    form.setValue("shipping_address_line_1", billingValues.address_line_1 || "");
+    form.setValue("shipping_address_line_2", billingValues.address_line_2 || "");
+    form.setValue("shipping_city", billingValues.city || "");
+    form.setValue("shipping_state_province", billingValues.state_province || "");
+    form.setValue("shipping_postal_code", billingValues.postal_code || "");
+    form.setValue("shipping_country", billingValues.country || "");
+  };
+
+  const handleSameAsBillingChange = (checked: boolean) => {
+    setSameAsBilling(checked);
+    if (checked) {
+      copyBillingToShipping();
+    }
+  };
+
   const isLoading = isLoadingSession || upsertCustomerMutation.isPending || isLoadingCurrencies;
   const isReadOnly = currentMode === "view";
 
   return (
-    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{editingCustomer ? (isReadOnly ? "View Customer" : "Edit Customer") : "Add New Customer"}</DialogTitle>
         <DialogDescription>
@@ -440,68 +464,75 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
 
         {/* Billing Address */}
         <h3 className="text-lg font-semibold mt-6">Billing Address</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="address_line_1">Address Line 1 (Optional)</Label>
-            <Input id="address_line_1" {...form.register("address_line_1")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address_line_2">Address Line 2 (Optional)</Label>
-            <Input id="address_line_2" {...form.register("address_line_2")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="city">City (Optional)</Label>
-            <Input id="city" {...form.register("city")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="state_province">State/Province (Optional)</Label>
-            <Input id="state_province" {...form.register("state_province")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="postal_code">Zip/Postal Code (Optional)</Label>
-            <Input id="postal_code" {...form.register("postal_code")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="country">Country (Optional)</Label>
-            <Input id="country" {...form.register("country")} disabled={isLoading || isReadOnly} />
-          </div>
-        </div>
+        <AddressForm
+          values={{
+            address_line1: form.watch("address_line_1") || "",
+            address_line2: form.watch("address_line_2") || "",
+            city: form.watch("city") || "",
+            state: form.watch("state_province") || "",
+            postal_code: form.watch("postal_code") || "",
+            country: form.watch("country") || ""
+          }}
+          onChange={(field, value) => {
+            // Map AddressForm field names to customer schema field names
+            const fieldMap: Record<string, string> = {
+              'address_line1': 'address_line_1',
+              'address_line2': 'address_line_2',
+              'state': 'state_province'
+            };
+            const customerField = fieldMap[field] || field;
+            form.setValue(customerField as keyof CustomerFormValues, value);
+          }}
+          required={false}
+          className={isLoading || isReadOnly ? "pointer-events-none opacity-50" : ""}
+        />
 
         {/* Shipping Address */}
         <h3 className="text-lg font-semibold mt-6">Default Shipping Address</h3>
         <p className="text-sm text-muted-foreground">For a single default shipping address. Multiple shipping addresses would require a separate table.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="shipping_address_line_1">Address Line 1 (Optional)</Label>
-            <Input id="shipping_address_line_1" {...form.register("shipping_address_line_1")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_address_line_2">Address Line 2 (Optional)</Label>
-            <Input id="shipping_address_line_2" {...form.register("shipping_address_line_2")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_city">City (Optional)</Label>
-            <Input id="shipping_city" {...form.register("shipping_city")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_state_province">State/Province (Optional)</Label>
-            <Input id="shipping_state_province" {...form.register("shipping_state_province")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_postal_code">Zip/Postal Code (Optional)</Label>
-            <Input id="shipping_postal_code" {...form.register("shipping_postal_code")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping_country">Country (Optional)</Label>
-            <Input id="shipping_country" {...form.register("shipping_country")} disabled={isLoading || isReadOnly} />
-          </div>
+
+        <div className="flex items-center space-x-2 my-4">
+          <Checkbox
+            id="same-as-billing"
+            checked={sameAsBilling}
+            onCheckedChange={handleSameAsBillingChange}
+            disabled={isLoading || isReadOnly}
+          />
+          <Label htmlFor="same-as-billing" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Same as billing address
+          </Label>
         </div>
+        <AddressForm
+          values={{
+            address_line1: form.watch("shipping_address_line_1") || "",
+            address_line2: form.watch("shipping_address_line_2") || "",
+            city: form.watch("shipping_city") || "",
+            state: form.watch("shipping_state_province") || "",
+            postal_code: form.watch("shipping_postal_code") || "",
+            country: form.watch("shipping_country") || ""
+          }}
+          onChange={(field, value) => {
+            // Map AddressForm field names to shipping field names
+            const fieldMap: Record<string, string> = {
+              'address_line1': 'shipping_address_line_1',
+              'address_line2': 'shipping_address_line_2',
+              'city': 'shipping_city',
+              'state': 'shipping_state_province',
+              'postal_code': 'shipping_postal_code',
+              'country': 'shipping_country'
+            };
+            const shippingField = fieldMap[field];
+            form.setValue(shippingField as keyof CustomerFormValues, value);
+          }}
+          required={false}
+          className={isLoading || isReadOnly || sameAsBilling ? "pointer-events-none opacity-50" : ""}
+        />
 
         {/* Financial & Other Details */}
         <h3 className="text-lg font-semibold mt-6">Financial & Other Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="default_currency_code">Default Currency</Label>
+            <Label htmlFor="default_currency_code">Default Currency (Optional)</Label>
             <Select
               onValueChange={(value) => form.setValue("default_currency_code", value)}
               value={form.watch("default_currency_code") ?? ""}
@@ -591,44 +622,6 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           </div>
         </div>
 
-        {/* User Defined Fields */}
-        <h3 className="text-lg font-semibold mt-6">User Defined Fields</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="user_def_1">User Defined 1 (Optional)</Label>
-            <Input id="user_def_1" {...form.register("user_def_1")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="user_def_2">User Defined 2 (Optional)</Label>
-            <Input id="user_def_2" {...form.register("user_def_2")} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="background_color_int">Background Color (Integer) (Optional)</Label>
-            <Input id="background_color_int" type="number" step="1" {...form.register("background_color_int", { valueAsNumber: true })} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="foreground_color_int">Foreground Color (Integer) (Optional)</Label>
-            <Input id="foreground_color_int" type="number" step="1" {...form.register("foreground_color_int", { valueAsNumber: true })} disabled={isLoading || isReadOnly} />
-          </div>
-          <div className="space-y-2 col-span-full">
-            <Label htmlFor="udf_data">UDF Data (JSON) (Optional)</Label>
-            <Textarea
-              id="udf_data"
-              value={form.watch("udf_data") ? JSON.stringify(form.watch("udf_data"), null, 2) : ""}
-              onChange={(e) => {
-                try {
-                  form.setValue("udf_data", JSON.parse(e.target.value));
-                } catch {
-                  // Invalid JSON, do nothing or show error
-                }
-              }}
-              disabled={isLoading || isReadOnly}
-              rows={5}
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">Enter valid JSON for User Defined Fields.</p>
-          </div>
-        </div>
 
         {/* Notes and Active Status */}
         <h3 className="text-lg font-semibold mt-6">Notes & Status</h3>
@@ -697,12 +690,7 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
                   on_hold: editingCustomer.on_hold ?? false,
                   reference_code: editingCustomer.reference_code ?? "",
                   apply_finance_charges: editingCustomer.apply_finance_charges ?? false,
-                  user_def_1: editingCustomer.user_def_1 ?? "",
-                  background_color_int: editingCustomer.background_color_int ?? undefined,
                   default_ship_to_code: editingCustomer.default_ship_to_code ?? "",
-                  foreground_color_int: editingCustomer.foreground_color_int ?? undefined,
-                  user_def_2: editingCustomer.user_def_2 ?? "",
-                  udf_data: editingCustomer.udf_data ?? {} as Record<string, unknown>,
                   statement_type: editingCustomer.statement_type ?? "",
                   payment_provider_id_int: editingCustomer.payment_provider_id_int ?? undefined,
                   special_code: editingCustomer.special_code ?? "",
@@ -724,7 +712,8 @@ const AddEditCustomerDialog = ({ isOpen, onOpenChange, editingCustomer, companyI
           </Button>
         )}
       </DialogFooter>
-    </DialogContent>
+      </DialogContent>
+    </Dialog>
   );
 };
 

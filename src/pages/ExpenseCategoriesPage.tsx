@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, Edit, Trash2, ListChecks, Lightbulb } from "lucide-react"; // Import ListChecks and Lightbulb icons
 import { useSession } from "@/components/SessionContextProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SuggestedCategoriesTab from "@/components/SuggestedCategoriesTab";
+import { SuggestedCategoriesTab } from "@/components/SuggestedCategoriesTab";
 import {
   AlertDialog,
   AlertDialogAction,

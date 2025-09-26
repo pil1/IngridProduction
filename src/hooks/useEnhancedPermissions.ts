@@ -73,7 +73,29 @@ export const useHasPermission = (
   permissionKey: PermissionKey,
   options: PermissionCheckOptions = {}
 ): boolean => {
+  const { profile } = useSession();
   const { data } = usePermission(permissionKey, options);
+
+  // Superadmin fallback: If we have a super-admin role, grant all permissions
+  if (profile?.role === 'super-admin') {
+    return true;
+  }
+
+  // Admin fallback: Grant basic CRUD permissions to company admins
+  if (profile?.role === 'admin') {
+    const adminPermissions = [
+      'vendors.create', 'vendors.edit', 'vendors.delete', 'vendors.view',
+      'customers.create', 'customers.edit', 'customers.delete', 'customers.view',
+      'expenses.create', 'expenses.edit', 'expenses.delete', 'expenses.view',
+      'expense-categories.create', 'expense-categories.edit', 'expense-categories.delete', 'expense-categories.view',
+      'gl-accounts.view', 'users.view', 'users.create', 'users.edit'
+    ];
+
+    if (adminPermissions.includes(permissionKey)) {
+      return true;
+    }
+  }
+
   return data?.has_permission || false;
 };
 
@@ -81,7 +103,29 @@ export const useHasAnyPermission = (
   permissionKeys: PermissionKey[],
   options: PermissionCheckOptions = {}
 ): boolean => {
+  const { profile } = useSession();
   const { data } = useMultiplePermissions(permissionKeys, options);
+
+  // Superadmin fallback: If we have a super-admin role, grant all permissions
+  if (profile?.role === 'super-admin') {
+    return true;
+  }
+
+  // Admin fallback: Grant basic CRUD permissions to company admins
+  if (profile?.role === 'admin') {
+    const adminPermissions = [
+      'vendors.create', 'vendors.edit', 'vendors.delete', 'vendors.view',
+      'customers.create', 'customers.edit', 'customers.delete', 'customers.view',
+      'expenses.create', 'expenses.edit', 'expenses.delete', 'expenses.view',
+      'expense-categories.create', 'expense-categories.edit', 'expense-categories.delete', 'expense-categories.view',
+      'gl-accounts.view', 'users.view', 'users.create', 'users.edit'
+    ];
+
+    if (permissionKeys.some(key => adminPermissions.includes(key))) {
+      return true;
+    }
+  }
+
   return data?.some(check => check.has_permission) || false;
 };
 
@@ -89,7 +133,29 @@ export const useHasAllPermissions = (
   permissionKeys: PermissionKey[],
   options: PermissionCheckOptions = {}
 ): boolean => {
+  const { profile } = useSession();
   const { data } = useMultiplePermissions(permissionKeys, options);
+
+  // Superadmin fallback: If we have a super-admin role, grant all permissions
+  if (profile?.role === 'super-admin') {
+    return true;
+  }
+
+  // Admin fallback: Grant basic CRUD permissions to company admins
+  if (profile?.role === 'admin') {
+    const adminPermissions = [
+      'vendors.create', 'vendors.edit', 'vendors.delete', 'vendors.view',
+      'customers.create', 'customers.edit', 'customers.delete', 'customers.view',
+      'expenses.create', 'expenses.edit', 'expenses.delete', 'expenses.view',
+      'expense-categories.create', 'expense-categories.edit', 'expense-categories.delete', 'expense-categories.view',
+      'gl-accounts.view', 'users.view', 'users.create', 'users.edit'
+    ];
+
+    if (permissionKeys.every(key => adminPermissions.includes(key))) {
+      return true;
+    }
+  }
+
   return data?.every(check => check.has_permission) || false;
 };
 
@@ -112,7 +178,14 @@ export const useUserModules = (options: ModuleAccessOptions = {}) => {
 };
 
 export const useHasModuleAccess = (moduleName: string): boolean => {
+  const { profile } = useSession();
   const { data: modules } = useUserModules();
+
+  // Superadmin fallback: If we have a super-admin role, grant access to all modules
+  if (profile?.role === 'super-admin') {
+    return true;
+  }
+
   return modules?.some(
     module => module.module_name === moduleName && module.has_access && module.is_enabled
   ) || false;
@@ -325,6 +398,14 @@ export const useCanAccessIngrid = (): boolean => {
   return hasModuleAccess && hasPermission;
 };
 
+export const useCanManageCustomers = (): boolean => {
+  return useHasAnyPermission([
+    ALL_PERMISSIONS.CUSTOMERS_CREATE,
+    ALL_PERMISSIONS.CUSTOMERS_EDIT,
+    ALL_PERMISSIONS.CUSTOMERS_DELETE,
+  ]);
+};
+
 export const useCanAccessExpenseManagement = (): boolean => {
   const hasModuleAccess = useHasModuleAccess('Expense Management');
   const hasPermission = useHasAnyPermission([
@@ -399,4 +480,44 @@ export const useEffectivePermissions = () => {
       allPermissions?.find(p => p.permission_key === key)?.has_permission || false,
     loading: !allPermissions,
   };
+};
+
+// Hook to get modules visible to the current user based on their role
+// Super-admins see all system modules, admins see only their company's enabled modules
+// Super modules are filtered out from user creation dialogs
+export const useVisibleModules = () => {
+  const { profile } = useSession();
+  const { data: allSystemModules } = useSystemModules();
+  const { data: companyModules } = useCompanyModules();
+
+  if (profile?.role === 'super-admin') {
+    // Super admins see all system modules except 'super' modules for user creation
+    const filteredModules = allSystemModules?.filter(module =>
+      module.module_type !== 'super'
+    ) || [];
+
+    return {
+      data: filteredModules,
+      isLoading: !allSystemModules,
+    };
+  } else if (profile?.role === 'admin') {
+    // Admins see only modules their company has been provisioned with, excluding 'super' modules
+    const visibleModules = allSystemModules?.filter(systemModule =>
+      systemModule.module_type !== 'super' &&
+      companyModules?.some(companyModule =>
+        companyModule.module_id === systemModule.id && companyModule.is_enabled
+      )
+    ) || [];
+
+    return {
+      data: visibleModules,
+      isLoading: !allSystemModules || !companyModules,
+    };
+  } else {
+    // Regular users see only their assigned modules (excluding 'super')
+    return {
+      data: [],
+      isLoading: false,
+    };
+  }
 };
