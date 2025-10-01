@@ -1,4 +1,7 @@
 import {
+  require_prop_types
+} from "./chunk-XMGO5ZXW.js";
+import {
   require_MapCache,
   require_Set,
   require_SetCache,
@@ -36,9 +39,6 @@ import {
   require_setToArray,
   require_stubArray
 } from "./chunk-3ZODSPOA.js";
-import {
-  require_prop_types
-} from "./chunk-XMGO5ZXW.js";
 import {
   require_react_dom
 } from "./chunk-JGD6IGJ4.js";

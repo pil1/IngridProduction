@@ -3,7 +3,7 @@ import {
   Item,
   Root,
   createRovingFocusGroupScope
-} from "./chunk-JQUJ2FPD.js";
+} from "./chunk-A6XRWUAM.js";
 import "./chunk-3MKYC55T.js";
 import {
   useDirection
@@ -11,6 +11,7 @@ import {
 import {
   useId
 } from "./chunk-2IRPCHIZ.js";
+import "./chunk-O4TN7TGM.js";
 import {
   Presence
 } from "./chunk-CY6T2LSP.js";
@@ -20,7 +21,6 @@ import {
 import {
   composeEventHandlers
 } from "./chunk-P4S5NJOQ.js";
-import "./chunk-O4TN7TGM.js";
 import "./chunk-GPTUHXIO.js";
 import {
   createContextScope
