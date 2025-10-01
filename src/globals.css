@@ -2,37 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Inter Variable Font - Premium SaaS Typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
 @layer base {
   :root {
+    /* 🏆 PREMIUM $5K SAAS COLOR PALETTE - Phase 1.1 Complete ✅ */
+    /* Primary: Deep Indigo Navy - Premium SaaS Trust Colors */
+    --primary: 229 84% 25%; /* #1E3A5F - Deep Navy Blue */
+    --primary-foreground: 0 0% 98%;
+
+    /* Accent: Gold for premium highlights */
+    --accent: 45 86% 55%; /* #D97706 - Warm Gold */
+    --accent-foreground: 0 0% 100%;
+
+    /* Background: Clean professional whites */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Secondary: Subtle stone grays */
+    --secondary: 215 25% 95%; /* #EEF0F3 - Soft Stone */
+    --secondary-foreground: 215 25% 25%; /* #6B7280 */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Muted: Professional slate tones */
+    --muted: 215 25% 95%; /* #EEF0F3 */
+    --muted-foreground: 215 16% 47%; /* #64748B */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Borders: Subtle slate */
+    --border: 215 25% 85%; /* #E1E5E9 */
+    --input: 0 0% 98%; /* #FAFAFA */
+    --ring: 229 84% 25%; /* #1E3A5F - matches primary */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Semantic Colors */
+    --destructive: 0 84% 60%; /* #DC2626 */
+    --destructive-foreground: 0 0% 98%;
 
-    --destructive: 8 100% 67%; /* HSL for #FF7058 */
-    --destructive-foreground: 210 40% 98%; /* A light color for text on the destructive background */
+    /* Success: Forest green */
+    --success: 142 71% 28%; /* #166534 */
+    --success-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning: Warm amber */
+    --warning: 38 92% 50%; /* #D97706 */
+    --warning-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Legacy colors for compatibility */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 63%;
+
+    --brand-accent: 210 25% 25%;
+    --brand-accent-foreground: 210 40% 98%;
+    --brand-green: 170 60% 58%;
+    --brand-green-foreground: 210 40% 98%;
+    --brand-red: 8 100% 67%;
+    --brand-red-foreground: 210 40% 98%;
+
+    --radius: 0.75rem; /* Premium rounded corners */
 
     --sidebar-background: 0 0% 98%;
 
@@ -110,7 +144,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 }
 
