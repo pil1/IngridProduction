@@ -1,9 +1,9 @@
+/* Inter Variable Font - Premium SaaS Typography */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Inter Variable Font - Premium SaaS Typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @layer base {
   :root {
@@ -145,7 +145,13 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family:
+      "Inter Variable",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      "Roboto",
+      sans-serif;
   }
 }
 

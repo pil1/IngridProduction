@@ -12,12 +12,15 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Copy package files with proper ownership
-COPY --chown=nextjs:nodejs package.json yarn.lock ./
+# Copy package files
+COPY package.json yarn.lock ./
 
-# Install dependencies as non-root user
-USER nextjs
+# Install dependencies as root first
 RUN yarn install --frozen-lockfile --production=false
+
+# Then change ownership and switch to non-root user
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 # Copy source code with proper ownership
 COPY --chown=nextjs:nodejs . .
